@@ -2086,8 +2086,14 @@ class MIA:
         state_dict_entries_per_clas_layer = 2
         parameter_entries_per_clas_layer = 2
         length_tail = surrogate_model.length_tail
-        state_dict_entries_per_tail_layer = 7
-        parameter_entries_per_tail_layer = 4
+        print("Tail model has {} cuttable & non-trivial layer".format(length_tail))
+        print("Classifier model has {} cuttable & non-trivial layer".format(length_clas))
+        if "vgg" in self.arch:
+            state_dict_entries_per_tail_layer = 7
+            parameter_entries_per_tail_layer = 4
+        elif "resnet" in self.arch:
+            state_dict_entries_per_tail_layer = 12
+            parameter_entries_per_tail_layer = 6
         self.surrogate_tail = surrogate_model.cloud
         self.surrogate_classifier = surrogate_model.classifier
         self.surrogate_client = surrogate_model.local
@@ -2096,8 +2102,6 @@ class MIA:
         self.surrogate_tail.apply(init_weights)
         self.surrogate_classifier.apply(init_weights)
 
-        if "vgg11" not in self.arch or "resnet" not in self.arch:
-            raise("steal_attack for arch other than vgg11/resnet is not developed.")
         if train_clas_layer <= 0:
             train_clas = False
         else:
@@ -2188,7 +2192,6 @@ class MIA:
             self.surrogate_classifier = self.classifier
 
         if train_tail: # This only hold for VGG architecture
-            # print(self.f_tail.state_dict().keys())
             if train_clas_layer < length_clas + length_tail:   
                 w_out = copy.deepcopy(self.surrogate_tail.state_dict())       
                 for i, key in enumerate(w_out.keys()):
@@ -2203,7 +2206,6 @@ class MIA:
             self.logger.debug(len(surrogate_params))
 
         if train_clas:
-            # print(self.classifier.state_dict().keys())
             w_out = copy.deepcopy(self.surrogate_classifier.state_dict())
             if train_clas_layer < length_clas:
                 for i, key in enumerate(w_out.keys()):

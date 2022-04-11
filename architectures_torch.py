@@ -72,9 +72,9 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
         if arch == "resnet34":
             return ResNet_surrogate(make_ResNet_layers(BasicBlock, [3, 4, 6, 3], cfg['B'], cutting_layer), num_class = num_class, fc_size = cfg['B'][-1])
         if arch == "resnet20":
-            return cifarResNet_surrogate(make_cifarResNet_layers(BasicBlock, [3, 3, 3], cfg['C'], cutting_layer), num_class = num_class, fc_size = cfg['C'][-1])
+            return cifarResNet_surrogate(make_cifarResNet_layers(cifarResNet_BasicBlock, [3, 3, 3], cfg['C'], cutting_layer), num_class = num_class, fc_size = cfg['C'][-1])
         if arch == "resnet32":
-            return cifarResNet_surrogate(make_cifarResNet_layers(BasicBlock, [5, 5, 5], cfg['D'], cutting_layer), num_class = num_class, fc_size = cfg['D'][-1])
+            return cifarResNet_surrogate(make_cifarResNet_layers(cifarResNet_BasicBlock, [5, 5, 5], cfg['D'], cutting_layer), num_class = num_class, fc_size = cfg['D'][-1])
 
 class VGG_surrogate(nn.Module):
     '''
@@ -212,31 +212,30 @@ def make_ResNet_layers(block, layer_list, cfgA, cutting_layer):
     strides = [1] + [1]*(layer_list[0]-1)
     for stride in strides:
         layers.append(block(in_planes, cfgA[count], stride))
-        count += 1
         current_image_dim = current_image_dim // stride
-
         in_planes = cfgA[count] * block.expansion
+        count += 1
 
     strides = [2] + [1]*(layer_list[1]-1)
     for stride in strides:
         layers.append(block(in_planes, cfgA[count], stride))
-        count += 1
         current_image_dim = current_image_dim // stride
         in_planes = cfgA[count] * block.expansion
+        count += 1
 
     strides = [2] + [1]*(layer_list[2]-1)
     for stride in strides:
         layers.append(block(in_planes, cfgA[count], stride))
-        count += 1
         current_image_dim = current_image_dim // stride
         in_planes = cfgA[count] * block.expansion
+        count += 1
 
     strides = [2] + [1]*(layer_list[3]-1)
     for stride in strides:
         layers.append(block(in_planes, cfgA[count], stride))
-        count += 1
         current_image_dim = current_image_dim // stride
         in_planes = cfgA[count] * block.expansion
+        count += 1
     try:
         local_layer_list = layers[:cutting_layer]
         cloud_layer_list = layers[cutting_layer:]
@@ -250,6 +249,18 @@ def make_ResNet_layers(block, layer_list, cfgA, cutting_layer):
 
     return local, cloud, length_tail
 
+
+class DownsampleA(nn.Module):
+
+  def __init__(self, nIn, nOut, stride):
+    super(DownsampleA, self).__init__()
+    assert stride == 2
+    self.avg = nn.AvgPool2d(kernel_size=1, stride=stride)
+
+  def forward(self, x):
+    x = self.avg(x)
+    return torch.cat((x, x.mul(0)), 1)
+
 def make_cifarResNet_layers(block, layer_list, cfgA, cutting_layer):
 
     layers = []
@@ -257,28 +268,47 @@ def make_cifarResNet_layers(block, layer_list, cfgA, cutting_layer):
     count = 0
     layers.append(conv3x3(3, cfgA[count]))
     in_planes = cfgA[count]
+    count += 1
+    downsample = None
 
     strides = [1] + [1]*(layer_list[0]-1)
-    for stride in strides:
-        layers.append(block(in_planes, cfgA[count], stride))
-        count += 1
+    for i, stride in enumerate(strides):
+        if stride != 1 or in_planes != cfgA[count] * block.expansion:
+            downsample = DownsampleA(in_planes, cfgA[count] * block.expansion, stride)
+        if i == 0:
+            layers.append(block(in_planes, cfgA[count], stride, downsample))
+        else:
+            layers.append(block(in_planes, cfgA[count], stride))
         current_image_dim = current_image_dim // stride
 
         in_planes = cfgA[count] * block.expansion
+        count += 1
 
     strides = [2] + [1]*(layer_list[1]-1)
-    for stride in strides:
-        layers.append(block(in_planes, cfgA[count], stride))
-        count += 1
+    for i, stride in enumerate(strides):
+        if stride != 1 or in_planes != cfgA[count] * block.expansion:
+            downsample = DownsampleA(in_planes, cfgA[count] * block.expansion, stride)
+        if i == 0:
+            layers.append(block(in_planes, cfgA[count], stride, downsample))
+        else:
+            layers.append(block(in_planes, cfgA[count], stride))
+        
         current_image_dim = current_image_dim // stride
         in_planes = cfgA[count] * block.expansion
+        count += 1
 
     strides = [2] + [1]*(layer_list[2]-1)
-    for stride in strides:
-        layers.append(block(in_planes, cfgA[count], stride))
-        count += 1
+    for i, stride in enumerate(strides):
+        if stride != 1 or in_planes != cfgA[count] * block.expansion:
+            downsample = DownsampleA(in_planes, cfgA[count] * block.expansion, stride)
+        if i == 0:
+            layers.append(block(in_planes, cfgA[count], stride, downsample))
+        else:
+            layers.append(block(in_planes, cfgA[count], stride))
+        
         current_image_dim = current_image_dim // stride
         in_planes = cfgA[count] * block.expansion
+        count += 1
     try:
         local_layer_list = layers[:cutting_layer]
         cloud_layer_list = layers[cutting_layer:]
@@ -286,7 +316,7 @@ def make_cifarResNet_layers(block, layer_list, cfgA, cutting_layer):
         print("Cutting layer is greater than overall length of the ResNet arch! set cloud to empty list")
         local_layer_list = layers[:]
         cloud_layer_list = []
-    length_tail = 2 * len(cloud_layer_list)
+    length_tail = len(cloud_layer_list)
     local = nn.Sequential(*local_layer_list)
     cloud = nn.Sequential(*cloud_layer_list)
 
@@ -322,6 +352,36 @@ class BasicBlock(nn.Module):
 
 
 
+class cifarResNet_BasicBlock(nn.Module):
+    expansion = 1
+    """
+    RexNet basicblock (https://github.com/facebook/fb.resnet.torch/blob/master/models/resnet.lua)
+    """
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super(cifarResNet_BasicBlock, self).__init__()
+
+        self.conv_a = nn.Conv2d(inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn_a = nn.BatchNorm2d(planes)
+
+        self.conv_b = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn_b = nn.BatchNorm2d(planes)
+
+        self.downsample = downsample
+
+    def forward(self, x):
+        residual = x
+
+        basicblock = self.conv_a(x)
+        basicblock = self.bn_a(basicblock)
+        basicblock = F.relu(basicblock, inplace=True)
+
+        basicblock = self.conv_b(basicblock)
+        basicblock = self.bn_b(basicblock)
+
+        if self.downsample is not None:
+            residual = self.downsample(x)
+        
+        return F.relu(residual + basicblock, inplace=True)
 
 
 

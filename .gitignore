@@ -25,3 +25,6 @@ memory-characteristics/
 rebuttal_saves/
 test/
 tiny-imagenet-200/
+!saves/baseline/**/checkpoint_f_best.tar
+!saves/baseline/**/checkpoint_cloud_best.tar
+!saves/baseline/**/checkpoint_classifier_best.tar
