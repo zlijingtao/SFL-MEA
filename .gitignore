@@ -5,6 +5,7 @@ __pycache__
 # .ipynb_checkpoints
 *.tar
 *.zip
+*.jpg
 saves/*
 !saves/baseline/
 saves/baseline/*.log
