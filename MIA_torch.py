@@ -2079,8 +2079,6 @@ class MIA:
 
     def steal_attack(self, num_query = 10, num_epoch = 200, attack_client=0, attack_style = "None", data_proportion = 0.2, noniid_ratio = 1.0, train_clas_layer = 3, surrogate_arch = "same"):
 
-        
-
         surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, train_clas_layer, surrogate_arch)
         length_clas = surrogate_model.length_clas
         state_dict_entries_per_clas_layer = 2
