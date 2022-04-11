@@ -1,30 +1,15 @@
-*.code-workspace
+# *.code-workspace
 data
 __pycache__
-.vscode
-.ipynb_checkpoints
-train.log
-inference.log
-/temp_run.sh
+# .vscode
+# .ipynb_checkpoints
 *.tar
 *.zip
-!pretrained_models/**/*.tar
-saves/
-old_saves/
-gan_saves/
-saves_old/
-old_saves_1/
-old_saves_2/
-new_saves/
-poison_saves/
-attack_exp/
-!attack_exp/*.sh
-recent_saves/
-runs/
-memory-characteristics/
-rebuttal_saves/
-test/
+saves/*
+!saves/baseline/
+saves/baseline/*.log
+saves/baseline/**/tensorboard
+saves/baseline/**/*.log
+!saves/baseline/**/**_best.tar
 tiny-imagenet-200/
-!saves/baseline/**/checkpoint_f_best.tar
-!saves/baseline/**/checkpoint_cloud_best.tar
-!saves/baseline/**/checkpoint_classifier_best.tar
+
