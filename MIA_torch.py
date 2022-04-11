@@ -2083,7 +2083,11 @@ class MIA:
 
         surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, train_clas_layer, surrogate_arch)
         length_clas = surrogate_model.length_clas
+        state_dict_entries_per_clas_layer = 2
+        parameter_entries_per_clas_layer = 2
         length_tail = surrogate_model.length_tail
+        state_dict_entries_per_tail_layer = 7
+        parameter_entries_per_tail_layer = 4
         self.surrogate_tail = surrogate_model.cloud
         self.surrogate_classifier = surrogate_model.classifier
         self.surrogate_client = surrogate_model.local
@@ -2092,8 +2096,8 @@ class MIA:
         self.surrogate_tail.apply(init_weights)
         self.surrogate_classifier.apply(init_weights)
 
-        if "vgg" not in self.arch or "bn" not in self.arch:
-            raise("steal_attack for arch other than vgg_bn is not developed.")
+        if "vgg11" not in self.arch or "resnet" not in self.arch:
+            raise("steal_attack for arch other than vgg11/resnet is not developed.")
         if train_clas_layer <= 0:
             train_clas = False
         else:
@@ -2112,12 +2116,6 @@ class MIA:
             train_cli = True
         else:
             train_cli = False
-
-
-
-
-
-
 
         learning_rate = self.lr
         milestones = [30, 60, 90]
@@ -2180,64 +2178,55 @@ class MIA:
         self.validate_target(attack_client)
 
         surrogate_params = []
-        #item in surrogate_params should be [{'params': xx.parameters(), 'lr': }]
-        if "adversarial" in attack_style: # perfrom adversarial attack instead of stealing attack.
-            self.surrogate_client = self.model.local_list[attack_client]
+
+        # no matter what, load known client-side model to surrogate_client  
+        self.surrogate_client = self.model.local_list[attack_client]
+        
+        if not train_tail:
             self.surrogate_tail = self.f_tail
+        if not train_clas:
             self.surrogate_classifier = self.classifier
-            train_cli = False
-            train_tail = False
-            train_clas = False
-            surrogate_params += (list(self.surrogate_tail.parameters()) + list(self.surrogate_classifier.parameters()))
-        else:
-            # no matter what, load known client-side model to surrogate_client  
-            self.surrogate_client = self.model.local_list[attack_client]
-            
-            if not train_tail:
-                self.surrogate_tail = self.f_tail
-            if not train_clas:
-                self.surrogate_classifier = self.classifier
 
-            if train_tail: # This only hold for VGG architecture
-                # print(self.f_tail.state_dict().keys())
-                if train_clas_layer < length_clas + length_tail:   
-                    w_out = copy.deepcopy(self.surrogate_tail.state_dict())       
-                    for i, key in enumerate(w_out.keys()):
-                        if (length_tail*7 - i) > (train_clas_layer - length_clas) * 7:
-                            self.logger.debug("load {} to surrogate".format(key))
-                            w_out[key] = self.f_tail.state_dict()[key]
-                    self.surrogate_tail.load_state_dict(w_out)
-                    tail_param_list = list(self.surrogate_tail.parameters())
-                    surrogate_params += tail_param_list[int(length_tail*4 - (train_clas_layer - length_clas) * 4):]
-                else:
-                    surrogate_params += list(self.surrogate_tail.parameters())
-                self.logger.debug(len(surrogate_params))
-
-            if train_clas:
-                # print(self.classifier.state_dict().keys())
-                w_out = copy.deepcopy(self.surrogate_classifier.state_dict())
-                if train_clas_layer < length_clas:
-                    for i, key in enumerate(w_out.keys()):
-                        if (length_clas*2 - i) > train_clas_layer * 2:
-                            self.logger.debug("load {} to surrogate".format(key))
-                            w_out[key] = self.classifier.state_dict()[key]
-                    self.surrogate_classifier.load_state_dict(w_out)
-                    clas_param_list = list(self.surrogate_classifier.parameters())
-                    surrogate_params += clas_param_list[int(length_clas*2 - train_clas_layer * 2):]
-                else:
-                    surrogate_params += list(self.surrogate_classifier.parameters())
-                
-                self.logger.debug(len(surrogate_params))
-            
-            if train_cli:
-                surrogate_params += list(self.surrogate_client.parameters()) 
-
-            if len(surrogate_params) == 0:
-                self.logger.debug("surrogate parameter got nothing, add dummy param to prevent error")
-                dummy_param = torch.nn.Parameter(torch.zero(1,1))
-                surrogate_params = dummy_param
+        if train_tail: # This only hold for VGG architecture
+            # print(self.f_tail.state_dict().keys())
+            if train_clas_layer < length_clas + length_tail:   
+                w_out = copy.deepcopy(self.surrogate_tail.state_dict())       
+                for i, key in enumerate(w_out.keys()):
+                    if (length_tail*state_dict_entries_per_tail_layer - i) > (train_clas_layer - length_clas) * state_dict_entries_per_tail_layer:
+                        self.logger.debug("load {} to surrogate".format(key))
+                        w_out[key] = self.f_tail.state_dict()[key]
+                self.surrogate_tail.load_state_dict(w_out)
+                tail_param_list = list(self.surrogate_tail.parameters())
+                surrogate_params += tail_param_list[int(length_tail*parameter_entries_per_tail_layer - (train_clas_layer - length_clas) * parameter_entries_per_tail_layer):]
             else:
-                self.logger.debug("surrogate parameter has {} trainable parameters!".format(len(surrogate_params)))
+                surrogate_params += list(self.surrogate_tail.parameters())
+            self.logger.debug(len(surrogate_params))
+
+        if train_clas:
+            # print(self.classifier.state_dict().keys())
+            w_out = copy.deepcopy(self.surrogate_classifier.state_dict())
+            if train_clas_layer < length_clas:
+                for i, key in enumerate(w_out.keys()):
+                    if (length_clas*state_dict_entries_per_clas_layer - i) > train_clas_layer * state_dict_entries_per_clas_layer:
+                        self.logger.debug("load {} to surrogate".format(key))
+                        w_out[key] = self.classifier.state_dict()[key]
+                self.surrogate_classifier.load_state_dict(w_out)
+                clas_param_list = list(self.surrogate_classifier.parameters())
+                surrogate_params += clas_param_list[int(length_clas*parameter_entries_per_clas_layer - train_clas_layer * parameter_entries_per_clas_layer):]
+            else:
+                surrogate_params += list(self.surrogate_classifier.parameters())
+            
+            self.logger.debug(len(surrogate_params))
+        
+        if train_cli:
+            surrogate_params += list(self.surrogate_client.parameters()) 
+
+        if len(surrogate_params) == 0:
+            self.logger.debug("surrogate parameter got nothing, add dummy param to prevent error")
+            dummy_param = torch.nn.Parameter(torch.zero(1,1))
+            surrogate_params = dummy_param
+        else:
+            self.logger.debug("surrogate parameter has {} trainable parameters!".format(len(surrogate_params)))
             
         if optimizer_option == "SGD":
             suro_optimizer = torch.optim.SGD(surrogate_params, lr=learning_rate, momentum=0.9, weight_decay=5e-4)
@@ -2286,172 +2275,7 @@ class MIA:
         save_act = []
         save_label = []
 
-
-
-
-
-        '''(jump to line 2267) This function is unrelated to steal_attack but adversarial attack, for convenience, we put it here'''
-        if "adversarial" in attack_style:
-            for _ in range(num_query):
-                for data_loader in attacker_loader_list:
-                    for images, labels in data_loader:
-                        images = images.cuda()
-                        labels = labels.cuda()
-
-                        self.optimizer_zero_grad()
-                        z_private = self.model.local_list[attack_client](images)
-                        z_private.retain_grad()
-                        output = self.f_tail(z_private)
-
-                        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                            output = F.avg_pool2d(output, 4)
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        elif self.arch == "resnet20" or self.arch == "resnet32":
-                            output = F.avg_pool2d(output, 8)
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        else:
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        loss = criterion(output, labels)
-                        loss.backward(retain_graph = True)
-                        z_private_grad = z_private.grad.detach().cpu()
-
-                        save_images.append(images.cpu())
-                        save_grad.append(z_private_grad)
-                        save_act.append(z_private.detach().cpu())
-                        save_label.append(labels.cpu())
-            
-            length_data = len(save_act)
-
-            adversarial_training_option = False
-
-            adversarial_training_lr = 0.005
-
-            # adversarial training lambda
-            JBDA_lambda1 = 0.00
-            # we allow the attacker to use a different lambda
-            JBDA_lambda2 = 0.05
-            # implementing the adversarial training
-            if adversarial_training_option:
-                
-                suro_optimizer = torch.optim.SGD(surrogate_params, lr=adversarial_training_lr, momentum=0.9, weight_decay=5e-4)
-
-                suro_scheduler = torch.optim.lr_scheduler.MultiStepLR(suro_optimizer, milestones=milestones,
-                                                                gamma=0.2)  # learning rate decay
-                jacob_act_list = []
-                for i in range(length_data):
-                    jacob_act = save_act[i] + torch.sign(save_grad[i]) * JBDA_lambda1
-                    jacob_act_list.append(jacob_act)
-                    
-                for i in range(length_data):
-                    save_act.append(jacob_act_list[i])
-                    save_label.append(save_label[i])
-
-                act_data = torch.cat(save_act)
-                label_data = torch.cat(save_label)
-
-                indices = torch.arange(act_data.shape[0]).long()
-                ds = torch.utils.data.TensorDataset(indices, act_data, label_data)
-                dl = torch.utils.data.DataLoader(
-                    ds, batch_size=self.batch_size, num_workers=4, shuffle=True
-                )
-                self.logger.debug("length of dl is ", len(dl))
-
-                self.surrogate_tail.train()
-                self.surrogate_classifier.train()
-
-                acc_loss_min_grad_loss = 9.9
-                val_acc_max = 0.0
-                
-                best_tail_state_dict = None
-                best_classifier_state_dict = None
-                for epoch in range(num_epoch):
-                    grad_loss_list = []
-                    acc_loss_list = []
-                    acc_list = []
-                    suro_scheduler.step(epoch)
-
-                    for index, act, label in dl:
-                        act = act.cuda()
-                        label = label.cuda()
-                        
-                        suro_optimizer.zero_grad()
-                        act.requires_grad = True
-                        output = self.surrogate_tail(act)
-
-                        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                            output = F.avg_pool2d(output, 4)
-                            output = output.view(output.size(0), -1)
-                            output = self.surrogate_classifier(output)
-                        elif self.arch == "resnet20" or self.arch == "resnet32":
-                            output = F.avg_pool2d(output, 8)
-                            output = output.view(output.size(0), -1)
-                            output = self.surrogate_classifier(output)
-                        else:
-                            output = output.view(output.size(0), -1)
-                            output = self.surrogate_classifier(output)
-                        ce_loss = criterion(output, label)
-
-                        total_loss = ce_loss
-                        
-                        total_loss.backward()
-                        suro_optimizer.step()
-
-                        acc_loss_list.append(ce_loss.detach().cpu().item())
-                        acc = accuracy(output.data, label)[0]
-                        acc_list.append(acc.cpu().item())
-                        
-                        
-                    acc_loss_mean = np.mean(acc_loss_list)
-                    avg_acc = np.mean(acc_list)
-
-                    val_accu = self.steal_test(attack_client=attack_client)
-
-                    if val_accu > val_acc_max:
-                        acc_loss_min_grad_loss = acc_loss_mean
-                        val_acc_max = val_accu
-
-                    self.logger.debug("epoch: {}, train_acc: {}, val_acc: {}, acc_loss: {}".format(epoch, avg_acc, val_accu, acc_loss_mean))
-                            
-            jacob_act_list = []
-            for i in range(length_data):
-                jacob_act = save_act[i] + torch.sign(save_grad[i]) * JBDA_lambda2
-                jacob_act_list.append(jacob_act)
-            
-            
-            self.f_tail.eval()
-            self.classifier.eval()
-            acc_meter = AverageMeter()
-            with torch.no_grad():
-                for i in range(len(jacob_act_list)):
-                    z_private = jacob_act_list[i].cuda()
-                    label = save_label[i].cuda()
-                    output = self.f_tail(z_private)
-
-                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                        output = F.avg_pool2d(output, 4)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    elif self.arch == "resnet20" or self.arch == "resnet32":
-                        output = F.avg_pool2d(output, 8)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    else:
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    _, pred = output.topk(1, 1, True, True)
-
-                    correct = label.eq(pred.view(-1).expand_as(label)).view(-1).float().sum(0)
-                    acc = correct / output.size(0) 
-                    acc_meter.update(acc)
-            self.logger.debug("Adversarial accuracy is {}".format(acc_meter.avg))
-            exit()
-        
-
-
-        ''' Ideal case: Start of crafting training dataset for surrogate model training'''
+        ''' crafting training dataset for surrogate model training'''
 
         if Craft_option:
             for c in range(self.num_class):
@@ -2494,12 +2318,11 @@ class MIA:
                                                                                                 featureLoss.cpu().detach().numpy(),
                                                                                                 TVLoss.cpu().detach().numpy(),
                                                                                                 normLoss.cpu().detach().numpy()))
-                    # z_private_grad = z_private.grad.detach().cpu()
+                    
                     save_images.append(fake_image.detach().cpu().clone())
                     save_grad.append(z_private.grad.detach().cpu().clone())
                     save_act.append(z_private.detach().cpu().clone())
                     save_label.append(fake_label.cpu().clone())
-                    
                     
                     # imgGen = fake_image.clone()
 
@@ -2511,6 +2334,7 @@ class MIA:
                     
                     # torchvision.utils.save_image(imgGen, self.save_dir + 'craft_option/out_c{}_{}.jpg'.format(c,i))
 
+        ''' TrainME: Use available training dataset for surrogate model training'''
         
         if (JBDA_option_A or JBDA_option_B or JBDA_option_C or ("None" in attack_style) and attacker_dataloader is not None):
             for _ in range(num_query):
@@ -2543,7 +2367,7 @@ class MIA:
                     save_act.append(z_private.detach().cpu().clone())
                     save_label.append(labels.cpu().clone())
             
-        # collect grad query on available data
+        ''' SoftTrainME, crafts soft input label pairs for surrogate model training'''
         if  KD_option and attacker_dataloader is not None:
             # Use KD_option, query the gradients on inputs with all label combinations
             # This would expand the query budget by a factor of #num_class
@@ -2629,7 +2453,7 @@ class MIA:
                     save_act.append(z_private.detach().cpu().clone())
                     save_label.append(derived_label.cpu().clone())
             
-        # collect inference/grad query on JBDA data
+        ''' JBDA augmentation to train surrogate model, A needs prediction query, C uses grad to infer label'''
         if JBDA_option_A or JBDA_option_B or JBDA_option_C: # see https://github.com/wanglouis49/pytorch-adversarial_box/blob/bddb5a899a7658182ea78063fd7ec405de083956/adversarialbox/attacks.py#L93
             jacob_act_list = []
             for i in range(len(save_act)):
@@ -2657,10 +2481,6 @@ class MIA:
                             output = self.classifier(output)
                         _, pred = output.topk(1, 1, True, True)
 
-
-
-                        # pred = pred.view(-1)
-                        # loss = criterion(output, labels)
                         save_images.append(save_images[i].clone())
                         save_grad.append(save_grad[i].clone())
                         save_act.append(z_private.detach().cpu().clone())
@@ -2743,7 +2563,7 @@ class MIA:
                     save_label.append(deduct_label.cpu().clone())
                 self.logger.debug("labeling accuracy is {}".format(acc_meter.avg))
         
-        # collect inferece query on auxiliary data
+        ''' Knockoffset, option_B has no prediction query (use grad-matching), option_C has predicion query (craft input-label pair)'''
         if Transferset_option_B or Transferset_option_C:
 
             if data_proportion == 0.0:
@@ -2830,9 +2650,7 @@ class MIA:
                     save_act.append(z_private.detach().cpu().clone())
                     save_label.append(pred.view(-1).cpu().clone())
         
-
-
-
+        '''GAN_ME, data-free model extraction, train a conditional GAN, train-time option: use 'gan_train' in regularization_option'''
         if Generator_option:
             # get prototypical data using GAN, training generator consumes grad query.
             self.train_generator(number_epochs = number_epochs, nz = nz, 
@@ -2861,6 +2679,7 @@ class MIA:
             if os.path.isdir(test_output_path):
                 rmtree(test_output_path)
             os.makedirs(test_output_path)
+        
         if train_cli:
             self.surrogate_client.train()
         else:
@@ -2883,13 +2702,17 @@ class MIA:
         val_accu = self.steal_test(attack_client=attack_client)
         self.logger.debug("epoch: {}, val_acc: {}".format(0, val_accu))
 
+
+
+        # Train surrogate model
         for epoch in range(1, num_epoch + 1):
             grad_loss_list = []
             acc_loss_list = []
             acc_list = []
             suro_scheduler.step(epoch)
 
-            if Transferset_option_B: # Use grads only for training.
+            # Use grads only for training surrogate
+            if Transferset_option_B: 
                 acc_loss_list.append(0.0)
                 acc_list.append(0.0)
                 for idx, (index, image, act, grad, label) in enumerate(dl):
@@ -2919,14 +2742,9 @@ class MIA:
                         output = self.surrogate_classifier(output)
 
                     ce_loss = criterion(output, label)
-                    # grad_lambda controls the strength of gradient matching lass
+
                     gradient_loss_style = "l2"
 
-                    # if self.num_class == 100:
-                    #     grad_lambda = 0.001
-                    # elif self.num_class == 10:
-                    #     grad_lambda = 0.001
-                    # else:
                     grad_lambda = 1.0
 
                     grad_approx = torch.autograd.grad(ce_loss, act, create_graph = True)[0]
@@ -2977,7 +2795,6 @@ class MIA:
                     if not KD_option:
                         ce_loss = criterion(output, label)
                     else:
-                        # log_prob = torch.nn.functional.log_softmax(output, dim=1)
                         _, real_label = label.max(dim = 1)
                         ce_loss = criterion(output, real_label) + kd_lambda * torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
                         
@@ -3011,7 +2828,6 @@ class MIA:
                             total_loss = ce_loss
                         else:
                             total_loss = ce_loss + grad_loss * grad_lambda
-                            # total_loss = grad_loss * grad_lambda
        
                     else:
                         total_loss = ce_loss
@@ -3074,6 +2890,7 @@ class MIA:
                     acc = accuracy(output.data, label)[0]
                     acc_list.append(acc.cpu().item())
             
+
             if gradient_matching:
                 grad_loss_mean = np.mean(grad_loss_list)
             else:
@@ -3116,11 +2933,6 @@ class MIA:
             self.surrogate_client.load_state_dict(best_client_state_dict)
             self.surrogate_tail.load_state_dict(best_tail_state_dict)
             self.surrogate_classifier.load_state_dict(best_classifier_state_dict)
-        # check their code to finish the rest
-        #TODO: try heavy augmentation.
-        # val_accu = self.steal_test(attack_client=attack_client)
-        # print("val_accu of stealed model is {}".format(val_accu))
-
 
     def train_generator(self, number_epochs, nz, client_model, data_helper = None, resume = False, discriminator_option = False):
         lr_G = 1e-4
