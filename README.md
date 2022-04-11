@@ -1,5 +1,5 @@
-# MIA Defense: Resistance-Ready: Attacker-Aware Training + NetworkBottleneck
-This repository is official pytorch repository of Resistance-Ready -  for defending MIA in split learning.
+# SFL IP protection: a model split approach to protect IP of FL
+This repository is official pytorch repository of SFL IP protection
 
 ## Requirement:
 matplotlib
@@ -14,24 +14,18 @@ thop (pip install)
 
 ## Code:
 
-* *MIA_torch.py*: It implements the all utility functions of split learning and running MIA attacks.
+* *MIA_torch.py*: It implements the all utility functions of split learning and running model extraction attacks during SFL
+
+* *MIA_torch.py - self.steal_attack*: It implements all model extraction attacks as post analysis on a trained SFL model.
 
 * *main_MIA.py*: Entry code to train a defensive model/vanilla model.
 
-* *main_test_MIA.py*: Entry code to resume a trained model and perform MIA attack.
+* *main_test_MIA.py*: Entry code to resume a trained model.
+
+* *main_model_steal.py*: Entry code to do post-analysis of all model extraction attacks.
 
 ## Proof Of Concepts:
 
 
 
 ## Cite the work:
-```
-@misc{li2021resistant,
-      title={Resistant-Ready: xxx},
-      author={Jingtao Li and others}, 
-      year={2021},
-      eprint={2012.02670},
-      archivePrefix={arXiv},
-      primaryClass={cs.CR}
-}
-```
