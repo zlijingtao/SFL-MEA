@@ -11,6 +11,12 @@ from torch.nn.modules.linear import Linear
 
 def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0, surrogate_arch = "same"):
     train_clas_layer = int(train_clas_layer)
+
+    key_dict = { "resnet18": "A", "resnet34": "B", "resnet20": "C", "resnet32": "D", 
+    "vgg11_bn": "A", "vgg11": "A", "vgg13_bn": "B", "vgg13": "B", "vgg16_bn": "D", "vgg16": "D", "vgg19_bn": "E", "vgg19": "E", 
+
+    }
+
     if "vgg" in arch:
         cfg = {
             'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
@@ -29,7 +35,7 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
                 for i in range(train_clas_layer - 1):
                     cfg['fc'][len(cfg['fc']) - 1 - i] = int(1/2 * cfg['fc'][len(cfg['fc']) - 1 - i])
                 print("tinner. CFG is {}".format(str(cfg)))
-        elif train_clas_layer <= 6 + len(cfg['fc']):
+        else:
             if surrogate_arch == "wider":
                 mul_factor = 2
             elif surrogate_arch == "thinner":
@@ -43,8 +49,8 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
             j = 1
             count = 0
             while(count < train_clas_layer - len(cfg['fc'])):
-                if cfg['A'][-j] != "M":
-                    cfg['A'][-j] = int(mul_factor * cfg['A'][-j])
+                if cfg[key_dict[arch]][-j] != "M":
+                    cfg[key_dict[arch]][-j] = int(mul_factor * cfg[key_dict[arch]][-j])
                     count += 1
                 j += 1
 
@@ -53,28 +59,170 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
             #     if cfg['A'][len(cfg['A']) - 1 - j] != "M":
             #         cfg['A'][len(cfg['A']) - 1 - j] = int(mul_factor * cfg['A'][len(cfg['A']) - 1 - j]) 
             print("{}. CFG is {}".format(surrogate_arch, str(cfg)))
-        else:
-            print("ERROR! {} is too large, has not been implemented yet.".format(train_clas_layer))
-            exit()
+            
         if arch == "vgg11_bn":
             return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['A'], batch_norm=True), cfg['fc'], num_class = num_class)
         elif arch == "vgg11":
             return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['A'], batch_norm=False), cfg['fc'], num_class = num_class)
-    if "resnet" in arch:
+        elif arch == "vgg13_bn":
+            return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['B'], batch_norm=True), cfg['fc'], num_class = num_class)
+        elif arch == "vgg13":
+            return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['B'], batch_norm=False), cfg['fc'], num_class = num_class)
+        elif arch == "vgg16_bn":
+            return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['D'], batch_norm=True), cfg['fc'], num_class = num_class)
+        elif arch == "vgg16":
+            return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['D'], batch_norm=False), cfg['fc'], num_class = num_class)
+        elif arch == "vgg19_bn":
+            return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['E'], batch_norm=True), cfg['fc'], num_class = num_class)
+        elif arch == "vgg19":
+            return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['E'], batch_norm=False), cfg['fc'], num_class = num_class)
+    elif "resnet" in arch:
         cfg = {
             'A': [64, 64, 64, 128, 128, 256, 256, 512, 512],
             'B': [64, 64, 64, 64, 128, 128, 128, 128, 256, 256, 256, 256, 256, 256, 512, 512, 512],
             'C': [16, 16, 16, 16, 32, 32, 32, 64, 64, 64],
             'D': [16, 16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 64, 64, 64, 64, 64],
         }
+        if train_clas_layer > 1:
+            if surrogate_arch == "wider":
+                mul_factor = 2
+            elif surrogate_arch == "thinner":
+                mul_factor = 0.5
+            else:
+                mul_factor = 1
+            j = 1
+            count = 0
+            while(count < train_clas_layer - 1):
+                cfg[key_dict[arch]][-j] = int(mul_factor * cfg[key_dict[arch]][-j])
+                count += 1
+                j += 1
         if arch == "resnet18":
             return ResNet_surrogate(make_ResNet_layers(BasicBlock, [2, 2, 2, 2], cfg['A'], cutting_layer), num_class = num_class, fc_size = cfg['A'][-1])
-        if arch == "resnet34":
+        elif arch == "resnet34":
             return ResNet_surrogate(make_ResNet_layers(BasicBlock, [3, 4, 6, 3], cfg['B'], cutting_layer), num_class = num_class, fc_size = cfg['B'][-1])
-        if arch == "resnet20":
+        elif arch == "resnet20":
             return cifarResNet_surrogate(make_cifarResNet_layers(cifarResNet_BasicBlock, [3, 3, 3], cfg['C'], cutting_layer), num_class = num_class, fc_size = cfg['C'][-1])
-        if arch == "resnet32":
+        elif arch == "resnet32":
             return cifarResNet_surrogate(make_cifarResNet_layers(cifarResNet_BasicBlock, [5, 5, 5], cfg['D'], cutting_layer), num_class = num_class, fc_size = cfg['D'][-1])
+    elif "mobilenetv2" in arch:
+        cfg = {"A": [32, [1,  16, 1, 1],
+           [6,  24, 2, 1],  # NOTE: change stride 2 -> 1 for CIFAR10
+           [6,  32, 3, 2],
+           [6,  64, 4, 2],
+           [6,  96, 3, 1],
+           [6, 160, 3, 2],
+           [6, 320, 1, 1], 1280]}
+        
+        if train_clas_layer > 1:
+            if surrogate_arch == "wider":
+                mul_factor = 2
+            elif surrogate_arch == "thinner":
+                mul_factor = 0.5
+            else:
+                mul_factor = 1
+            j = 1
+            count = 0
+            while(count < train_clas_layer - 1):
+                if isinstance(cfg["A"][-j], list):
+                    cfg["A"][-j][1] = int(mul_factor * cfg["A"][-j][1])
+                else:
+                    cfg["A"][-j] = int(mul_factor * cfg["A"][-j])
+                count += 1
+                j += 1
+
+
+        return MobileNet_surrogate(make_mobilenet_layers(cutting_layer,cfg["A"], in_planes=32), num_class = num_class)
+
+
+
+
+
+
+
+
+class MobileNet_surrogate(nn.Module):
+    
+
+    def __init__(self, feature, num_class = 10):
+        super(MobileNet_surrogate, self).__init__()
+        self.local = feature[0]
+        self.cloud = feature[1]
+        self.length_tail = feature[2]
+        self.classifier = nn.Linear(1280, num_class)
+        self.length_clas = 1
+    def forward(self, x):
+        local_output = self.local(x)
+        x = self.cloud(local_output)
+        # NOTE: change pooling kernel_size 7 -> 4 for CIFAR10
+        x = F.avg_pool2d(x, 4)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+
+class mobilenet_Block(nn.Module):
+    '''expand + depthwise + pointwise'''
+    def __init__(self, in_planes, out_planes, expansion, stride):
+        super(mobilenet_Block, self).__init__()
+        self.stride = stride
+
+        planes = expansion * in_planes
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, groups=planes, bias=False)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv3 = nn.Conv2d(planes, out_planes, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn3 = nn.BatchNorm2d(out_planes)
+
+        self.shortcut = nn.Sequential()
+        if stride == 1 and in_planes != out_planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=1, padding=0, bias=False),
+                nn.BatchNorm2d(out_planes),
+            )
+
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = F.relu(self.bn2(self.conv2(out)))
+        out = self.bn3(self.conv3(out))
+        out = out + self.shortcut(x) if self.stride==1 else out
+        return out
+
+def make_mobilenet_layers(cutting_layer, cfg, in_planes):
+        local_layer_list = []
+        cloud_layer_list = []
+        current_layer = 0
+        length_tail = 0
+        if cutting_layer > current_layer:
+            local_layer_list.append(nn.Conv2d(3, cfg[0], kernel_size=3, stride=1, padding=1, bias=False))
+            local_layer_list.append(nn.BatchNorm2d(32))
+        else:
+            cloud_layer_list.append(nn.Conv2d(3, cfg[0], kernel_size=3, stride=1, padding=1, bias=False))
+            cloud_layer_list.append(nn.BatchNorm2d(32))
+            length_tail += 1
+        
+        for expansion, out_planes, num_blocks, stride in cfg[1:-1]:
+            current_layer += 1
+            strides = [stride] + [1]*(num_blocks-1)
+            for stride in strides:
+                if cutting_layer > current_layer:
+                    local_layer_list.append(mobilenet_Block(in_planes, out_planes, expansion, stride))
+                else:
+                    cloud_layer_list.append(mobilenet_Block(in_planes, out_planes, expansion, stride))
+                    length_tail += 1
+                in_planes = out_planes
+        current_layer += 1
+        if cutting_layer > current_layer:
+            local_layer_list.append(nn.Conv2d(cfg[-2][1], cfg[-1], kernel_size=1, stride=1, padding=0, bias=False))
+            local_layer_list.append(nn.BatchNorm2d(1280))
+        else:
+            cloud_layer_list.append(nn.Conv2d(cfg[-2][1], cfg[-1], kernel_size=1, stride=1, padding=0, bias=False))
+            cloud_layer_list.append(nn.BatchNorm2d(1280))
+            length_tail += 1
+
+        return nn.Sequential(*local_layer_list), nn.Sequential(*cloud_layer_list), length_tail
+
+
 
 class VGG_surrogate(nn.Module):
     '''
@@ -94,12 +242,6 @@ class VGG_surrogate(nn.Module):
         classifier_list += [nn.Linear(fc_cfg[2], num_class)]
         self.classifier = nn.Sequential(*classifier_list)
         self.length_clas = 3
-        print("local:")
-        print(self.local)
-        print("cloud:")
-        print(self.cloud)
-        print("classifier:")
-        print(self.classifier)
 
     def forward(self, x):
         self.local_output = self.local(x)
@@ -208,6 +350,7 @@ def make_ResNet_layers(block, layer_list, cfgA, cutting_layer):
     count = 0
     layers.append(conv3x3(3, cfgA[count]))
     in_planes = cfgA[count]
+    count += 1
 
     strides = [1] + [1]*(layer_list[0]-1)
     for stride in strides:

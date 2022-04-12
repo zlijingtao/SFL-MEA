@@ -28,6 +28,8 @@ TINYIMAGENET_TRAIN_MEAN = (0.5141, 0.5775, 0.3985)
 TINYIMAGENET_TRAIN_STD = (0.2927, 0.2570, 0.1434)
 SVHN_TRAIN_MEAN = (0.3522, 0.4004, 0.4463)
 SVHN_TRAIN_STD = (0.1189, 0.1377, 0.1784)
+IMAGENET_TRAIN_MEAN = (0.485, 0.456, 0.406)
+IMAGENET_TRAIN_STD = (0.229, 0.224, 0.225)
 
 def getImagesDS(X, n):
     image_list = []
@@ -401,84 +403,59 @@ def get_tinyimagenet_bothloader(batch_size=16, num_workers=2, shuffle=True, num_
     return tinyimagenet_training_loader, tinyimagenet_testing_loader
 
 
+def get_imagenet_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0):
+    """ return training dataloader
+    Returns: train_data_loader:torch dataloader object
+    """
+    transform_train = transforms.Compose([
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(15),
+        transforms.ToTensor(),
+        transforms.Normalize(IMAGENET_TRAIN_MEAN, IMAGENET_TRAIN_STD)
+    ])
+    train_dir = os.path.join("../../imagenet", 'train')
+    imagenet_training = torchvision.datasets.ImageFolder(train_dir, transform=transform_train)
 
-def get_purchase_trainloader():
-    DATASET_PATH='./datasets/purchase'
-    DATASET_NAME= 'dataset_purchase'
+    indices = torch.randperm(len(imagenet_training))[:int(len(imagenet_training)* data_portion)]
 
-    if not os.path.isdir(DATASET_PATH):
-        os.makedirs(DATASET_PATH)
+    imagenet_training = torch.utils.data.Subset(imagenet_training, indices)
 
-    DATASET_FILE = os.path.join(DATASET_PATH,DATASET_NAME)
+    if num_client == 1:
+        imagenet_training_loader = [DataLoader(
+            imagenet_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)]
+    elif num_client > 1:
+        imagenet_training_loader = []
 
-    if not os.path.isfile(DATASET_FILE):
-        print("Dowloading the dataset...")
-        urllib.request.urlretrieve("https://www.comp.nus.edu.sg/~reza/files/dataset_purchase.tgz",os.path.join(DATASET_PATH,'tmp.tgz'))
-        print('Dataset Dowloaded')
+        if noniid_ratio < 1.0:
+            imagenet_training_subset_list = noniid_alllabel(imagenet_training, num_client, noniid_ratio, 100)
 
-        tar = tarfile.open(os.path.join(DATASET_PATH,'tmp.tgz'))
-        tar.extractall(path=DATASET_PATH)
+        for i in range(num_client):
+            if noniid_ratio == 1.0:
+                imagenet_training_subset = torch.utils.data.Subset(imagenet_training, list(range(i * (len(imagenet_training)//num_client), (i+1) * (len(imagenet_training)//num_client))))
+            else:
+                imagenet_training_subset = DatasetSplit(imagenet_training, imagenet_training_subset_list[i])
+            
+            subset_training_loader = DataLoader(
+                imagenet_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
+            imagenet_training_loader.append(subset_training_loader)
 
-
-    data_set =np.genfromtxt(DATASET_FILE,delimiter=',')
-
-    X = data_set[:,1:].astype(np.float64)
-    Y = (data_set[:,0]).astype(np.int32)-1
-
-    len_train =len(X)
-    r = np.load('./dataset_shuffle/random_r_purchase100.npy')
-    X=X[r]
-    Y=Y[r]
-    train_classifier_ratio, train_attack_ratio = 0.1,0.15
-    train_classifier_data = X[:int(train_classifier_ratio*len_train)]
-    test_data = X[int((train_classifier_ratio+train_attack_ratio)*len_train):]
-
-    train_classifier_label = Y[:int(train_classifier_ratio*len_train)]
-    test_label = Y[int((train_classifier_ratio+train_attack_ratio)*len_train):]
-
-    xpriv = TensorDataset(train_classifier_data, train_classifier_label)
-    xpub = TensorDataset(test_data, test_label)
+    return imagenet_training_loader
 
 
-    train_classifier_ratio, train_attack_ratio = 0.1,0.3
-    train_data = X[:int(train_classifier_ratio*len_train)]
-    test_data = X[int((train_classifier_ratio+train_attack_ratio)*len_train):]
+def get_imagenet_testloader(batch_size=16, num_workers=2, shuffle=True):
+    """ return training dataloader
+    Returns: imagenet_test_loader:torch dataloader object
+    """
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(IMAGENET_TRAIN_MEAN, IMAGENET_TRAIN_STD)
+    ])
+    train_dir = os.path.join("../../imagenet", 'val')
+    imagenet_test = torchvision.datasets.ImageFolder(train_dir, transform=transform_test)
+    imagenet_test_loader = DataLoader(imagenet_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
     
-    train_label = Y[:int(train_classifier_ratio*len_train)]
-    test_label = Y[int((train_classifier_ratio+train_attack_ratio)*len_train):]
-    
-    np.random.seed(100)
-    train_len = train_data.shape[0]
-    r = np.arange(train_len)
-    np.random.shuffle(r)
-    shadow_indices = r[:train_len//2]
-    target_indices = r[train_len//2:]
-
-    shadow_train_data, shadow_train_label = train_data[shadow_indices], train_label[shadow_indices]
-    target_train_data, target_train_label = train_data[target_indices], train_label[target_indices]
-
-    test_len = 1*train_len
-    r = np.arange(test_len)
-    np.random.shuffle(r)
-    shadow_indices = r[:test_len//2]
-    target_indices = r[test_len//2:]
-    
-    shadow_test_data, shadow_test_label = test_data[shadow_indices], test_label[shadow_indices]
-    target_test_data, target_test_label = test_data[target_indices], test_label[target_indices]
-
-    shadow_train = tensor_data_create(shadow_train_data, shadow_train_label)
-    shadow_train_loader = DataLoader(shadow_train, batch_size=batch_size, shuffle=True, num_workers=1)
-
-    shadow_test = tensor_data_create(shadow_test_data, shadow_test_label)
-    shadow_test_loader = DataLoader(shadow_test, batch_size=batch_size, shuffle=True, num_workers=1)
-
-    target_train = tensor_data_create(target_train_data, target_train_label)
-    target_train_loader = DataLoader(target_train, batch_size=batch_size, shuffle=True, num_workers=1)
-
-    target_test = tensor_data_create(target_test_data, target_test_label)
-    target_test_loader = DataLoader(target_test, batch_size=batch_size, shuffle=True, num_workers=1)
-    print('Data loading finished')
-    return shadow_train_loader, shadow_test_loader, target_train_loader, target_test_loader
+    return imagenet_test_loader
 
 def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0):
     """ return training dataloader

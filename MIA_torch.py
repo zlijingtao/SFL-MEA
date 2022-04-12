@@ -24,7 +24,7 @@ from datetime import datetime
 import os, copy
 from shutil import rmtree
 from datasets_torch import get_cifar100_trainloader, get_cifar100_testloader, get_cifar10_trainloader, \
-    get_cifar10_testloader, get_mnist_bothloader, get_facescrub_bothloader, get_SVHN_trainloader, get_SVHN_testloader, get_fmnist_bothloader, get_tinyimagenet_bothloader
+    get_cifar10_testloader, get_imagenet_trainloader, get_imagenet_testloader, get_mnist_bothloader, get_facescrub_bothloader, get_SVHN_trainloader, get_SVHN_testloader, get_fmnist_bothloader, get_tinyimagenet_bothloader
 from tqdm import tqdm
 
 DENORMALIZE_OPTION=True
@@ -313,6 +313,18 @@ class MIA:
                                                                                                          shuffle=False)
             self.orig_class = 100
 
+        elif self.dataset == "imagenet":
+            self.client_dataloader = get_imagenet_trainloader(batch_size=self.batch_size,
+                                                                num_workers=4,
+                                                                shuffle=True,
+                                                                num_client=actual_num_users,
+                                                                collude_use_public=self.collude_use_public,
+                                                                data_portion=self.dataset_portion, noniid_ratio = self.noniid_ratio)
+            # print()
+            self.pub_dataloader = get_imagenet_testloader(batch_size=self.batch_size,
+                                                            num_workers=4,
+                                                            shuffle=False)
+            self.orig_class = 1000
         elif self.dataset == "svhn":
             self.client_dataloader, self.mem_trainloader, self.mem_testloader = get_SVHN_trainloader(batch_size=self.batch_size,
                                                                                                          num_workers=4,
@@ -2026,6 +2038,8 @@ class MIA:
                 _, val_single_loader = get_facescrub_bothloader(batch_size=1, num_workers=4, shuffle=False)
             elif self.dataset == "tinyimagenet":
                 _, val_single_loader = get_tinyimagenet_bothloader(batch_size=1, num_workers=4, shuffle=False)
+            elif self.dataset == "imagenet":
+                val_single_loader = get_imagenet_testloader(batch_size=1, num_workers=4, shuffle=False)
             attack_path = self.save_dir + '/MIA_attack_{}to{}'.format(client_id, client_id)
             if not os.path.isdir(attack_path):
                 os.makedirs(attack_path)
@@ -2092,6 +2106,9 @@ class MIA:
         elif "resnet" in self.arch:
             state_dict_entries_per_tail_layer = 12
             parameter_entries_per_tail_layer = 6
+        elif "mobilenet" in self.arch:
+            state_dict_entries_per_tail_layer = 18
+            parameter_entries_per_tail_layer = 9
         self.surrogate_tail = surrogate_model.cloud
         self.surrogate_classifier = surrogate_model.classifier
         self.surrogate_client = surrogate_model.local
@@ -2191,7 +2208,9 @@ class MIA:
 
         if train_tail: # This only hold for VGG architecture
             if train_clas_layer < length_clas + length_tail:   
-                w_out = copy.deepcopy(self.surrogate_tail.state_dict())       
+                w_out = copy.deepcopy(self.surrogate_tail.state_dict())
+                print(w_out.keys())       
+                print(self.f_tail.state_dict().keys())       
                 for i, key in enumerate(w_out.keys()):
                     if (length_tail*state_dict_entries_per_tail_layer - i) > (train_clas_layer - length_clas) * state_dict_entries_per_tail_layer:
                         self.logger.debug("load {} to surrogate".format(key))
@@ -2244,6 +2263,8 @@ class MIA:
                 attacker_loader_list, _, _ = get_cifar100_trainloader(batch_size=self.batch_size, num_workers=4, shuffle=True, num_client=int(1/data_proportion), noniid_ratio = noniid_ratio)
             elif self.dataset == "cifar10":
                 attacker_loader_list, _, _ = get_cifar10_trainloader(batch_size=self.batch_size, num_workers=4, shuffle=True, num_client=int(1/data_proportion), noniid_ratio = noniid_ratio)
+            elif self.dataset == "imagenet":
+                attacker_loader_list = get_imagenet_trainloader(batch_size=self.batch_size, num_workers=4, shuffle=True, num_client=int(1/data_proportion), noniid_ratio = noniid_ratio)
             elif self.dataset == "svhn":
                 attacker_loader_list, _, _ = get_SVHN_trainloader(batch_size=self.batch_size, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
             elif self.dataset == "mnist":
@@ -3212,6 +3233,8 @@ class MIA:
             _, val_single_loader = get_facescrub_bothloader(batch_size=1, num_workers=4, shuffle=False)
         elif self.dataset == "tinyimagenet":
             _, val_single_loader = get_tinyimagenet_bothloader(batch_size=1, num_workers=4, shuffle=False)
+        elif self.dataset == "imagenet":
+            val_single_loader = get_imagenet_testloader(batch_size=1, num_workers=4, shuffle=False)
         attack_path = self.save_dir + '/{}_attack_{}to{}'.format(attack_option, collude_client, target_client)
         if not os.path.isdir(attack_path):
             os.makedirs(attack_path)
