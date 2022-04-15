@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=4
+GPU_id=1
 arch=mobilenetv2
 batch_size=128
 
@@ -28,9 +28,9 @@ dataset=cifar10
 learning_rate=0.005
 attack_epochs=100
 attack_client=0
-num_query=10
-attack_style="None"
-data_proportion_list="0.2"
+num_query=100
+attack_style="Transferset_option_B_CIFAR100"
+data_proportion_list="1.0"
 # train_clas_layer_list="1 2"
 train_clas_layer_list="1 2 3 4 5 6 7 8"
 

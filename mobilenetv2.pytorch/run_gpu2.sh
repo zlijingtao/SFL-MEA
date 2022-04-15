@@ -1,8 +1,8 @@
 
 cd "$(dirname "$0")"
 GPU_id=2
-lr=0.1
-data_proportion_list="0.01"
+lr=0.01
+data_proportion_list="0.2"
 train_clas_layer_list="1 2"
 # train_clas_layer_list="3 4 5 6 7 8"
 for data_proportion in $data_proportion_list; do
