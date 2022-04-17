@@ -33,13 +33,12 @@ local_lr_list="0.005"
 
 attack_epochs=100
 attack_client=0
-num_query=10
-attack_style="KD_option"
-# attack_style="None"
-data_proportion_list="0.01 0.2"
+num_query=1000
+attack_style="Copycat_option_SVHN"
+# data_proportion_list="0.01 0.2"
+data_proportion_list="1.0"
+# train_clas_layer_list="3 4 5 6 7 8"
 train_clas_layer_list="7 8"
-# data_proportion_list="0.01"
-# train_clas_layer_list="6"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
@@ -56,7 +55,6 @@ for random_seed in $random_seed_list; do
                                                 #         --random_seed=$random_seed --learning_rate=$learning_rate --gan_AE_type ${train_gan_AE_type} --gan_loss_type ${gan_loss_type}\
                                                 #         --load_from_checkpoint --local_lr $local_lr --bottleneck_option ${bottleneck_option} --folder ${folder_name} --ssim_threshold ${ssim_threshold} \
                                                 #         --load_from_checkpoint_server --transfer_source_task ${transfer_source_task} --optimize_computation ${interval}
-                                                
                                                 
                                                 CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=$cutlayer --batch_size=${batch_size} \
                                                         --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \

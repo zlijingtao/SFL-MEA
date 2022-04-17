@@ -251,7 +251,7 @@ def load_mnist_membership():
     return xpriv, xpub, xmem, xnomem, xmem_test, xnomem_test
 
 
-def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False):
+def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = True):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -280,7 +280,7 @@ def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client 
 
     return mnist_training_loader, mnist_testing_loader
 
-def get_fmnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False):
+def get_fmnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = True):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -403,17 +403,23 @@ def get_tinyimagenet_bothloader(batch_size=16, num_workers=2, shuffle=True, num_
     return tinyimagenet_training_loader, tinyimagenet_testing_loader
 
 
-def get_imagenet_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0):
+def get_imagenet_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = True):
     """ return training dataloader
     Returns: train_data_loader:torch dataloader object
     """
-    transform_train = transforms.Compose([
-        transforms.RandomResizedCrop(224),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
-        transforms.ToTensor(),
-        transforms.Normalize(IMAGENET_TRAIN_MEAN, IMAGENET_TRAIN_STD)
-    ])
+    if augmentation_option:
+        transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize(IMAGENET_TRAIN_MEAN, IMAGENET_TRAIN_STD)
+        ])
+    else:
+        transform_train = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(IMAGENET_TRAIN_MEAN, IMAGENET_TRAIN_STD)
+        ])
     train_dir = os.path.join("../../imagenet", 'train')
     imagenet_training = torchvision.datasets.ImageFolder(train_dir, transform=transform_train)
 
@@ -457,7 +463,7 @@ def get_imagenet_testloader(batch_size=16, num_workers=2, shuffle=True):
     
     return imagenet_test_loader
 
-def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0):
+def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = True):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -468,14 +474,19 @@ def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_clie
         shuffle: whether to shuffle
     Returns: train_data_loader:torch dataloader object
     """
-
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
-        transforms.ToTensor(),
-        transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD)
-    ])
+    if augmentation_option:
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD)
+        ])
+    else:
+        transform_train = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD)
+        ])
     #cifar00_training = CIFAR10Train(path, transform=transform_train)
     cifar10_training = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
 
@@ -594,7 +605,7 @@ def get_cifar10_testloader(batch_size=16, num_workers=2, shuffle=True, extra_cls
 
 
 
-def get_cifar100_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0):
+def get_cifar100_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = True):
     """ return training dataloader
     Args:
         mean: mean of cifar100 training dataset
@@ -605,15 +616,20 @@ def get_cifar100_trainloader(batch_size=16, num_workers=2, shuffle=True, num_cli
         shuffle: whether to shuffle
     Returns: train_data_loader:torch dataloader object
     """
-
-    transform_train = transforms.Compose([
-        #transforms.ToPILImage(),
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
-        transforms.ToTensor(),
-        transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD)
-    ])
+    if augmentation_option:
+        transform_train = transforms.Compose([
+            #transforms.ToPILImage(),
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD)
+        ])
+    else:
+        transform_train = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR100_TRAIN_MEAN, CIFAR100_TRAIN_STD)
+        ])
     # print("num_client is", num_client)
     cifar100_training = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform_train)
 
@@ -733,7 +749,7 @@ def get_cifar100_testloader(batch_size=16, num_workers=2, shuffle=True, extra_cl
 
 
 
-def get_SVHN_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0):
+def get_SVHN_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, augmentation_option = True):
     """ return training dataloader
     Args:
         mean: mean of SVHN training dataset
@@ -744,14 +760,19 @@ def get_SVHN_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client 
         shuffle: whether to shuffle
     Returns: train_data_loader:torch dataloader object
     """
-
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
-        transforms.ToTensor(),
-        transforms.Normalize(SVHN_TRAIN_MEAN, SVHN_TRAIN_STD)
-    ])
+    if augmentation_option:
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize(SVHN_TRAIN_MEAN, SVHN_TRAIN_STD)
+        ])
+    else:
+        transform_train = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(SVHN_TRAIN_MEAN, SVHN_TRAIN_STD)
+        ])
     #cifar00_training = SVHNTrain(path, transform=transform_train)
     SVHN_training = torchvision.datasets.SVHN(root='./data', split='train', download=True, transform=transform_train)
 

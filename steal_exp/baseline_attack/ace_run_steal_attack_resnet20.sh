@@ -18,25 +18,26 @@ ssim_threshold=0.5
 regularization_strength_list="0.0"
 folder_name="saves/baseline"
 bottleneck_option=None
-cutlayer_list="4"
+cutlayer="4"
 num_client_list="1"
 interval=1
 train_gan_AE_type=custom
 gan_loss_type=SSIM
 
-dataset=cifar10
+dataset_list="cifar10 cifar100"
 learning_rate=0.005
 attack_epochs=100
 attack_client=0
 num_query=10
-attack_style="None"
-data_proportion_list="0.01"
+attack_style="TrainME_option"
+data_proportion_list="0.2"
 # train_clas_layer_list="1 2"
-train_clas_layer_list="2 3 4 5 6 7 8"
+# train_clas_layer_list="1 2 3 4 5 6 7"
+train_clas_layer_list="3 4 5 6 7"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
-                for cutlayer in $cutlayer_list; do
+                for dataset in $dataset_list; do
                         for num_client in $num_client_list; do
                                 for data_proportion in $data_proportion_list; do
                                         for train_clas_layer in $train_clas_layer_list; do

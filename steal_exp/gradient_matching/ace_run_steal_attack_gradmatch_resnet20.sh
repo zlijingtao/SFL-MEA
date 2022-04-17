@@ -1,8 +1,8 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=1
-arch=mobilenetv2
+GPU_id=0
+arch=resnet20
 batch_size=128
 
 num_client=2

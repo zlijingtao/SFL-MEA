@@ -27,19 +27,21 @@ gan_loss_type=SSIM
 
 # source_task_list="svhn mnist facescrub cifar10"
 transfer_source_task=cifar10
-dataset=cifar10
-learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
+dataset=cifar100
+learning_rate=0.005 # 0.0005 for 7 & 8, 0.01 data proportion
 local_lr_list="0.005"
 
-attack_epochs=100
+attack_epochs=500
 attack_client=0
 num_query=1000
-attack_style="Transferset_option_C_SVHN"
-# data_proportion_list="0.01 0.2"
-data_proportion_list="1.0"
-# train_clas_layer_list="3 4 5 6 7 8"
-train_clas_layer_list="7 8"
+attack_style="SoftTrain_option"
+data_proportion_list="0.01 0.2"
+train_clas_layer_list="1 2 3 4 5 6 7 8"
+# data_proportion_list="0.2"
+# train_clas_layer_list="5 6"
 
+
+#Flag: --gradient_matching
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
                 for cutlayer in $cutlayer_list; do
