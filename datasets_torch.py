@@ -251,7 +251,7 @@ def load_mnist_membership():
     return xpriv, xpub, xmem, xnomem, xmem_test, xnomem_test
 
 
-def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = True):
+def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = False):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -280,7 +280,7 @@ def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client 
 
     return mnist_training_loader, mnist_testing_loader
 
-def get_fmnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = True):
+def get_fmnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = False):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -403,7 +403,7 @@ def get_tinyimagenet_bothloader(batch_size=16, num_workers=2, shuffle=True, num_
     return tinyimagenet_training_loader, tinyimagenet_testing_loader
 
 
-def get_imagenet_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = True):
+def get_imagenet_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False):
     """ return training dataloader
     Returns: train_data_loader:torch dataloader object
     """
@@ -463,7 +463,7 @@ def get_imagenet_testloader(batch_size=16, num_workers=2, shuffle=True):
     
     return imagenet_test_loader
 
-def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = True):
+def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -605,7 +605,7 @@ def get_cifar10_testloader(batch_size=16, num_workers=2, shuffle=True, extra_cls
 
 
 
-def get_cifar100_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = True):
+def get_cifar100_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False):
     """ return training dataloader
     Args:
         mean: mean of cifar100 training dataset
@@ -749,7 +749,7 @@ def get_cifar100_testloader(batch_size=16, num_workers=2, shuffle=True, extra_cl
 
 
 
-def get_SVHN_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, augmentation_option = True):
+def get_SVHN_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, augmentation_option = False):
     """ return training dataloader
     Args:
         mean: mean of SVHN training dataset

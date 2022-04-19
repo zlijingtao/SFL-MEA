@@ -216,14 +216,14 @@ class MMD_loss(nn.Module):
         return sum(kernel_val)
 
     def forward(self, source, target):
-    	batch_size = int(source.size()[0])
-    	kernels = self.guassian_kernel(source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma)
-    	XX = kernels[:batch_size, :batch_size]
-    	YY = kernels[batch_size:, batch_size:]
-    	XY = kernels[:batch_size, batch_size:]
-    	YX = kernels[batch_size:, :batch_size]
-    	loss = torch.mean(XX + YY - XY -YX)
-    	return loss
+        batch_size = int(source.size()[0])
+        kernels = self.guassian_kernel(source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma)
+        xx = kernels[:batch_size, :batch_size]
+        yy = kernels[batch_size:, batch_size:]
+        xy = kernels[:batch_size, batch_size:]
+        yx = kernels[batch_size:, :batch_size]
+        loss = torch.mean(xx + yy - xy -yx)
+        return loss
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""

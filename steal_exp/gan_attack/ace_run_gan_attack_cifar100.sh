@@ -36,7 +36,7 @@ attack_client=0
 num_query=10
 attack_style="Generator_option"
 # data_proportion_list="0.2 0.01"
-data_proportion_list="0.2"
+data_proportion_list="0.0"
 # train_clas_layer_list="4 5 6 7 8"
 train_clas_layer_list="4"
 
