@@ -40,7 +40,8 @@ attack_style="TrainME_option"
 noniid_ratio_list="0.5"
 # data_proportion_list="0.01 0.2"
 data_proportion_list="0.2"
-train_clas_layer_list="3 4 5 6"
+# train_clas_layer_list="3 4 5 6"
+train_clas_layer_list="2"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
