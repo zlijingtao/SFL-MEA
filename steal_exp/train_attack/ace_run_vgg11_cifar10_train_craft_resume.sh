@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=0
+GPU_id=1
 arch=vgg11_bn
 batch_size=128
 
@@ -29,7 +29,7 @@ num_query=10
 attack_style="Craft_option_resume"
 regularization=craft_train_ME_start160
 data_proportion_list="0.0"
-train_clas_layer_list="2" 
+train_clas_layer_list="3 4 5" 
 # train_clas_layer_list="2 3 4 5 6 7 8"
 num_client_list="6"
 cutlayer_list="4"

@@ -223,7 +223,9 @@ class MIA:
         
         if "GM_train_ME" in self.regularization_option:
             self.GM_train_option = True
-            self.grad_count = 0
+            self.trigger_stop = False
+            self.soft_image_id = 0
+            self.soft_train_count = 0
             self.GM_data_proportion = self.regularization_strength # use reguarlization_strength to set data_proportion
             
             try:
@@ -238,7 +240,9 @@ class MIA:
         if "normal_train_ME" in self.regularization_option:
             
             self.Normal_train_option = True
-            self.grad_count = 0
+            self.trigger_stop = False
+            self.soft_image_id = 0
+            self.soft_train_count = 0
             try:
                 self.gan_train_start_epoch = int(self.regularization_option.split("start")[1])
             except:
@@ -251,6 +255,7 @@ class MIA:
         
         if "soft_train_ME" in self.regularization_option:
             self.Soft_train_option = True
+            self.trigger_stop = False
             self.soft_image_id = 0
             self.soft_train_count = 0
             try:
@@ -746,10 +751,6 @@ class MIA:
             z_private = self.c(x_private)
         else:
             z_private = self.model.local_list[client_id](x_private)
-        
-
-        if (self.Normal_train_option or self.GM_train_option) and client_id == self.num_client - 1:
-            z_private.retain_grad()
 
         if self.local_DP:
             if "laplace" in self.regularization_option:
@@ -846,13 +847,6 @@ class MIA:
 
         total_loss.backward()
 
-        if (self.Normal_train_option or self.GM_train_option) and client_id == self.num_client - 1:
-            if not os.path.isdir(self.save_dir + "saved_grads"):
-                os.makedirs(self.save_dir + "saved_grads")
-            self.grad_count += 1
-            torch.save(x_private.detach().cpu(), self.save_dir + f"saved_grads/image_{self.grad_count}.pt")
-            torch.save(z_private.grad.detach().cpu(), self.save_dir + f"saved_grads/grad_{self.grad_count}.pt")
-            torch.save(label_private.detach().cpu(), self.save_dir + f"saved_grads/label_{self.grad_count}.pt")
 
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
@@ -863,7 +857,7 @@ class MIA:
 
 
 
-    def soft_train_target_step(self, x_private, label_private, client_id=0):
+    def gradcollect_train_target_step(self, x_private, label_private, client_id=0):
         self.f_tail.train()
         self.classifier.train()
         self.model.local_list[client_id].train()
@@ -1489,7 +1483,7 @@ class MIA:
 
             if self.GM_train_option:
                 if self.GM_data_proportion == 0.0:
-                    print("TO use GM_train_option, Must have some data available") #TODO: implement data free GM_train_option
+                    print("TO use GM_train_option, Must have some data available")
                     exit()
                 else:
                     if "CIFAR100" in self.regularization_option:
@@ -1501,6 +1495,12 @@ class MIA:
                     else: # default use cifar10
                         knockoff_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/self.GM_data_proportion))
                     knockoff_loader = knockoff_loader_list[0]
+                    self.client_dataloader.append(knockoff_loader)
+
+            # save iterator process of actual number of clients
+            saved_iterator_list = []
+            for client_id in range(self.actual_num_users):
+                saved_iterator_list.append(iter(self.client_dataloader[client_id]))
 
 
             for epoch in range(1, self.n_epochs+1):
@@ -1521,15 +1521,13 @@ class MIA:
                 else:
                     idxs_users = np.random.choice(range(self.actual_num_users), self.num_client, replace=False) # 10 out of 1000
                 
+                # sample num_client for parapllel training from actual number of users, take their iterator as well.
                 client_iterator_list = []
                 for client_id in range(self.num_client):
                     if (self.Generator_train_option or self.Craft_train_option) and idxs_users[client_id] == self.actual_num_users - 1:
                         pass
-                    elif  self.GM_train_option and (idxs_users[client_id] == self.actual_num_users - 1):
-                        self.client_dataloader.append(knockoff_loader)
-                        client_iterator_list.append(iter(self.client_dataloader[idxs_users[client_id]]))
                     else:
-                        client_iterator_list.append(iter(self.client_dataloader[idxs_users[client_id]]))
+                        client_iterator_list.append(saved_iterator_list[idxs_users[client_id]])
             
                 
                 ## Secondary Loop
@@ -1542,37 +1540,98 @@ class MIA:
 
                         # Get data
                         if (self.Generator_train_option or self.Craft_train_option) and idxs_users[client_id] == self.actual_num_users - 1:   # Data free no data.
+                            
                             images, labels = None, None
                         
-                        elif self.Soft_train_option and epoch > self.gan_train_start_epoch and idxs_users[client_id] == self.actual_num_users - 1:  # SoftTrain, rotate labels
+                        elif self.trigger_stop == False and self.Soft_train_option and epoch > self.gan_train_start_epoch and idxs_users[client_id] == self.actual_num_users - 1:  # SoftTrain, rotate labels
                             if self.soft_image_id == 0 and self.soft_train_count == 0:
+                                client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
                                 try:
-                                    images, labels = next(client_iterator_list[client_id])
-                                    if images.size(0) != self.batch_size:
-                                        client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
-                                        images, labels = next(client_iterator_list[client_id])
+                                    old_images, old_labels = next(client_iterator_list[client_id])
                                 except StopIteration:
+                                    self.trigger_stop = True
+                                    self.logger.debug("trigger_stop set to true")
                                     client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
-                                    images, labels = next(client_iterator_list[client_id])
-                                soft_images = images
-                                soft_labels = labels
+                                    old_images, old_labels = next(client_iterator_list[client_id])
 
                             elif self.soft_train_count == self.num_class:
                                 self.soft_train_count = 0
                                 try:
-                                    images, labels = next(client_iterator_list[client_id])
-                                    if images.size(0) != self.batch_size:
-                                        client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
-                                        images, labels = next(client_iterator_list[client_id])
+                                    old_images, old_labels = next(client_iterator_list[client_id])
                                 except StopIteration:
+                                    self.trigger_stop = True
+                                    self.logger.debug("trigger_stop set to true")
                                     client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
-                                    images, labels = next(client_iterator_list[client_id])
-                                soft_images = images
-                                soft_labels = labels
+                                    old_images, old_labels = next(client_iterator_list[client_id])
                                 self.soft_image_id += 1
                             else:
-                                soft_images = soft_images
-                                soft_labels = (soft_labels + 1) % self.num_class # add 1 to label
+                                old_labels = (old_labels + 1) % self.num_class # add 1 to label
+                            
+                            images, labels = old_images, old_labels
+
+                        elif self.GM_train_option and idxs_users[client_id] == self.actual_num_users - 1:
+                            if self.trigger_stop == False and epoch > self.gan_train_start_epoch:
+                                
+                                if self.soft_image_id == 0 and self.soft_train_count == 0:
+                                    # produce new image 
+                                    try:
+                                        old_images, old_labels = next(client_iterator_list[client_id])
+                                    except StopIteration:
+                                        self.trigger_stop = True
+                                        self.logger.debug("trigger_stop set to true")
+                                        client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
+                                        old_images, old_labels = next(client_iterator_list[client_id])
+                                    
+                                    old_labels = torch.ones_like(old_labels) * int(self.soft_train_count)
+                                elif self.soft_train_count == self.num_class:
+                                    self.soft_train_count = 0
+                                    try:
+                                        old_images, old_labels = next(client_iterator_list[client_id])
+                                    except StopIteration:
+                                        self.trigger_stop = True
+                                        self.logger.debug("trigger_stop set to true")
+                                        client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
+                                        old_images, old_labels = next(client_iterator_list[client_id])
+                                    old_labels = torch.ones_like(old_labels) * int(self.soft_train_count)
+                                    self.soft_image_id += 1
+                                else:
+                                    old_labels = torch.ones_like(old_labels) * int(self.soft_train_count)
+
+                                images, labels = old_images, old_labels
+                            
+                            else:
+                                images, labels = None, None
+                        
+                        elif self.trigger_stop == False and self.Normal_train_option and epoch > self.gan_train_start_epoch and idxs_users[client_id] == self.actual_num_users - 1:
+                          
+                            if self.soft_image_id == 0 and self.soft_train_count == 0:
+                                client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
+                                try:
+                                    old_images, old_labels = next(client_iterator_list[client_id])
+                                except StopIteration:
+                                    self.trigger_stop = True
+                                    self.logger.debug("trigger_stop set to true")
+                                    client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
+                                    old_images, old_labels = next(client_iterator_list[client_id])
+
+                                old_labels = torch.ones_like(old_labels) * int(self.soft_train_count)
+
+                            elif self.soft_train_count == self.num_class:
+                                self.soft_train_count = 0
+                                try:
+                                    old_images, old_labels = next(client_iterator_list[client_id])
+                                except StopIteration:
+                                    self.trigger_stop = True
+                                    self.logger.debug("trigger_stop set to true")
+                                    client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
+                                    old_images, old_labels = next(client_iterator_list[client_id])
+                                old_labels = torch.ones_like(old_labels) * int(self.soft_train_count)
+                                self.soft_image_id += 1
+                            else:
+                                old_labels = torch.ones_like(old_labels) * int(self.soft_train_count)
+                        
+                            images, labels = old_images, old_labels
+                        
                         else: # Normal Case 
                             try:
                                 images, labels = next(client_iterator_list[client_id])
@@ -1586,6 +1645,8 @@ class MIA:
                             if dl_transforms is not None:
                                 images = dl_transforms(images)
 
+                        
+
                         # Train the AE decoder if self.gan_regularizer is enabled:
                         if self.gan_regularizer and batch % interval == 0:
                             for i in range(self.gan_num_step):
@@ -1595,19 +1656,28 @@ class MIA:
                             self.optimizer_zero_grad()
                         
 
-                        if (self.Generator_train_option or self.Craft_train_option or self.Soft_train_option) and idxs_users[client_id] == self.actual_num_users - 1:
-
-                            if self.Generator_train_option and epoch > self.gan_train_start_epoch:
-                                # Train step (client/server)
-                                train_loss, f_loss = self.gan_train_target_step(client_id, self.batch_size, epoch, batch)
-
-                            if self.Craft_train_option and epoch > self.gan_train_start_epoch:
-                                train_loss, f_loss = self.craft_train_target_step(client_id)
-
-                            if self.Soft_train_option and epoch > self.gan_train_start_epoch:
-                                train_loss, f_loss = self.soft_train_target_step(soft_images, soft_labels, client_id)
-
-
+                        if idxs_users[client_id] == self.actual_num_users - 1:
+                            if epoch > self.gan_train_start_epoch:
+                                
+                                if self.Craft_train_option:
+                                    train_loss, f_loss = self.craft_train_target_step(client_id)
+                                elif self.Generator_train_option:
+                                    train_loss, f_loss = self.gan_train_target_step(client_id, self.batch_size, epoch, batch)
+                                elif self.trigger_stop == False and self.GM_train_option:
+                                    train_loss, f_loss = self.gradcollect_train_target_step(images, labels, client_id)
+                                elif self.trigger_stop == False and self.Normal_train_option:
+                                    train_loss, f_loss = self.gradcollect_train_target_step(images, labels, client_id)
+                                elif self.trigger_stop == False and self.Soft_train_option:
+                                    train_loss, f_loss = self.gradcollect_train_target_step(images, labels, client_id)
+                                else:
+                                    train_loss, f_loss = self.train_target_step(images, labels, client_id)
+                            else:
+                                if self.Normal_train_option or self.Soft_train_option:
+                                    train_loss, f_loss = self.train_target_step(images, labels, client_id) # do normal training is prior to the starting epoch
+                                elif self.Generator_train_option or self.GM_train_option or self.Craft_train_option :
+                                    pass # do nothing is prior to the starting epoch   
+                                else:
+                                    train_loss, f_loss = self.train_target_step(images, labels, client_id)
                         else:
                             # Train step (client/server)
                             train_loss, f_loss = self.train_target_step(images, labels, client_id)
@@ -1637,7 +1707,7 @@ class MIA:
                             self.writer.add_scalar('train_loss/client-{}/cross_entropy'.format(client_id), f_loss,
                                                     epoch)
                         
-                        if self.Soft_train_option and epoch > self.gan_train_start_epoch and idxs_users[client_id] == self.actual_num_users - 1:  # SoftTrain, rotate labels
+                        if (self.Soft_train_option or self.GM_train_option or self.Normal_train_option) and epoch > self.gan_train_start_epoch and idxs_users[client_id] == self.actual_num_users - 1:  # SoftTrain, rotate labels
                             self.soft_train_count += 1
                 # V1/V2 synchronization
                 if self.scheme == "V1_epoch" or self.scheme == "V2_epoch":
@@ -2004,55 +2074,24 @@ class MIA:
         milestones = sorted([int(step * num_epoch) for step in [0.2, 0.5, 0.8]])
         optimizer_option = "SGD"
 
-        JBDA_option_A = False
-        JBDA_option_B = False
-        JBDA_option_C = False
         gradient_matching = False
-        TrainME_option = False
-        GM_option = False
         Copycat_option = False
         Knockoff_option = False
-        JBDA_lambda = 0.125
-        if "JBDA_option_A" in attack_style:
-            JBDA_option_A = True # perform Jacobian-baed data augmentation, inference is required
-        if "JBDA_option_B" in attack_style:
-            JBDA_option_B = True # perform Jacobian-baed data augmentation, gradient matching
-        if "JBDA_option_C" in attack_style:
-            JBDA_option_C = True # perform Jacobian-baed data augmentation, gradient matching & inference query
-        if "GM_option" in attack_style:
-            GM_option = True # use auxiliary dataset perform pure Gradient Matching
-            gradient_matching = True
+        
         if "Copycat_option" in attack_style:
             Copycat_option = True # perform Copycat, use auxiliary dataset, inference is required
         if "Knockoff_option" in attack_style:
             Knockoff_option = True # perform knockoff set, use auxiliary dataset, inference is required
-        if "TrainME_option" in attack_style:
-            TrainME_option = True # perform knockoff set, use auxiliary dataset, inference is required
-    
         if "gradient_matching" in attack_style or "grad" in attack_style:
             gradient_matching = True
-        
-        if "Generator_option" in attack_style: # perform GAN ME attack, its Train-time variant is Generator_train_option
-            Generator_option = True
-            gradient_matching = False
-            nz = 256
-            if "Generator_option_resume" in attack_style:
-                resume_G = True
-            else:
-                resume_G = False
-            self.generator = architectures.GeneratorC(nz=nz, num_classes = self.num_class, ngf=128, nc=3, img_size=32)
-            # later call we call train_generator to train self.generator
-        else:
-            Generator_option = False
-            self.generator = None
         
         if "Craft_option" in attack_style: # perform Image Crafting ME attack, its Train-time variant is Craft_train_option
             Craft_option = True
             
             if "Craft_option_resume" in attack_style:
-                resume_C = True
+                resume_option = True
             else:
-                resume_C = False
+                resume_option = False
             craft_LR = 1e-1
             if "step" in attack_style:
                 num_craft_step = int(attack_style.split("step")[1])
@@ -2064,9 +2103,50 @@ class MIA:
             lambda_l2 = 0.0
         else:
             Craft_option = False
-        
+
+        if "Generator_option" in attack_style: # perform GAN ME attack, its Train-time variant is Generator_train_option
+            Generator_option = True
+            gradient_matching = False
+            nz = 256
+            if "Generator_option_resume" in attack_style:
+                resume_option = True
+            else:
+                resume_option = False
+            self.generator = architectures.GeneratorC(nz=nz, num_classes = self.num_class, ngf=128, nc=3, img_size=32)
+            # later call we call train_generator to train self.generator
+        else:
+            Generator_option = False
+            self.generator = None
+
+        if "GM_option" in attack_style:
+            GM_option = True # use auxiliary dataset perform pure Gradient Matching
+            gradient_matching = True
+            if "GM_option_resume" in attack_style:
+                resume_option = True
+            else:
+                resume_option = False
+        else:
+            GM_option = False
+
+
+
+        if "TrainME_option" in attack_style:
+            TrainME_option = True # perform direct trainning on the surrogate model
+
+            if "TrainME_option_resume" in attack_style:
+                resume_option = True
+            else:
+                resume_option = False
+        else:
+            TrainME_option = False
+
         if "SoftTrain_option" in attack_style: # enable introspective learning (KD using explanation)
             SoftTrain_option = True
+
+            if "SoftTrain_option_resume" in attack_style:
+                resume_option = True
+            else:
+                resume_option = False
             soft_alpha = 0.9
             soft_lambda = 0.1 # control the regularization strength
         else:
@@ -2175,14 +2255,13 @@ class MIA:
         criterion = torch.nn.CrossEntropyLoss()
         save_images = []
         save_grad = []
-        save_act = []
         save_label = []
 
         ''' crafting training dataset for surrogate model training'''
 
         if Craft_option:
 
-            if resume_C:
+            if resume_option:
                 saved_crafted_image_path = self.save_dir + "craft_pairs/"
                 if os.path.isdir(saved_crafted_image_path):
                     print("load from crafted during training")
@@ -2195,11 +2274,8 @@ class MIA:
                         image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
                         fake_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
                         fake_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
-                        fake_image = fake_image.cuda()
-                        z_private = self.model.local_list[attack_client](fake_image)  # Simulate Original
 
-                        save_images.append(fake_image.detach().cpu().clone())
-                        save_act.append(z_private.detach().cpu().clone())
+                        save_images.append(fake_image.clone())
                         save_grad.append(fake_grad.clone())
                         save_label.append(fake_label.clone())
             else:
@@ -2246,7 +2322,6 @@ class MIA:
                         
                         save_images.append(fake_image.detach().cpu().clone())
                         save_grad.append(z_private.grad.detach().cpu().clone())
-                        save_act.append(z_private.detach().cpu().clone())
                         save_label.append(fake_label.cpu().clone())
                     
                     # imgGen = fake_image.clone()
@@ -2262,161 +2337,33 @@ class MIA:
         ''' TrainME: Use available training dataset for surrogate model training'''
         ''' Because of data augmentation, set query to 10 there'''
 
-        if (JBDA_option_A or JBDA_option_B or JBDA_option_C or TrainME_option) and (attacker_dataloader is not None):
-            for images, labels in attacker_dataloader:
-                images = images.cuda()
-                labels = labels.cuda()
-
-                self.optimizer_zero_grad()
-                z_private = self.model.local_list[attack_client](images)
-                z_private.retain_grad()
-                output = self.f_tail(z_private)
-
-                if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                    output = F.avg_pool2d(output, 4)
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
-                elif self.arch == "resnet20" or self.arch == "resnet32":
-                    output = F.avg_pool2d(output, 8)
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
+        if (TrainME_option) and (attacker_dataloader is not None):
+            
+            if resume_option and TrainME_option and gradient_matching: #TODO: Test correctness.
+                saved_crafted_image_path = self.save_dir + "saved_grads/"
+                if os.path.isdir(saved_crafted_image_path):
+                    print("load from data collected during training")
                 else:
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
-                loss = criterion(output, labels)
-                loss.backward(retain_graph = True)
-                z_private_grad = z_private.grad.detach().cpu()
+                    print("No saved data is presented!")
+                    exit()
+                for file in glob.glob(saved_crafted_image_path + "*"):
+                    if "image" in file:
+                        image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                        if image_id > 2500: # select a subset #TODO: delete this
+                            saved_image = torch.load(file)
+                            saved_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
+                            saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
 
-                save_images.append(images.cpu().clone())
-                save_grad.append(z_private_grad.clone())
-                save_act.append(z_private.detach().cpu().clone())
-                save_label.append(labels.cpu().clone())
-            
-        ''' SoftTrainME, crafts soft input label pairs for surrogate model training'''
-        if  SoftTrain_option and attacker_dataloader is not None:
-            # Use SoftTrain_option, query the gradients on inputs with all label combinations
-            similar_func = torch.nn.CosineSimilarity(dim = 1)
+                            save_images.append(saved_image.clone())
+                            save_grad.append(saved_grad.clone()) # add a random existing grad.
+                            save_label.append(saved_label.clone())
+            else:
+                for images, labels in attacker_dataloader:
+                    images = images.cuda()
+                    labels = labels.cuda()
 
-            if num_query < self.num_class * 100:
-                print("Query budget is too low to run SoftTrainME")
-            
-            for i, (images, labels) in enumerate(attacker_dataloader):
-
-                images = images.cuda()
-                labels = labels.cuda()
-
-                
-                cos_sim_list = []
-
-                self.optimizer_zero_grad()
-                z_private = self.model.local_list[attack_client](images)
-                z_private.retain_grad()
-                output = self.f_tail(z_private)
-
-                if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                    output = F.avg_pool2d(output, 4)
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
-                elif self.arch == "resnet20" or self.arch == "resnet32":
-                    output = F.avg_pool2d(output, 8)
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
-                else:
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
-                loss = criterion(output, labels)
-
-                # one_hot_target = F.one_hot(labels, num_classes=self.num_class)
-                # log_prob = torch.nn.functional.log_softmax(output, dim=1)
-                # loss = torch.mean(torch.sum(-one_hot_target * log_prob, dim=1))
-                loss.backward(retain_graph = True)
-                z_private_grad = z_private.grad.detach().clone()
-
-                if i * self.num_class * 100 < num_query: # in query budget, craft soft label 
-                    for c in range(self.num_class):
-                        fake_label = c * torch.ones_like(labels).cuda()
-                        self.optimizer_zero_grad()
-                        z_private.grad.zero_()
-                        z_private = self.model.local_list[attack_client](images)
-                        z_private.retain_grad()
-
-                        output = self.f_tail(z_private)
-                        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                            output = F.avg_pool2d(output, 4)
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        elif self.arch == "resnet20" or self.arch == "resnet32":
-                            output = F.avg_pool2d(output, 8)
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        else:
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        loss = criterion(output, fake_label)
-                        
-                        loss.backward(retain_graph = True)
-                        fake_z_private_grad = z_private.grad.detach().clone()
-
-                        cos_sim_val = similar_func(fake_z_private_grad.view(labels.size(0), -1), z_private_grad.view(labels.size(0), -1))
-                        cos_sim_list.append(cos_sim_val.detach().clone()) # 10 item of [128, 1]
-                    cos_sim_tensor = torch.stack(cos_sim_list).view(self.num_class, -1).t().cuda()
-                    cos_sim_tensor += 1
-                    cos_sim_sum = (cos_sim_tensor).sum(1) - 1
-                    derived_label = (1 - soft_alpha) * cos_sim_tensor / cos_sim_sum.view(-1, 1) # [128, 10]
-
-                    
-                    labels_as_idx = labels.detach().view(-1, 1)
-                    replace_val = soft_alpha * torch.ones(labels_as_idx.size(), dtype=torch.long).cuda()
-                    derived_label.scatter_(1, labels_as_idx, replace_val)
-
-                else:  # out of query budget, use hard label
-                    derived_label = F.one_hot(labels, num_classes=self.num_class)
-
-                save_images.append(images.cpu().clone())
-                save_grad.append(z_private_grad.cpu().clone())
-                save_act.append(z_private.detach().cpu().clone())
-                save_label.append(derived_label.cpu().clone())
-            
-        ''' JBDA augmentation to train surrogate model, A needs prediction query, C uses grad to infer label'''
-        if JBDA_option_A or JBDA_option_B or JBDA_option_C: # see https://github.com/wanglouis49/pytorch-adversarial_box/blob/bddb5a899a7658182ea78063fd7ec405de083956/adversarialbox/attacks.py#L93
-            jacob_act_list = []
-            for i in range(len(save_act)):
-                jacob_act = save_act[i] + torch.sign(save_grad[i]) * JBDA_lambda
-                jacob_act_list.append(jacob_act.clone())
-            
-            if JBDA_option_A:
-                self.f_tail.eval()
-                self.classifier.eval()
-                with torch.no_grad():
-                    for i in range(len(jacob_act_list)):
-                        z_private = jacob_act_list[i].cuda()
-                        output = self.f_tail(z_private)
-
-                        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                            output = F.avg_pool2d(output, 4)
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        elif self.arch == "resnet20" or self.arch == "resnet32":
-                            output = F.avg_pool2d(output, 8)
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        else:
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        _, pred = output.topk(1, 1, True, True)
-
-                        save_images.append(save_images[i].clone())
-                        save_grad.append(save_grad[i].clone())
-                        save_act.append(z_private.detach().cpu().clone())
-                        save_label.append(pred.view(-1).cpu().clone())
-            if JBDA_option_B:
-                self.f_tail.train()
-                self.classifier.train()
-                for i in range(len(jacob_act_list)):
-                    z_private = jacob_act_list[i].cuda()
-                    z_private.requires_grad = True
-                    labels = save_label[i].cuda()
                     self.optimizer_zero_grad()
+                    z_private = self.model.local_list[attack_client](images)
                     z_private.retain_grad()
                     output = self.f_tail(z_private)
 
@@ -2435,22 +2382,179 @@ class MIA:
                     loss.backward(retain_graph = True)
                     z_private_grad = z_private.grad.detach().cpu()
 
-                    save_images.append(save_images[i].clone())
+                    save_images.append(images.cpu().clone())
                     save_grad.append(z_private_grad.clone())
-                    save_act.append(z_private.detach().cpu().clone())
                     save_label.append(labels.cpu().clone())
+        
+        ''' SoftTrainME, crafts soft input label pairs for surrogate model training'''
+        if  SoftTrain_option and attacker_dataloader is not None:
+            # Use SoftTrain_option, query the gradients on inputs with all label combinations
+            similar_func = torch.nn.CosineSimilarity(dim = 1)
+            if resume_option:
+                saved_crafted_image_path = self.save_dir + "saved_grads/"
+                if os.path.isdir(saved_crafted_image_path):
+                    print("load from data collected during training")
+                else:
+                    print("No saved data is presented!")
+                    exit()
+                for file in glob.glob(saved_crafted_image_path + "*"):
+                    if "image" in file and "grad_image" not in file:
+                        saved_image = torch.load(file)
+        
+                        image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                        true_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label0.pt").cuda()
+                        true_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt").cuda()
+                        cos_sim_list = []
 
-            if JBDA_option_C:
-                self.f_tail.train()
-                self.classifier.train()
-                acc_meter = AverageMeter()
-                for i in range(len(jacob_act_list)):
-                    z_private = jacob_act_list[i].cuda()
-                    z_private_grad_list = []
+                        for c in range(self.num_class):
+                            fake_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{c}.pt").cuda()
+                            cos_sim_val = similar_func(fake_grad.view(true_label.size(0), -1), true_grad.view(true_label.size(0), -1))
+                            cos_sim_list.append(cos_sim_val.detach().clone()) # 10 item of [128, 1]
+
+                        cos_sim_tensor = torch.stack(cos_sim_list).view(self.num_class, -1).t().cuda() # [128, 10]
+                        cos_sim_tensor += 1
+                        cos_sim_sum = (cos_sim_tensor).sum(1) - 1
+                        derived_label = (1 - soft_alpha) * cos_sim_tensor / cos_sim_sum.view(-1, 1) # [128, 10]
+
+                        
+                        labels_as_idx = true_label.detach().view(-1, 1)
+                        replace_val = soft_alpha * torch.ones(labels_as_idx.size(), dtype=torch.long).cuda()
+                        derived_label.scatter_(1, labels_as_idx, replace_val)
+
+                        save_images.append(saved_image.clone())
+                        save_grad.append(true_grad.detach().cpu().clone())
+                        save_label.append(derived_label.detach().cpu().clone())
+            else:
+                
+                if num_query < self.num_class * 100:
+                    print("Query budget is too low to run SoftTrainME")
+                
+                for i, (images, labels) in enumerate(attacker_dataloader):
+
+                    images = images.cuda()
+                    labels = labels.cuda()
+
+                    
+                    cos_sim_list = []
+
+                    self.optimizer_zero_grad()
+                    z_private = self.model.local_list[attack_client](images)
+                    z_private.retain_grad()
+                    output = self.f_tail(z_private)
+
+                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
+                        output = F.avg_pool2d(output, 4)
+                        output = output.view(output.size(0), -1)
+                        output = self.classifier(output)
+                    elif self.arch == "resnet20" or self.arch == "resnet32":
+                        output = F.avg_pool2d(output, 8)
+                        output = output.view(output.size(0), -1)
+                        output = self.classifier(output)
+                    else:
+                        output = output.view(output.size(0), -1)
+                        output = self.classifier(output)
+                    loss = criterion(output, labels)
+
+                    # one_hot_target = F.one_hot(labels, num_classes=self.num_class)
+                    # log_prob = torch.nn.functional.log_softmax(output, dim=1)
+                    # loss = torch.mean(torch.sum(-one_hot_target * log_prob, dim=1))
+                    loss.backward(retain_graph = True)
+                    z_private_grad = z_private.grad.detach().clone()
+
+                    if i * self.num_class * 100 < num_query: # in query budget, craft soft label 
+                        for c in range(self.num_class):
+                            fake_label = c * torch.ones_like(labels).cuda()
+                            self.optimizer_zero_grad()
+                            z_private.grad.zero_()
+                            z_private = self.model.local_list[attack_client](images)
+                            z_private.retain_grad()
+
+                            output = self.f_tail(z_private)
+                            if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
+                                output = F.avg_pool2d(output, 4)
+                                output = output.view(output.size(0), -1)
+                                output = self.classifier(output)
+                            elif self.arch == "resnet20" or self.arch == "resnet32":
+                                output = F.avg_pool2d(output, 8)
+                                output = output.view(output.size(0), -1)
+                                output = self.classifier(output)
+                            else:
+                                output = output.view(output.size(0), -1)
+                                output = self.classifier(output)
+                            loss = criterion(output, fake_label)
+                            
+                            loss.backward(retain_graph = True)
+                            fake_z_private_grad = z_private.grad.detach().clone()
+
+                            cos_sim_val = similar_func(fake_z_private_grad.view(labels.size(0), -1), z_private_grad.view(labels.size(0), -1))
+                            cos_sim_list.append(cos_sim_val.detach().clone()) # 10 item of [128, 1]
+                        cos_sim_tensor = torch.stack(cos_sim_list).view(self.num_class, -1).t().cuda()
+                        cos_sim_tensor += 1
+                        cos_sim_sum = (cos_sim_tensor).sum(1) - 1
+                        derived_label = (1 - soft_alpha) * cos_sim_tensor / cos_sim_sum.view(-1, 1) # [128, 10]
+
+                        
+                        labels_as_idx = labels.detach().view(-1, 1)
+                        replace_val = soft_alpha * torch.ones(labels_as_idx.size(), dtype=torch.long).cuda()
+                        derived_label.scatter_(1, labels_as_idx, replace_val)
+
+                    else:  # out of query budget, use hard label
+                        derived_label = F.one_hot(labels, num_classes=self.num_class)
+
+                    save_images.append(images.cpu().clone())
+                    save_grad.append(z_private_grad.cpu().clone())
+                    save_label.append(derived_label.cpu().clone())
+        
+        ''' Knockoffset, option_B has no prediction query (use grad-matching), option_C has predicion query (craft input-label pair)'''
+        if GM_option or Copycat_option or Knockoff_option:
+            # We fix query batch size to 100 to better control the total query number.
+
+            if data_proportion == 0.0:
+                knockoff_loader_list = [None]
+            else:
+                if "CIFAR100" in attack_style:
+                    knockoff_loader_list, _, _ = get_cifar100_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
+                elif "CIFAR10" in attack_style:
+                    knockoff_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
+                elif "SVHN" in attack_style:
+                    knockoff_loader_list, _, _ = get_SVHN_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
+                else: # default use cifar10
+                    knockoff_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
+            knockoff_loader = knockoff_loader_list[0]
+        
+        if GM_option and knockoff_loader is not None:
+            if resume_option: #TODO: Test correctness.
+                saved_crafted_image_path = self.save_dir + "saved_grads/"
+                if os.path.isdir(saved_crafted_image_path):
+                    print("load from data collected during training")
+                else:
+                    print("No saved data is presented!")
+                    exit()
+                for file in glob.glob(saved_crafted_image_path + "*"):
+                    if "image" in file:
+                        image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                        if image_id > 2500: # select a subset #TODO: delete this
+                            saved_image = torch.load(file)
+                            
+                            saved_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
+                            saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+
+                            save_images.append(saved_image.clone())
+                            save_grad.append(saved_grad.clone()) # add a random existing grad.
+                            save_label.append(saved_label.clone())
+            else:
+                self.model.local_list[attack_client].eval()
+                self.f_tail.eval()
+                self.classifier.eval()
+                for i, (inputs, target) in enumerate(knockoff_loader):
+                    if i * self.num_class * 100 >= num_query: # limit grad query budget
+                        break
+                    inputs = inputs.cuda()
                     for j in range(self.num_class):
-                        z_private.requires_grad = True
-                        labels = j * torch.ones_like(save_label[i]).cuda()
+                        label = j * torch.ones_like(target).cuda()
                         self.optimizer_zero_grad()
+                        
+                        z_private = self.model.local_list[attack_client](inputs)
                         z_private.grad = None
                         z_private.retain_grad()
                         output = self.f_tail(z_private)
@@ -2466,80 +2570,13 @@ class MIA:
                         else:
                             output = output.view(output.size(0), -1)
                             output = self.classifier(output)
-
-                        
-                        loss = criterion(output, labels)
+                        loss = criterion(output, label)
                         loss.backward(retain_graph = True)
-                        z_private_grad = z_private.grad.detach()
-                        z_private_grad_list.append(z_private_grad.clone().reshape(output.size(0), -1))
+                        z_private_grad = z_private.grad.detach().cpu()
 
-                    _, pred = output.topk(1, 1, True, True)
-                    z_private_grad_stack = torch.stack(z_private_grad_list)
-                    _, deduct_label = torch.min(torch.norm(z_private_grad_stack, p = 2, dim = 2), dim = 0)
-
-                    correct = deduct_label.eq(pred.view(-1).expand_as(deduct_label)).view(-1).float().sum(0)
-                    acc = correct / output.size(0)
-                    acc_meter.update(acc)
-                    
-                    save_images.append(save_images[i].clone())
-                    save_grad.append(z_private_grad.cpu().clone())
-                    save_act.append(z_private.detach().cpu().clone())
-                    save_label.append(deduct_label.cpu().clone())
-                self.logger.debug("labeling accuracy is {}".format(acc_meter.avg))
-        
-        ''' Knockoffset, option_B has no prediction query (use grad-matching), option_C has predicion query (craft input-label pair)'''
-        if GM_option or Copycat_option or Knockoff_option:
-            # We fix query batch size to 100 to better control the total query number.
-
-            if data_proportion == 0.0:
-                knockoff_loader_list = [None]
-            else:
-                if "CIFAR100" in attack_style:
-                    knockoff_loader_list, _, _ = get_cifar100_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=1/data_proportion)
-                elif "CIFAR10" in attack_style:
-                    knockoff_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=1/data_proportion)
-                elif "SVHN" in attack_style:
-                    knockoff_loader_list, _, _ = get_SVHN_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=1/data_proportion)
-                else: # default use cifar10
-                    knockoff_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=1/data_proportion)
-            knockoff_loader = knockoff_loader_list[0]
-        
-        if GM_option and knockoff_loader is not None:
-            self.model.local_list[attack_client].eval()
-            self.f_tail.eval()
-            self.classifier.eval()
-            for i, (inputs, target) in enumerate(knockoff_loader):
-                if i * self.num_class * 100 >= num_query: # limit grad query budget
-                    break
-                inputs = inputs.cuda()
-                for j in range(self.num_class):
-                    label = j * torch.ones_like(target).cuda()
-                    self.optimizer_zero_grad()
-                    
-                    z_private = self.model.local_list[attack_client](inputs)
-                    z_private.grad = None
-                    z_private.retain_grad()
-                    output = self.f_tail(z_private)
-
-                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                        output = F.avg_pool2d(output, 4)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    elif self.arch == "resnet20" or self.arch == "resnet32":
-                        output = F.avg_pool2d(output, 8)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    else:
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    loss = criterion(output, label)
-                    loss.backward(retain_graph = True)
-                    z_private_grad = z_private.grad.detach().cpu()
-
-                    save_images.append(inputs.cpu().clone())
-                    save_grad.append(z_private_grad.clone()) # add a random existing grad.
-                    save_act.append(z_private.detach().cpu().clone())
-                    save_label.append(label.cpu().clone())
+                        save_images.append(inputs.cpu().clone())
+                        save_grad.append(z_private_grad.clone()) # add a random existing grad.
+                        save_label.append(label.cpu().clone())
 
 
         if Copycat_option and knockoff_loader is not None:
@@ -2570,7 +2607,6 @@ class MIA:
 
                     save_images.append(inputs.cpu().clone())
                     save_grad.append(torch.zeros((inputs.size(0), z_private.size(1), z_private.size(2), z_private.size(3)))) # add a random existing grad.
-                    save_act.append(z_private.detach().cpu().clone())
                     save_label.append(pred.view(-1).cpu().clone())
         
         if Knockoff_option and knockoff_loader is not None:
@@ -2602,7 +2638,6 @@ class MIA:
                     log_prob = softmax_layer(output)
                     save_images.append(inputs.cpu().clone())
                     save_grad.append(torch.zeros((inputs.size(0), z_private.size(1), z_private.size(2), z_private.size(3)))) # add a random existing grad.
-                    save_act.append(z_private.detach().cpu().clone())
                     save_label.append(log_prob.cpu().clone())
 
 
@@ -2612,17 +2647,16 @@ class MIA:
             # get prototypical data using GAN, training generator consumes grad query.
             self.train_generator(num_query = num_query, nz = nz, 
                                     client_model = self.model.local_list[attack_client], 
-                                    data_helper = attacker_dataloader, resume = resume_G,
+                                    data_helper = attacker_dataloader, resume = resume_option,
                                     discriminator_option=False)
         
         # Packing list to dataloader.
         if not Generator_option:
             save_images = torch.cat(save_images)
             save_grad = torch.cat(save_grad)
-            save_act = torch.cat(save_act)
             save_label = torch.cat(save_label)
-            indices = torch.arange(save_act.shape[0]).long()
-            ds = torch.utils.data.TensorDataset(indices, save_images, save_act, save_grad, save_label)
+            indices = torch.arange(save_label.shape[0]).long()
+            ds = torch.utils.data.TensorDataset(indices, save_images, save_grad, save_label)
 
             dl = torch.utils.data.DataLoader(
                 ds, batch_size=self.batch_size, num_workers=4, shuffle=True
@@ -2646,7 +2680,8 @@ class MIA:
         )
         if Craft_option or Generator_option:
             dl_transforms = None
-    
+        if SoftTrain_option and resume_option: #TODO: test the usefulness of this.
+            dl_transforms = None
         if train_cli:
             self.surrogate_client.train()
         else:
@@ -2682,22 +2717,16 @@ class MIA:
             if GM_option: 
                 acc_loss_list.append(0.0)
                 acc_list.append(0.0)
-                for idx, (index, image, act, grad, label) in enumerate(dl):
+                for idx, (index, image, grad, label) in enumerate(dl):
                     # if dl_transforms is not None:
                     #     image = dl_transforms(image)
                     image = image.cuda()
                     grad = grad.cuda()
-                    act = act.cuda()
                     label = label.cuda()
 
                     suro_optimizer.zero_grad()
-                    # if train_cli:
                     act = self.surrogate_client(image)
-                    # act.requires_grad = True
                     output = self.surrogate_tail(act)
-                    # else:
-                    #     act.requires_grad = True
-                    #     output = self.surrogate_tail(act)
 
                     if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
                         output = F.avg_pool2d(output, 4)
@@ -2736,22 +2765,16 @@ class MIA:
                     grad_loss_list.append(total_loss.detach().cpu().item())
 
             if not (Generator_option or GM_option): # dl contains input and label, very general framework
-                for idx, (index, image, act, grad, label) in enumerate(dl):
+                for idx, (index, image, grad, label) in enumerate(dl):
                     if dl_transforms is not None:
                         image = dl_transforms(image)
                     
                     image = image.cuda()
                     grad = grad.cuda()
-                    act = act.cuda()
                     label = label.cuda()
 
                     suro_optimizer.zero_grad()
-                    # if train_cli:
-                    #     output = self.surrogate_client(image)
-                    #     output = self.surrogate_tail(output)
-                    # else:
                     act = self.surrogate_client(image)
-                    # act.requires_grad = True
                     output = self.surrogate_tail(act)
 
                     if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
@@ -2767,11 +2790,7 @@ class MIA:
                         output = self.surrogate_classifier(output)
 
                     if Knockoff_option:
-                        # print(torch.nn.functional.log_softmax(output, dim=1))
-                        # print(label)
-                        # print(label)
                         log_prob = torch.nn.functional.log_softmax(output, dim=1)
-                        # log_prob = torch.nn.functional.log_softmax(output, dim=1)
                         ce_loss = torch.mean(torch.sum(-label * log_prob, dim=1))
                     elif SoftTrain_option:
                         _, real_label = label.max(dim = 1)
@@ -2781,19 +2800,19 @@ class MIA:
 
 
                     if gradient_matching:
-                        
                         # grad_lambda controls the strength of gradient matching lass
                         # ce_loss_lower_bound controls when enters the gradient matching phase.
                         gradient_loss_style = "l2"
-                        if self.num_class == 100:
-                            grad_lambda = 0.001
-                            ce_loss_lower_bound = 0.05
-                        elif self.num_class == 10:
-                            grad_lambda = 0.001
-                            ce_loss_lower_bound = 0.01
-                        else:
-                            grad_lambda = 0.01
-                            ce_loss_lower_bound = 0.1
+                        grad_lambda = 1.0
+                        # if self.num_class == 100:
+                        #     grad_lambda = 0.001
+                        #     ce_loss_lower_bound = 0.05
+                        # elif self.num_class == 10:
+                        #     grad_lambda = 0.001
+                        #     ce_loss_lower_bound = 0.01
+                        # else:
+                        #     grad_lambda = 0.01
+                        #     ce_loss_lower_bound = 0.1
 
                         grad_approx = torch.autograd.grad(ce_loss, act, create_graph = True)[0]
 
@@ -2805,11 +2824,15 @@ class MIA:
                         elif gradient_loss_style == "cosine":
                             grad_loss = torch.mean(1 - F.cosine_similarity(grad_approx, grad, dim=1))
 
-                        if ce_loss > ce_loss_lower_bound:
-                            total_loss = ce_loss
-                        else:
-                            total_loss = ce_loss + grad_loss * grad_lambda
-       
+                        # if ce_loss > ce_loss_lower_bound:
+                        #     total_loss = ce_loss
+                        # else:
+                        #     total_loss = ce_loss + grad_loss * grad_lambda
+                        # if idx % 2 == 0:
+                        #     total_loss = grad_loss * grad_lambda
+                        # else:
+                        #     total_loss = ce_loss
+                        total_loss = grad_loss * grad_lambda
                     else:
                         total_loss = ce_loss
                     
