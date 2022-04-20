@@ -31,7 +31,7 @@ dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 local_lr_list="0.005"
 
-attack_epochs=100
+attack_epochs=200
 attack_client=0
 num_query=10000
 attack_style="Knockoff_option_CIFAR100"
