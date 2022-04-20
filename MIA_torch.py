@@ -2078,7 +2078,7 @@ class MIA:
         gradient_matching = False
         Copycat_option = False
         Knockoff_option = False
-        
+        resume_option = False
         if "Copycat_option" in attack_style:
             Copycat_option = True # perform Copycat, use auxiliary dataset, inference is required
         if "Knockoff_option" in attack_style:
