@@ -1663,8 +1663,11 @@ class MIA:
                                     train_loss, f_loss = self.craft_train_target_step(client_id)
                                 elif self.Generator_train_option:
                                     train_loss, f_loss = self.gan_train_target_step(client_id, self.batch_size, epoch, batch)
-                                elif self.trigger_stop == False and self.GM_train_option:
-                                    train_loss, f_loss = self.gradcollect_train_target_step(images, labels, client_id)
+                                elif self.GM_train_option:
+                                    if self.trigger_stop == False:
+                                        train_loss, f_loss = self.gradcollect_train_target_step(images, labels, client_id)
+                                    else:
+                                        pass
                                 elif self.trigger_stop == False and self.Normal_train_option:
                                     train_loss, f_loss = self.gradcollect_train_target_step(images, labels, client_id)
                                 elif self.trigger_stop == False and self.Soft_train_option:
@@ -1672,9 +1675,7 @@ class MIA:
                                 else:
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id)
                             else:
-                                if self.Normal_train_option or self.Soft_train_option:
-                                    train_loss, f_loss = self.train_target_step(images, labels, client_id) # do normal training is prior to the starting epoch
-                                elif self.Generator_train_option or self.GM_train_option or self.Craft_train_option :
+                                if self.Generator_train_option or self.GM_train_option or self.Craft_train_option :
                                     pass # do nothing is prior to the starting epoch   
                                 else:
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id)
@@ -2358,6 +2359,17 @@ class MIA:
                             save_grad.append(saved_grad.clone()) # add a random existing grad.
                             save_label.append(saved_label.clone())
             else:
+                if self.arch == "vgg11_bn" and train_clas_layer == 2:
+                    attack_from_later_layer = 21 # VGG-11: 21 for N = 2, 17 for N = 3, 14 for N = 4, 10 for N = 5, 7 for N = 6, 3 for N = 7, z_private for N = 8
+                elif self.arch == "vgg11_bn" and train_clas_layer == 5:
+                    attack_from_later_layer = 10
+                elif self.arch == "vgg11_bn" and train_clas_layer == 8:
+                    attack_from_later_layer = 0
+                else:
+                    attack_from_later_layer = -1
+                
+                
+                
                 for images, labels in attacker_dataloader:
                     images = images.cuda()
                     labels = labels.cuda()
@@ -2365,7 +2377,53 @@ class MIA:
                     self.optimizer_zero_grad()
                     z_private = self.model.local_list[attack_client](images)
                     z_private.retain_grad()
-                    output = self.f_tail(z_private)
+
+
+
+                    if attack_from_later_layer > 0:
+
+                        activation_3 = {}
+
+                        def get_activation_3(name):
+                            def hook(model, input, output):
+                                activation_3[name] = output.detach()
+
+                            return hook
+                        count = 0
+                        for name, m in self.f_tail.named_modules():
+                            print(name, m)
+                            if attack_from_later_layer == count:
+                                m.register_forward_hook(get_activation_3("ACT-{}".format(name)))
+                                valid_key = "ACT-{}".format(name)
+                                print(f"extract {valid_key}")
+                                break
+                            count += 1
+                        output = self.f_tail(z_private)
+
+                        try:
+                            save_activation = activation_3[valid_key]
+                            save_activation = save_activation.float()
+                            save_activation = save_activation.cpu().numpy()
+                            save_activation = save_activation.reshape(images.size(0), -1)
+                            f=open(os.path.join(self.save_dir, "{}_{}_act.txt".format(attack_style, valid_key)),'a')
+                            np.savetxt(f, save_activation, fmt='%.2f')
+                            f.close()
+                        except:
+                            print("cannot attack from later layer, server-side model is empty or does not have enough layers")
+                        #TODO: calculate entropy here
+                    elif attack_from_later_layer == 0:
+
+                        save_activation = z_private.float()
+                        valid_key = "z_private"
+                        save_activation = save_activation.detach().cpu().numpy()
+                        save_activation = save_activation.reshape(images.size(0), -1)
+                        f=open(os.path.join(self.save_dir, "{}_{}_act.txt".format(attack_style, valid_key)),'a')
+                        np.savetxt(f, save_activation, fmt='%.2f')
+                        f.close()
+                        output = self.f_tail(z_private)
+                    else:
+
+                        output = self.f_tail(z_private)
 
                     if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
                         output = F.avg_pool2d(output, 4)
@@ -2381,11 +2439,11 @@ class MIA:
                     loss = criterion(output, labels)
                     loss.backward(retain_graph = True)
                     z_private_grad = z_private.grad.detach().cpu()
-
+                    #Use hook to get activation out.
                     save_images.append(images.cpu().clone())
                     save_grad.append(z_private_grad.clone())
                     save_label.append(labels.cpu().clone())
-        
+                
         ''' SoftTrainME, crafts soft input label pairs for surrogate model training'''
         if  SoftTrain_option and attacker_dataloader is not None:
             # Use SoftTrain_option, query the gradients on inputs with all label combinations
@@ -3847,6 +3905,7 @@ class MIA:
                     save_activation = activation_3[valid_key]
                 except:
                     print("cannot attack from later layer, server-side model is empty or does not have enough layers")
+            
             if self.local_DP and not clean_option:  # local DP or additive noise
                 if "laplace" in self.regularization_option:
                     save_activation += torch.from_numpy(
