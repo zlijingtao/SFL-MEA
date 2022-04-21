@@ -2011,7 +2011,6 @@ class MIA:
         # train_clas_layer = -1: traditional ME, extract the entire model
         
         if train_clas_layer < 0:  
-            self.lr = 5 * self.lr # adjust the lr higher
             surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, 0, "same")
         else:
             surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, train_clas_layer, surrogate_arch)
