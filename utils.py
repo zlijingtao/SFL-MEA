@@ -166,6 +166,25 @@ def accuracy(output, target, topk=(1,), compress_V4shadowlabel = False, num_clie
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
+
+def fidelity(output, target):
+    """Computes the precision@k for the specified values of k"""
+    batch_size = target.size(0)
+
+    _, pred = output.topk(1, 1, True, True)
+    pred = pred.t()
+
+    _, target_pred = target.topk(1, 1, True, True)
+    target_pred = target_pred.t()
+
+    correct = pred.eq(target_pred)
+
+    res = []
+    correct_k = correct[:1].view(-1).float().sum(0)
+    res.append(correct_k.mul_(100.0 / batch_size))
+    return res
+
+
 def get_PSNR(refimg, invimg, peak = 1.0):
     psnr = 10*torch.log10(peak**2 / torch.mean((refimg - invimg)**2))
     return psnr
