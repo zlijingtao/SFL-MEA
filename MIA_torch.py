@@ -2096,6 +2096,12 @@ class MIA:
             else:
                 num_craft_step = 20
             num_image_per_class = num_query // num_craft_step // self.num_class
+
+            if num_image_per_class == 0:
+                num_craft_step = num_query // self.num_class
+                num_image_per_class = 1
+                if num_craft_step == 0:
+                    print("number of query is tooo small, not going to work.")
             image_shape = (1, 3, 32, 32)
             lambda_TV = 0.0
             lambda_l2 = 0.0
@@ -2511,7 +2517,7 @@ class MIA:
                     loss.backward(retain_graph = True)
                     z_private_grad = z_private.grad.detach().clone()
 
-                    if i * self.num_class * 100 < num_query: # in query budget, craft soft label 
+                    if i * self.num_class * 100 <= num_query: # in query budget, craft soft label 
                         for c in range(self.num_class):
                             fake_label = c * torch.ones_like(labels).cuda()
                             self.optimizer_zero_grad()
