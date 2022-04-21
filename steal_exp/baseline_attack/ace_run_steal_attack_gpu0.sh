@@ -39,7 +39,11 @@ attack_style="TrainME_option"
 data_proportion_list="0.2"
 # data_proportion_list="0.02"
 # train_clas_layer_list="7 8"
+<<<<<<< HEAD
 train_clas_layer_list="2 5"
+=======
+train_clas_layer_list="2"
+>>>>>>> 0320f9f346d9281e24cb24682be4b9ad559d4c9e
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
