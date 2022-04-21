@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=5
+GPU_id=0
 arch=vgg11_bn
 batch_size=128
 
@@ -31,40 +31,41 @@ dataset=cifar10
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 local_lr_list="0.005"
 
-attack_epochs=100
+attack_epochs=200
 attack_client=0
-num_query=10000
+num_query=1000
 attack_style="Knockoff_option_CIFAR10"
 # data_proportion_list="0.01 0.2"
 data_proportion_list="1.0"
 # train_clas_layer_list="3 4 5 6 7 8"
-train_clas_layer_list="2 5"
+# train_clas_layer_list="2"
 
-for random_seed in $random_seed_list; do
-        for regularization_strength in $regularization_strength_list; do
-                for cutlayer in $cutlayer_list; do
-                        for num_client in $num_client_list; do
-                                for local_lr in $local_lr_list; do
-                                        for data_proportion in $data_proportion_list; do
-                                                for train_clas_layer in $train_clas_layer_list; do
-                                                filename=ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_${dataset}_lr_0.05_200epoch
+# for random_seed in $random_seed_list; do
+#         for regularization_strength in $regularization_strength_list; do
+#                 for cutlayer in $cutlayer_list; do
+#                         for num_client in $num_client_list; do
+#                                 for local_lr in $local_lr_list; do
+#                                         for data_proportion in $data_proportion_list; do
+#                                                 for train_clas_layer in $train_clas_layer_list; do
+#                                                 filename=ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_${dataset}_lr_0.05_200epoch
 
-                                                CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=$cutlayer --batch_size=${batch_size} \
-                                                        --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
-                                                        --dataset=$dataset --scheme=$scheme --test_best  --learning_rate=$learning_rate\
-                                                        --attack_epochs=$attack_epochs  --bottleneck_option ${bottleneck_option} \
-                                                        --attack_client=$attack_client  --num_query=$num_query  --regularization=$regularization  --regularization_strength=${regularization_strength} \
-                                                        --attack_style=$attack_style  --data_proportion=${data_proportion} --train_clas_layer=${train_clas_layer}
-                                                done
-                                        done
-                                done
-                        done
-                done
-        done
-done
+#                                                 CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=$cutlayer --batch_size=${batch_size} \
+#                                                         --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
+#                                                         --dataset=$dataset --scheme=$scheme --test_best  --learning_rate=$learning_rate\
+#                                                         --attack_epochs=$attack_epochs  --bottleneck_option ${bottleneck_option} \
+#                                                         --attack_client=$attack_client  --num_query=$num_query  --regularization=$regularization  --regularization_strength=${regularization_strength} \
+#                                                         --attack_style=$attack_style  --data_proportion=${data_proportion} --train_clas_layer=${train_clas_layer}
+#                                                 done
+#                                         done
+#                                 done
+#                         done
+#                 done
+#         done
+# done
 
-learning_rate=0.02
-train_clas_layer_list="8 -1"
+learning_rate=0.05
+# train_clas_layer_list="5 8 -1"
+train_clas_layer_list="8"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
