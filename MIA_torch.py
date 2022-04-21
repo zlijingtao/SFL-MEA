@@ -191,6 +191,7 @@ class MIA:
         self.regularization_strength = regularization_strength
         
         '''Train time ME attack'''
+        self.trigger_stop = False
 
         if "gan_train_ME" in self.regularization_option:
             self.Generator_train_option = True
@@ -223,7 +224,6 @@ class MIA:
         
         if "GM_train_ME" in self.regularization_option:
             self.GM_train_option = True
-            self.trigger_stop = False
             self.soft_image_id = 0
             self.soft_train_count = 0
             self.GM_data_proportion = self.regularization_strength # use reguarlization_strength to set data_proportion
@@ -240,7 +240,6 @@ class MIA:
         if "normal_train_ME" in self.regularization_option:
             
             self.Normal_train_option = True
-            self.trigger_stop = False
             self.soft_image_id = 0
             self.soft_train_count = 0
             try:
@@ -255,7 +254,6 @@ class MIA:
         
         if "soft_train_ME" in self.regularization_option:
             self.Soft_train_option = True
-            self.trigger_stop = False
             self.soft_image_id = 0
             self.soft_train_count = 0
             try:
