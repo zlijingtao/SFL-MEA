@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch.serialization import save
 import torchvision.transforms as transforms
 import architectures_torch as architectures
-from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, apply_transform_test, apply_transform, TV, l2loss, dist_corr, get_PSNR, zeroing_grad
+from utils import setup_logger, accuracy, fidelity, AverageMeter, WarmUpLR, apply_transform_test, apply_transform, TV, l2loss, dist_corr, get_PSNR, zeroing_grad
 from utils import freeze_model_bn, average_weights, DistanceCorrelationLoss, spurious_loss, prune_top_n_percent_left, dropout_defense, prune_defense
 from thop import profile
 import logging
@@ -2096,6 +2096,12 @@ class MIA:
             else:
                 num_craft_step = 20
             num_image_per_class = num_query // num_craft_step // self.num_class
+
+            if num_image_per_class == 0:
+                num_craft_step = num_query // self.num_class
+                num_image_per_class = 1
+                if num_craft_step == 0:
+                    print("number of query is tooo small, not going to work.")
             image_shape = (1, 3, 32, 32)
             lambda_TV = 0.0
             lambda_l2 = 0.0
@@ -2783,11 +2789,12 @@ class MIA:
         min_grad_loss = 9.9
         acc_loss_min_grad_loss = 9.9
         val_acc_max = 0.0
+        fidelity_max = 0.0
         
         best_tail_state_dict = None
         best_classifier_state_dict = None
-        val_accu = self.steal_test(attack_client=attack_client)
-        self.logger.debug("epoch: {}, val_acc: {}".format(0, val_accu))
+        val_accu, fidel_score = self.steal_test(attack_client=attack_client)
+        self.logger.debug("epoch: {}, val_acc: {}, val_fidelity: {}".format(0, val_accu, fidel_score))
 
 
 
@@ -3005,40 +3012,77 @@ class MIA:
             acc_loss_mean = np.mean(acc_loss_list)
             avg_acc = np.mean(acc_list)
 
-            val_accu = self.steal_test(attack_client=attack_client)
+            val_accu, fidel_score = self.steal_test(attack_client=attack_client)
 
             if gradient_matching:
                 if val_accu > val_acc_max:
                     min_grad_loss = grad_loss_mean
                     acc_loss_min_grad_loss = acc_loss_mean
                     val_acc_max = val_accu
+                    acc_max_fidelity = fidel_score
                     best_client_state_dict = self.surrogate_client.state_dict()
                     best_tail_state_dict = self.surrogate_tail.state_dict()
                     best_classifier_state_dict = self.surrogate_classifier.state_dict()
+                if fidel_score > fidelity_max:
+                    min_grad_loss = grad_loss_mean
+                    acc_loss_min_grad_loss = acc_loss_mean
+                    fidelity_max = fidel_score
+                    fidel_max_acc = val_accu
+                    closest_client_state_dict = self.surrogate_client.state_dict()
+                    closest_tail_state_dict = self.surrogate_tail.state_dict()
+                    closest_classifier_state_dict = self.surrogate_classifier.state_dict()
             else:
                 if val_accu > val_acc_max:
                     acc_loss_min_grad_loss = acc_loss_mean
                     val_acc_max = val_accu
+                    acc_max_fidelity = fidel_score
                     best_client_state_dict = self.surrogate_client.state_dict()
                     best_tail_state_dict = self.surrogate_tail.state_dict()
                     best_classifier_state_dict = self.surrogate_classifier.state_dict()
-            self.logger.debug("epoch: {}, train_acc: {}, val_acc: {}, acc_loss: {}, grad_loss: {}".format(epoch, avg_acc, val_accu, acc_loss_mean, grad_loss_mean))
+                if fidel_score > fidelity_max:
+                    acc_loss_min_grad_loss = acc_loss_mean
+                    fidelity_max = fidel_score
+                    fidel_max_acc = val_accu
+                    closest_client_state_dict = self.surrogate_client.state_dict()
+                    closest_tail_state_dict = self.surrogate_tail.state_dict()
+                    closest_classifier_state_dict = self.surrogate_classifier.state_dict()
+            
+            self.logger.debug("epoch: {}, train_acc: {}, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(epoch, avg_acc, val_accu, fidel_score, acc_loss_mean, grad_loss_mean))
         
         if gradient_matching:
             if best_tail_state_dict is not None:
                 self.logger.debug("load best stealed model.")
-                self.logger.debug("Best perform model, val_acc: {}, acc_loss: {}, grad_loss: {}".format(val_acc_max, acc_loss_min_grad_loss, min_grad_loss))
+                self.logger.debug("Best perform model, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(val_acc_max, acc_max_fidelity, acc_loss_min_grad_loss, min_grad_loss))
                 self.surrogate_client.load_state_dict(best_client_state_dict)
                 self.surrogate_tail.load_state_dict(best_tail_state_dict)
                 self.surrogate_classifier.load_state_dict(best_classifier_state_dict)
-            else:
-                self.logger.debug("Model steal failed.")
+            
+            if closest_tail_state_dict is not None:
+                self.logger.debug("load cloest stealed model.")
+                self.logger.debug("Cloest perform model, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(fidel_max_acc, fidelity_max, acc_loss_min_grad_loss, min_grad_loss))
+                self.surrogate_client.load_state_dict(closest_client_state_dict)
+                self.surrogate_tail.load_state_dict(closest_tail_state_dict)
+                self.surrogate_classifier.load_state_dict(closest_classifier_state_dict)
+        
         else:
             self.logger.debug("load best stealed model.")
-            self.logger.debug("Best perform model, val_acc: {}, acc_loss: {}".format(val_acc_max, acc_loss_min_grad_loss))
+            self.logger.debug("Best perform model, val_acc: {}, fidel_score: {}, acc_loss: {}".format(val_acc_max, acc_max_fidelity, acc_loss_min_grad_loss))
             self.surrogate_client.load_state_dict(best_client_state_dict)
             self.surrogate_tail.load_state_dict(best_tail_state_dict)
             self.surrogate_classifier.load_state_dict(best_classifier_state_dict)
+
+            self.logger.debug("load cloest stealed model.")
+            self.logger.debug("Closest perform model, val_acc: {}, fidel_score: {}, acc_loss: {}".format(fidel_max_acc, fidelity_max, acc_loss_min_grad_loss))
+            self.surrogate_client.load_state_dict(closest_client_state_dict)
+            self.surrogate_tail.load_state_dict(closest_tail_state_dict)
+            self.surrogate_classifier.load_state_dict(closest_classifier_state_dict)
+
+
+
+
+
+
+
 
     def train_generator(self, num_query, nz, client_model, data_helper = None, resume = False, discriminator_option = False):
         lr_G = 1e-4
@@ -3248,7 +3292,7 @@ class MIA:
         Run evaluation
         """
         # batch_time = AverageMeter()
-        losses = AverageMeter()
+        fidel_score = AverageMeter()
         top1 = AverageMeter()
         val_loader = self.pub_dataloader
 
@@ -3259,6 +3303,13 @@ class MIA:
         self.surrogate_tail.eval()
         self.surrogate_classifier.cuda()
         self.surrogate_classifier.eval()
+
+        self.model.local_list[0].cuda()
+        self.model.local_list[0].eval()
+        self.f_tail.cuda()
+        self.f_tail.eval()
+        self.classifier.cuda()
+        self.classifier.eval()
         
 
         for i, (input, target) in enumerate(val_loader):
@@ -3268,27 +3319,41 @@ class MIA:
             with torch.no_grad():
 
                 output = self.surrogate_client(input)
+                output_target = self.model.local_list[0](input)
 
                 output = self.surrogate_tail(output)
+                output_target = self.f_tail(output_target)
 
                 if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
                     output = F.avg_pool2d(output, 4)
                     output = output.view(output.size(0), -1)
                     output = self.surrogate_classifier(output)
+                    output_target = F.avg_pool2d(output_target, 4)
+                    output_target = output_target.view(output_target.size(0), -1)
+                    output_target = self.classifier(output_target)
                 elif self.arch == "resnet20" or self.arch == "resnet32":
                     output = F.avg_pool2d(output, 8)
                     output = output.view(output.size(0), -1)
                     output = self.surrogate_classifier(output)
+                    output_target = F.avg_pool2d(output_target, 8)
+                    output_target = output_target.view(output_target.size(0), -1)
+                    output_target = self.classifier(output_target)
                 else:
                     output = output.view(output.size(0), -1)
                     output = self.surrogate_classifier(output)
+                    output_target = output_target.view(output_target.size(0), -1)
+                    output_target = self.classifier(output_target)
 
             output = output.float()
+            output_target = output_target.float()
 
             # measure accuracy and record loss
             prec1 = accuracy(output.data, target)[0]
+
+            fidel = fidelity(output.data, output_target.data)[0]
             top1.update(prec1.item(), input.size(0))
-        return top1.avg
+            fidel_score.update(fidel.item(), input.size(0))
+        return top1.avg, fidel_score.avg
 
     def MIA_attack(self, num_epochs, attack_option="MIA", collude_client=1, target_client=0, noise_aware=False,
                    loss_type="MSE", attack_from_later_layer=-1, MIA_optimizer = "Adam", MIA_lr = 1e-3):
