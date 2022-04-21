@@ -2582,20 +2582,29 @@ class MIA:
                 else:
                     print("No saved data is presented!")
                     exit()
+                
+                max_image_id = 0
+                for file in glob.glob(saved_crafted_image_path + "*"):
+                    if "image" in file and "grad_image" not in file:
+                        image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                        if image_id > max_image_id:
+                            max_image_id = image_id
                 for label in range(self.num_class): # put same label together
                     for file in glob.glob(saved_crafted_image_path + "*"):
                         if "image" in file and "grad_image" not in file:
-                            saved_image = torch.load(file)
+                            
             
                             image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
-                            
-                            saved_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
-                            saved_label = label * torch.ones(saved_grad.size(0), ).long()
-                            # saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
 
-                            save_images.append(saved_image.clone())
-                            save_grad.append(saved_grad.clone()) # add a random existing grad.
-                            save_label.append(saved_label.clone())
+                            if image_id > max_image_id - 2: # collect only the last two valid data batch. (even this is very bad)
+                                saved_image = torch.load(file)
+                                saved_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
+                                saved_label = label * torch.ones(saved_grad.size(0), ).long()
+                                # saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+
+                                save_images.append(saved_image.clone())
+                                save_grad.append(saved_grad.clone()) # add a random existing grad.
+                                save_label.append(saved_label.clone())
             else:
                 self.model.local_list[attack_client].eval()
                 self.f_tail.eval()
@@ -2801,7 +2810,6 @@ class MIA:
                     image = image.cuda()
                     grad = grad.cuda()
                     label = label.cuda()
-
                     suro_optimizer.zero_grad()
                     act = self.surrogate_client(image)
                     output = self.surrogate_tail(act)
