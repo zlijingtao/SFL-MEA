@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=0
+GPU_id=6
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
@@ -19,7 +19,7 @@ learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 attack_epochs=300
 attack_client=0
 num_query_list="1000 10000"
-attack_style="GM_option_CIFAR100 GM_option_SVHN"
+attack_style_list="GM_option_CIFAR100 GM_option_SVHN"
 data_proportion_list="1.0"
 
 train_clas_layer_list="2 5"

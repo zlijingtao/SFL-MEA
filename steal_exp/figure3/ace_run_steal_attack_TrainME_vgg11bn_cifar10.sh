@@ -11,7 +11,7 @@ scheme=V2_epoch
 regularization_strength_list="0.0"
 folder_name="saves/baseline"
 cutlayer_list="4"
-num_client_list="1"
+num_client="1"
 
 dataset=cifar10
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
@@ -19,7 +19,7 @@ learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 attack_epochs=300
 attack_client=0
 num_query_list="1"
-attack_style="TrainME_option"
+attack_style_list="TrainME_option"
 data_proportion_list="0.2 0.02"
 
 train_clas_layer_list="2 5"
@@ -27,7 +27,7 @@ train_clas_layer_list="2 5"
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
                 for cutlayer in $cutlayer_list; do
-                        for num_client in $num_client_list; do
+                        for attack_style in $attack_style_list; do
                                 for num_query in $num_query_list; do
                                         for data_proportion in $data_proportion_list; do
                                                 for train_clas_layer in $train_clas_layer_list; do
@@ -54,7 +54,7 @@ train_clas_layer_list="8 -1"
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
                 for cutlayer in $cutlayer_list; do
-                        for num_client in $num_client_list; do
+                        for attack_style in $attack_style_list; do
                                 for num_query in $num_query_list; do
                                         for data_proportion in $data_proportion_list; do
                                                 for train_clas_layer in $train_clas_layer_list; do
