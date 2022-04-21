@@ -2351,7 +2351,7 @@ class MIA:
                     print("No saved data is presented!")
                     exit()
                 for file in glob.glob(saved_crafted_image_path + "*"):
-                    if "image" in file:
+                    if "image" in file and "grad_image" not in file:
                         image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
                         saved_image = torch.load(file)
                         saved_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
@@ -2582,17 +2582,20 @@ class MIA:
                 else:
                     print("No saved data is presented!")
                     exit()
-                for file in glob.glob(saved_crafted_image_path + "*"):
-                    if "image" in file:
-                        image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
-                        saved_image = torch.load(file)
-                        
-                        saved_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
-                        saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+                for label in range(self.num_class): # put same label together
+                    for file in glob.glob(saved_crafted_image_path + "*"):
+                        if "image" in file and "grad_image" not in file:
+                            saved_image = torch.load(file)
+            
+                            image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                            
+                            saved_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
+                            saved_label = label * torch.ones(saved_grad.size(0), ).long()
+                            # saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
 
-                        save_images.append(saved_image.clone())
-                        save_grad.append(saved_grad.clone()) # add a random existing grad.
-                        save_label.append(saved_label.clone())
+                            save_images.append(saved_image.clone())
+                            save_grad.append(saved_grad.clone()) # add a random existing grad.
+                            save_label.append(saved_label.clone())
             else:
                 self.model.local_list[attack_client].eval()
                 self.f_tail.eval()
@@ -2703,16 +2706,26 @@ class MIA:
         
         # Packing list to dataloader.
         if not Generator_option:
+
+            if GM_option:
+                if_shuffle = False
+                batch_size = 100
+            else:
+                if_shuffle = True
+                batch_size = self.batch_size
+            
             save_images = torch.cat(save_images)
             save_grad = torch.cat(save_grad)
             save_label = torch.cat(save_label)
             indices = torch.arange(save_label.shape[0]).long()
             ds = torch.utils.data.TensorDataset(indices, save_images, save_grad, save_label)
 
+            
+
             dl = torch.utils.data.DataLoader(
-                ds, batch_size=self.batch_size, num_workers=4, shuffle=True
+                ds, batch_size=batch_size, num_workers=4, shuffle=if_shuffle
             )
-            print("length of dl is ", len(dl))
+            # print("length of dl is ", len(dl))
             mean_norm = save_grad.norm(dim=-1).mean().detach().item()
         else:
             self.generator.eval()
@@ -2741,8 +2754,9 @@ class MIA:
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(15)
         )
-        if Craft_option or Generator_option:
+        if Craft_option or Generator_option or GM_option:
             dl_transforms = None
+        
         if SoftTrain_option and resume_option: #TODO: test the usefulness of this.
             dl_transforms = None
         
