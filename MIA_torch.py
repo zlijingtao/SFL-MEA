@@ -2511,7 +2511,7 @@ class MIA:
                     loss.backward(retain_graph = True)
                     z_private_grad = z_private.grad.detach().clone()
 
-                    if i * self.num_class * 100 < num_query: # in query budget, craft soft label 
+                    if i * self.num_class * 100 <= num_query: # in query budget, craft soft label 
                         for c in range(self.num_class):
                             fake_label = c * torch.ones_like(labels).cuda()
                             self.optimizer_zero_grad()
@@ -2714,7 +2714,7 @@ class MIA:
         # Packing list to dataloader.
         if not Generator_option:
 
-            if GM_option:
+            if GM_option and resume_option:
                 if_shuffle = False
                 batch_size = 100
             else:
