@@ -1,60 +1,60 @@
+
+# %%
 import argparse
 import os
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import rcParams
 import numpy as np  
-   
+import torch
+import torch.distributions as distributions  
+from bhtsne import bhtsne 
+import pandas as pd
 
-'''Old scripts, to analyze tensor histogram'''
-# parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-# parser.add_argument('--folder_name', required=True, type=str, help='please type folder_name name for the testing purpose')
-# parser.add_argument('--file_name', required=True, type=str, help='please type save_file name for the testing purpose')
-# args = parser.parse_args()
+# %%
+'''Get bhtSNE plot for activation data.'''
+folder_name = "saves/baseline"
+file_name = "ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_200epoch"
+# tensor_file_name = "TrainME_option_ACT-9_act.txt"
+# tensor_file_name = "TrainME_option_ACT-20_act.txt"
+N = 8
+if N == 2:
+    key_name = "ACT-20"
+elif N == 5:
+    key_name = "ACT-9"
+elif N == 8:
+    key_name = "z_private"
+tensor_file_name = f"TrainME_option_{key_name}_act.txt"
+tensor_label_name = f"TrainME_option_{key_name}_target.txt"
+tensor_path = "./" + folder_name + "/"+ file_name + "/" + tensor_file_name
+label_path = "./" + folder_name + "/"+ file_name + "/" + tensor_label_name
 
-# tensor_path = "./" + args.folder_name + "/"+ args.file_name + "/saved_tensors"
-# print(tensor_path)
-# analysis_path = "./" + args.folder_name + "/"+ args.file_name + "/tensor_analysis"
-# if not os.path.isdir(tensor_path):
-#     raise("Tensors not found!")
-# if not os.path.isdir(analysis_path):
-#     os.makedirs(analysis_path)
+data = np.loadtxt(tensor_path)
+label = np.loadtxt(label_path)
 
+embedding_array = bhtsne.run_bh_tsne(data, initial_dims=data.shape[1])
 
-# params = {
-#         'axes.labelsize': 8,
-#         'font.size': 8,
-#         'legend.fontsize': 10,
-#         'xtick.labelsize': 10,
-#         'ytick.labelsize': 10,
-#         'text.usetex': False,
-#         'figure.figsize': [4.5, 4.5]
-#         }
-# rcParams.update(params)
-# for filename in os.listdir(tensor_path):
-#     if filename.endswith(".npy"):
-#         npy_file_path = os.path.join(tensor_path, filename)
-#         np_array = np.load(npy_file_path)
-#         if "client" in filename and "Sequential" in filename:
-#             print("mean is {}".format(np.mean(np_array)))
-#             print("max is {}".format(np.max(np_array)))
-#             print("min is {}".format(np.min(np_array)))
-#             print("std is {}".format(np.std(np_array)))
+print(embedding_array)
 
-#         hist, bins = np.histogram(np_array, bins=50)
-#         width = 0.7 * (bins[1] - bins[0])
-#         center = (bins[:-1] + bins[1:]) / 2
-#         plt.bar(center, hist, align='center', width=width)
-#         # hist = np.histogram(np_array, bins=10, range=None, normed=None, weights=None, density=None)
-#         # plt.plot(hist) 
-#         # plt.hist(a, bins = [0,20,40,60,80,100]) 
-#         plt.title("histogram")
-        
-#         # plt.savefig(analysis_path+'/{}.pdf'.format(filename.split(".")[0]), bbox_inches='tight')
-#         plt.savefig(analysis_path+'/{}.png'.format(filename.split(".")[0]))
-#         plt.clf()
-#     else:
-#         continue
+# %%
+palette=["#1CE6FF", "#FF34FF", "#FF4A46","#008941", "#006FA6", "#A30059", '#008080','#FFA500', '#3399FF','#800080']
 
+for i in range(10):
+    pos=(label==i).flatten()
+    plt.scatter(embedding_array[pos,0], embedding_array[pos,1],
+        c=palette[i],
+        label=str(i),
+        edgecolor='black'
+    )
 
-'''Implement entropy calculation for activation data.'''
+plt.title(f't-SNE on intermediate activation (N = {N})', fontsize=18)
+plt.xlabel('t-SNE 1', fontsize=18)
+plt.ylabel('t-SNE 2', fontsize=18)
+plt.legend(loc='best', fontsize=12)
+plt.tight_layout()
+print("Saving plot")
+plt.savefig(f'result_N_{N}.pdf')
+print('Showing plot, voila !')
+plt.show()
+
+# %%

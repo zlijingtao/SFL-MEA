@@ -1112,7 +1112,7 @@ class MIA:
                 output = self.model.local_list[client_id](input)
 
                 if self.bhtsne:
-                    self.save_activation_bhtsne(output, target, client_id)
+                    self.save_activation_bhtsne(output, target, input.size(0), "train", f"client{client_id}")
                     exit()
 
                 '''Optional, Test validation performance with local_DP/dropout (apply DP during query)'''
@@ -2359,6 +2359,7 @@ class MIA:
                             save_grad.append(saved_grad.clone()) # add a random existing grad.
                             save_label.append(saved_label.clone())
             else:
+                
                 if self.arch == "vgg11_bn" and train_clas_layer == 2:
                     attack_from_later_layer = 21 # VGG-11: 21 for N = 2, 17 for N = 3, 14 for N = 4, 10 for N = 5, 7 for N = 6, 3 for N = 7, z_private for N = 8
                 elif self.arch == "vgg11_bn" and train_clas_layer == 5:
@@ -2368,7 +2369,8 @@ class MIA:
                 else:
                     attack_from_later_layer = -1
                 
-                
+                if not self.bhtsne:
+                    attack_from_later_layer = -1 # this block the activation collection
                 
                 for images, labels in attacker_dataloader:
                     images = images.cuda()
@@ -2402,24 +2404,16 @@ class MIA:
 
                         try:
                             save_activation = activation_3[valid_key]
-                            save_activation = save_activation.float()
-                            save_activation = save_activation.cpu().numpy()
-                            save_activation = save_activation.reshape(images.size(0), -1)
-                            f=open(os.path.join(self.save_dir, "{}_{}_act.txt".format(attack_style, valid_key)),'a')
-                            np.savetxt(f, save_activation, fmt='%.2f')
-                            f.close()
+                            self.save_activation_bhtsne(save_activation, labels, images.size(0), attack_style, valid_key)
                         except:
                             print("cannot attack from later layer, server-side model is empty or does not have enough layers")
                         #TODO: calculate entropy here
                     elif attack_from_later_layer == 0:
 
-                        save_activation = z_private.float()
+                        save_activation = z_private
                         valid_key = "z_private"
-                        save_activation = save_activation.detach().cpu().numpy()
-                        save_activation = save_activation.reshape(images.size(0), -1)
-                        f=open(os.path.join(self.save_dir, "{}_{}_act.txt".format(attack_style, valid_key)),'a')
-                        np.savetxt(f, save_activation, fmt='%.2f')
-                        f.close()
+                        self.save_activation_bhtsne(save_activation, labels, images.size(0), attack_style, valid_key)
+
                         output = self.f_tail(z_private)
                     else:
 
@@ -3819,24 +3813,23 @@ class MIA:
             "PSNR Loss on ALL Image is {:.4f} (Real Attack Results on the Target Client)".format(psnr_test_losses.avg))
         return all_test_losses.avg, ssim_test_losses.avg, psnr_test_losses.avg
 
-    def save_activation_bhtsne(self, save_activation, target, client_id):
+    def save_activation_bhtsne(self, save_activation, labels, batch_size, msg1, msg2):
         """
             Run one train epoch
         """
 
-        path_dir = os.path.join(self.save_dir, 'save_activation_cutlayer')
-        if not os.path.isdir(path_dir):
-            os.mkdir(path_dir)
-
         save_activation = save_activation.float()
-        save_activation = save_activation.cpu().numpy()
-        save_activation = save_activation.reshape(self.batch_size, -1)
-        np.savetxt(os.path.join(path_dir, "{}.txt".format(client_id)), save_activation, fmt='%.2f')
+        save_activation = save_activation.detach().cpu().numpy()
+        save_activation = save_activation.reshape(batch_size, -1)
+        f=open(os.path.join(self.save_dir, "{}_{}_act.txt".format(msg1, msg2)),'a')
+        np.savetxt(f, save_activation, fmt='%.2f')
+        f.close()
 
-        target = target.float()
-        target = target.cpu().numpy()
-        target = target.reshape(self.batch_size, -1)
-        np.savetxt(os.path.join(path_dir, "{}target.txt".format(client_id)), target, fmt='%.2f')
+        target = labels.cpu().numpy()
+        target = target.reshape(batch_size, -1)
+        f=open(os.path.join(self.save_dir, "{}_{}_target.txt".format(msg1, msg2)),'a')
+        np.savetxt(f, target, fmt='%d')
+        f.close()
 
     #Generate test set for MIA decoder
     def save_image_act_pair(self, input, target, client_id, epoch, clean_option=False, attack_from_later_layer=-1, attack_option = "MIA"):
