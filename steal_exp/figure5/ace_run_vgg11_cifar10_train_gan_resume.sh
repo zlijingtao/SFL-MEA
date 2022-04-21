@@ -9,32 +9,27 @@ num_client=2
 num_epochs=200
 
 random_seed_list="125"
-#Extra argement (store_true): --collude_use_public, --initialize_different  --collude_not_regularize  --collude_not_regularize --num_client_regularize ${num_client_regularize}
-
-# regularization=gan_adv_step1
 
 scheme=V2_epoch
 ssim_threshold=0.5
 regularization_strength_list="0.0"
 folder_name="saves/train_attack"
-
-# source_task_list="svhn mnist facescrub cifar10"
 transfer_source_task=cifar10
 dataset=cifar10
-learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
+learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
-attack_epochs=100
+attack_epochs=300
 attack_client=0
 num_query=10
 attack_style="Generator_option_resume"
-regularization=gan_train_ME_nopoison_start160
+regularization_list="gan_train_ME_nopoison_start160 gan_train_ME_nopoison_start120"
 data_proportion_list="0.0"
-train_clas_layer_list="2 3 4 5 6 7 8" #TODO: revise this. find corresponding train_clas_layer_list to 4 and 8
-num_client_list="6"
-cutlayer_list="4"
+train_clas_layer_list="2 5 8"
+num_client_list="6 11"
+cutlayer="4"
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
-                for cutlayer in $cutlayer_list; do
+                for regularization in $regularization_list; do
                         for num_client in $num_client_list; do
                                 for data_proportion in $data_proportion_list; do
                                         for train_clas_layer in $train_clas_layer_list; do
