@@ -2078,7 +2078,7 @@ class MIA:
         gradient_matching = False
         Copycat_option = False
         Knockoff_option = False
-        
+        resume_option = False
         if "Copycat_option" in attack_style:
             Copycat_option = True # perform Copycat, use auxiliary dataset, inference is required
         if "Knockoff_option" in attack_style:
@@ -2340,7 +2340,11 @@ class MIA:
 
         if (TrainME_option) and (attacker_dataloader is not None):
             
-            if resume_option and TrainME_option and gradient_matching: #TODO: Test correctness.
+            
+            if resume_option and TrainME_option and gradient_matching: #TODO: Test correctness.cluster all label together.
+                assist_images = []
+                assist_grad = []
+                assist_label = []
                 saved_crafted_image_path = self.save_dir + "saved_grads/"
                 if os.path.isdir(saved_crafted_image_path):
                     print("load from data collected during training")
@@ -2350,94 +2354,91 @@ class MIA:
                 for file in glob.glob(saved_crafted_image_path + "*"):
                     if "image" in file:
                         image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
-                        if image_id > 2500: # select a subset #TODO: delete this
-                            saved_image = torch.load(file)
-                            saved_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
-                            saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+                        saved_image = torch.load(file)
+                        saved_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
+                        saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
 
-                            save_images.append(saved_image.clone())
-                            save_grad.append(saved_grad.clone()) # add a random existing grad.
-                            save_label.append(saved_label.clone())
+                        assist_images.append(saved_image.clone())
+                        assist_grad.append(saved_grad.clone()) # add a random existing grad.
+                        assist_label.append(saved_label.clone())
+
+            if self.arch == "vgg11_bn" and train_clas_layer == 2:
+                attack_from_later_layer = 21 # VGG-11: 21 for N = 2, 17 for N = 3, 14 for N = 4, 10 for N = 5, 7 for N = 6, 3 for N = 7, z_private for N = 8
+            elif self.arch == "vgg11_bn" and train_clas_layer == 5:
+                attack_from_later_layer = 10
+            elif self.arch == "vgg11_bn" and train_clas_layer == 8:
+                attack_from_later_layer = 0
             else:
+                attack_from_later_layer = -1
                 
-                if self.arch == "vgg11_bn" and train_clas_layer == 2:
-                    attack_from_later_layer = 21 # VGG-11: 21 for N = 2, 17 for N = 3, 14 for N = 4, 10 for N = 5, 7 for N = 6, 3 for N = 7, z_private for N = 8
-                elif self.arch == "vgg11_bn" and train_clas_layer == 5:
-                    attack_from_later_layer = 10
-                elif self.arch == "vgg11_bn" and train_clas_layer == 8:
-                    attack_from_later_layer = 0
-                else:
-                    attack_from_later_layer = -1
-                
-                if not self.bhtsne:
-                    attack_from_later_layer = -1 # this block the activation collection
-                
-                for images, labels in attacker_dataloader:
-                    images = images.cuda()
-                    labels = labels.cuda()
+            if not self.bhtsne:
+                attack_from_later_layer = -1 # this block the activation collection
+            
+            for images, labels in attacker_dataloader:
+                images = images.cuda()
+                labels = labels.cuda()
 
-                    self.optimizer_zero_grad()
-                    z_private = self.model.local_list[attack_client](images)
-                    z_private.retain_grad()
+                self.optimizer_zero_grad()
+                z_private = self.model.local_list[attack_client](images)
+                z_private.retain_grad()
 
 
 
-                    if attack_from_later_layer > 0:
+                if attack_from_later_layer > 0:
 
-                        activation_3 = {}
+                    activation_3 = {}
 
-                        def get_activation_3(name):
-                            def hook(model, input, output):
-                                activation_3[name] = output.detach()
+                    def get_activation_3(name):
+                        def hook(model, input, output):
+                            activation_3[name] = output.detach()
 
-                            return hook
-                        count = 0
-                        for name, m in self.f_tail.named_modules():
-                            print(name, m)
-                            if attack_from_later_layer == count:
-                                m.register_forward_hook(get_activation_3("ACT-{}".format(name)))
-                                valid_key = "ACT-{}".format(name)
-                                print(f"extract {valid_key}")
-                                break
-                            count += 1
-                        output = self.f_tail(z_private)
+                        return hook
+                    count = 0
+                    for name, m in self.f_tail.named_modules():
+                        print(name, m)
+                        if attack_from_later_layer == count:
+                            m.register_forward_hook(get_activation_3("ACT-{}".format(name)))
+                            valid_key = "ACT-{}".format(name)
+                            print(f"extract {valid_key}")
+                            break
+                        count += 1
+                    output = self.f_tail(z_private)
 
-                        try:
-                            save_activation = activation_3[valid_key]
-                            self.save_activation_bhtsne(save_activation, labels, images.size(0), attack_style, valid_key)
-                        except:
-                            print("cannot attack from later layer, server-side model is empty or does not have enough layers")
-                        #TODO: calculate entropy here
-                    elif attack_from_later_layer == 0:
-
-                        save_activation = z_private
-                        valid_key = "z_private"
+                    try:
+                        save_activation = activation_3[valid_key]
                         self.save_activation_bhtsne(save_activation, labels, images.size(0), attack_style, valid_key)
+                    except:
+                        print("cannot attack from later layer, server-side model is empty or does not have enough layers")
+                elif attack_from_later_layer == 0:
 
-                        output = self.f_tail(z_private)
-                    else:
+                    save_activation = z_private
+                    valid_key = "z_private"
+                    self.save_activation_bhtsne(save_activation, labels, images.size(0), attack_style, valid_key)
 
-                        output = self.f_tail(z_private)
+                    output = self.f_tail(z_private)
+                else:
 
-                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                        output = F.avg_pool2d(output, 4)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    elif self.arch == "resnet20" or self.arch == "resnet32":
-                        output = F.avg_pool2d(output, 8)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    else:
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    loss = criterion(output, labels)
-                    loss.backward(retain_graph = True)
-                    z_private_grad = z_private.grad.detach().cpu()
-                    #Use hook to get activation out.
-                    save_images.append(images.cpu().clone())
-                    save_grad.append(z_private_grad.clone())
-                    save_label.append(labels.cpu().clone())
-                
+                    output = self.f_tail(z_private)
+
+                if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
+                    output = F.avg_pool2d(output, 4)
+                    output = output.view(output.size(0), -1)
+                    output = self.classifier(output)
+                elif self.arch == "resnet20" or self.arch == "resnet32":
+                    output = F.avg_pool2d(output, 8)
+                    output = output.view(output.size(0), -1)
+                    output = self.classifier(output)
+                else:
+                    output = output.view(output.size(0), -1)
+                    output = self.classifier(output)
+                loss = criterion(output, labels)
+                loss.backward(retain_graph = True)
+                z_private_grad = z_private.grad.detach().cpu()
+                #Use hook to get activation out.
+                save_images.append(images.cpu().clone())
+                save_grad.append(z_private_grad.clone())
+                save_label.append(labels.cpu().clone())
+        
         ''' SoftTrainME, crafts soft input label pairs for surrogate model training'''
         if  SoftTrain_option and attacker_dataloader is not None:
             # Use SoftTrain_option, query the gradients on inputs with all label combinations
@@ -2575,7 +2576,7 @@ class MIA:
             knockoff_loader = knockoff_loader_list[0]
         
         if GM_option and knockoff_loader is not None:
-            if resume_option: #TODO: Test correctness.
+            if resume_option: #TODO: Test correctness. cluster all label together.
                 saved_crafted_image_path = self.save_dir + "saved_grads/"
                 if os.path.isdir(saved_crafted_image_path):
                     print("load from data collected during training")
@@ -2585,15 +2586,14 @@ class MIA:
                 for file in glob.glob(saved_crafted_image_path + "*"):
                     if "image" in file:
                         image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
-                        if image_id > 2500: # select a subset #TODO: delete this
-                            saved_image = torch.load(file)
-                            
-                            saved_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
-                            saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+                        saved_image = torch.load(file)
+                        
+                        saved_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
+                        saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
 
-                            save_images.append(saved_image.clone())
-                            save_grad.append(saved_grad.clone()) # add a random existing grad.
-                            save_label.append(saved_label.clone())
+                        save_images.append(saved_image.clone())
+                        save_grad.append(saved_grad.clone()) # add a random existing grad.
+                        save_label.append(saved_label.clone())
             else:
                 self.model.local_list[attack_client].eval()
                 self.f_tail.eval()
@@ -2724,6 +2724,18 @@ class MIA:
                 rmtree(test_output_path)
             os.makedirs(test_output_path)
         
+        if resume_option and TrainME_option and gradient_matching: #TODO: Test correctness.
+            assist_images = torch.cat(assist_images)
+            assist_grad = torch.cat(assist_grad)
+            assist_label = torch.cat(assist_label)
+            indices = torch.arange(assist_label.shape[0]).long()
+            ds_assist = torch.utils.data.TensorDataset(indices, assist_images, assist_grad, assist_label)
+
+            dl_assist = torch.utils.data.DataLoader(
+                ds_assist, batch_size=self.batch_size, num_workers=4, shuffle=True
+            )
+            print("length of dl_assist is ", len(dl_assist))
+            mean_norm = assist_grad.norm(dim=-1).mean().detach().item()
 
         dl_transforms = torch.nn.Sequential(
             transforms.RandomCrop(32, padding=4),
@@ -2734,6 +2746,7 @@ class MIA:
             dl_transforms = None
         if SoftTrain_option and resume_option: #TODO: test the usefulness of this.
             dl_transforms = None
+        
         if train_cli:
             self.surrogate_client.train()
         else:
@@ -2850,21 +2863,56 @@ class MIA:
                     else:
                         ce_loss = criterion(output, label)
 
+                    total_loss = ce_loss
+                    total_loss.backward()
+                    suro_optimizer.step()
 
-                    if gradient_matching:
+                    acc_loss_list.append(ce_loss.detach().cpu().item())
+
+                    if SoftTrain_option or Knockoff_option:
+                        _, real_label = label.max(dim=1)
+                        acc = accuracy(output.data, real_label)[0]
+                    else:
+                        acc = accuracy(output.data, label)[0]
+                        
+                    acc_list.append(acc.cpu().item())
+                
+                if resume_option and TrainME_option and gradient_matching: #TODO: use dl_asssit (gradient matching) to assit the training
+                    for idx, (index, image, grad, label) in enumerate(dl_assist):
+                        
+                        image = image.cuda()
+                        grad = grad.cuda()
+                        label = label.cuda()
+
+                        suro_optimizer.zero_grad()
+                        act = self.surrogate_client(image)
+                        output = self.surrogate_tail(act)
+
+                        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
+                            output = F.avg_pool2d(output, 4)
+                            output = output.view(output.size(0), -1)
+                            output = self.surrogate_classifier(output)
+                        elif self.arch == "resnet20" or self.arch == "resnet32":
+                            output = F.avg_pool2d(output, 8)
+                            output = output.view(output.size(0), -1)
+                            output = self.surrogate_classifier(output)
+                        else:
+                            output = output.view(output.size(0), -1)
+                            output = self.surrogate_classifier(output)
+
+                        if Knockoff_option:
+                            log_prob = torch.nn.functional.log_softmax(output, dim=1)
+                            ce_loss = torch.mean(torch.sum(-label * log_prob, dim=1))
+                        elif SoftTrain_option:
+                            _, real_label = label.max(dim = 1)
+                            ce_loss = (1 - soft_lambda) * criterion(output, real_label) + soft_lambda * torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
+                        else:
+                            ce_loss = criterion(output, label)
+
                         # grad_lambda controls the strength of gradient matching lass
                         # ce_loss_lower_bound controls when enters the gradient matching phase.
                         gradient_loss_style = "l2"
                         grad_lambda = 1.0
-                        # if self.num_class == 100:
-                        #     grad_lambda = 0.001
-                        #     ce_loss_lower_bound = 0.05
-                        # elif self.num_class == 10:
-                        #     grad_lambda = 0.001
-                        #     ce_loss_lower_bound = 0.01
-                        # else:
-                        #     grad_lambda = 0.01
-                        #     ce_loss_lower_bound = 0.1
 
                         grad_approx = torch.autograd.grad(ce_loss, act, create_graph = True)[0]
 
@@ -2876,33 +2924,14 @@ class MIA:
                         elif gradient_loss_style == "cosine":
                             grad_loss = torch.mean(1 - F.cosine_similarity(grad_approx, grad, dim=1))
 
-                        # if ce_loss > ce_loss_lower_bound:
-                        #     total_loss = ce_loss
-                        # else:
-                        #     total_loss = ce_loss + grad_loss * grad_lambda
-                        # if idx % 2 == 0:
-                        #     total_loss = grad_loss * grad_lambda
-                        # else:
-                        #     total_loss = ce_loss
-                        total_loss = grad_loss * grad_lambda
-                    else:
-                        total_loss = ce_loss
-                    
-                    total_loss.backward()
-                    suro_optimizer.step()
 
-                    if gradient_matching:
+                        total_loss = grad_loss * grad_lambda
+                        
+                        total_loss.backward()
+                        suro_optimizer.step()
+
                         grad_loss_list.append(grad_loss.detach().cpu().item())
 
-                    acc_loss_list.append(ce_loss.detach().cpu().item())
-
-                    if SoftTrain_option or Knockoff_option:
-                        _, real_label = label.max(dim=1)
-                        acc = accuracy(output.data, real_label)[0]
-                    else:
-                        acc = accuracy(output.data, label)[0]
-                        
-                    acc_list.append(acc.cpu().item())
 
             if Generator_option: # dynamically generates input and label using the trained Generator, used only in GAN-ME
                 iter_generator_times = 20
