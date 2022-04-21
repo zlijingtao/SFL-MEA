@@ -22,7 +22,7 @@ for dataset in $dataset_list; do
                 for regularization_strength in $regularization_strength_list; do
                         for cutlayer in $cutlayer_list; do
                                 for num_client in $num_client_list; do
-                                        filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_${learning_rate}_${num_epochs}epoch_checkbaseline
+                                        filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_${learning_rate}_${num_epochs}epoch
                                         CUDA_VISIBLE_DEVICES=${GPU_id} python main_MIA.py --arch=${arch}  --cutlayer=$cutlayer --batch_size=${batch_size} \
                                                 --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
                                                 --dataset=$dataset --scheme=$scheme --regularization=${regularization} --regularization_strength=${regularization_strength}\
