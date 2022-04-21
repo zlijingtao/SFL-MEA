@@ -27,17 +27,17 @@ gan_loss_type=SSIM
 
 # source_task_list="svhn mnist facescrub cifar10"
 transfer_source_task=cifar10
-dataset=cifar100
+dataset=cifar10
 learning_rate=0.005 # 0.0005 for 7 & 8, 0.01 data proportion
 local_lr_list="0.005"
 
-attack_epochs=100
+attack_epochs=300
 attack_client=0
 num_query=10
 attack_style="TrainME_option"
 # data_proportion_list="0.2 0.01"
 data_proportion_list="0.2"
-train_clas_layer_list="4 5 6 7 8"
+train_clas_layer_list="2"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
@@ -46,16 +46,7 @@ for random_seed in $random_seed_list; do
                                 for local_lr in $local_lr_list; do
                                         for data_proportion in $data_proportion_list; do
                                                 for train_clas_layer in $train_clas_layer_list; do
-                                                # filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_${learning_rate}_${regularization}_both_${train_gan_AE_type}_${regularization_strength}_${num_epochs}epoch_bottleneck_${bottleneck_option}_servertune_${local_lr}_loadserver_source_${transfer_source_task}
                                                 filename=ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_${dataset}_lr_0.05_200epoch
-                                                # filename=ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_${dataset}_lr_0.05_200epoch
-                                                # CUDA_VISIBLE_DEVICES=${GPU_id} python main_MIA.py --arch=${arch}  --cutlayer=$cutlayer --batch_size=${batch_size} \
-                                                #         --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
-                                                #         --dataset=$dataset --scheme=$scheme --regularization=${regularization} --regularization_strength=${regularization_strength}\
-                                                #         --random_seed=$random_seed --learning_rate=$learning_rate --gan_AE_type ${train_gan_AE_type} --gan_loss_type ${gan_loss_type}\
-                                                #         --load_from_checkpoint --local_lr $local_lr --bottleneck_option ${bottleneck_option} --folder ${folder_name} --ssim_threshold ${ssim_threshold} \
-                                                #         --load_from_checkpoint_server --transfer_source_task ${transfer_source_task} --optimize_computation ${interval}
-                                                
                                                 CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=$cutlayer --batch_size=${batch_size} \
                                                         --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
                                                         --dataset=$dataset --scheme=$scheme --test_best  --learning_rate=$learning_rate\
