@@ -65,7 +65,7 @@ for random_seed in $random_seed_list; do
                                                         --dataset=$dataset --scheme=$scheme --test_best  --learning_rate=$learning_rate\
                                                         --attack_epochs=$attack_epochs \
                                                         --attack_client=$attack_client  --num_query=$num_query  --regularization=$regularization  --regularization_strength=${regularization_strength} \
-                                                        --attack_style=$attack_style  --data_proportion=${data_proportion} --train_clas_layer=${train_clas_layer}
+                                                        --attack_style=$attack_style  --data_proportion=${data_proportion} --train_clas_layer=${train_clas_layer} --surrogate_arch=${surrogate_arch}
                                                 done
                                         done
                                 done

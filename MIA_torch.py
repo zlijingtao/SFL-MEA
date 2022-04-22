@@ -1254,11 +1254,22 @@ class MIA:
                 model_path_list = self.infer_path_list(model_path_f)
 
         if "V" in self.scheme:
-            for i in range(self.num_client):
-                print("load client {}'s local".format(i))
-                checkpoint_i = torch.load(model_path_list[i])
-                self.model.local_list[i].cuda()
-                self.model.local_list[i].load_state_dict(checkpoint_i, strict = False)
+            if self.num_client < 10:
+                for i in range(self.num_client):
+                    print("load client {}'s local".format(i))
+                    checkpoint_i = torch.load(model_path_list[i])
+                    self.model.local_list[i].cuda()
+                    self.model.local_list[i].load_state_dict(checkpoint_i, strict = False)
+            else:
+                for i in range(10):
+                    print("load client {}'s local".format(i))
+                    checkpoint_i = torch.load(model_path_list[i])
+                    self.model.local_list[i].cuda()
+                    self.model.local_list[i].load_state_dict(checkpoint_i, strict = False)
+                for i in range(10, self.num_client):
+                    checkpoint_i = torch.load(model_path_list[9])
+                    self.model.local_list[i].cuda()
+                    self.model.local_list[i].load_state_dict(checkpoint_i, strict = False)
         else:
             checkpoint = torch.load(model_path_f)
             self.model.cuda()
@@ -2013,6 +2024,16 @@ class MIA:
         else:
             surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, train_clas_layer, surrogate_arch)
         
+        if surrogate_arch == "longer":
+            train_clas_layer += 1
+        
+        if surrogate_arch == "shorter":
+            train_clas_layer -= 1
+            if train_clas_layer == -1:
+                print("train class layer is too small for shorter architecture")
+                exit()
+
+
         length_clas = surrogate_model.length_clas
         state_dict_entries_per_clas_layer = 2
         parameter_entries_per_clas_layer = 2

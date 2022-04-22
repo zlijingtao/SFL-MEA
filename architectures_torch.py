@@ -26,6 +26,14 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
                 512, 512, 512, 512, 'M'],
             'fc': [512, 512, 512],
         }
+
+        if surrogate_arch == "shorter":
+            cfg['fc'] = cfg['fc'][1:]
+            print("shorter. CFG is {}".format(str(cfg)))
+        elif surrogate_arch == "longer":
+            cfg['fc'].append(512)
+            print("longer. CFG is {}".format(str(cfg)))
+        
         if train_clas_layer <= len(cfg['fc']):
             if surrogate_arch == "wider":
                 for i in range(train_clas_layer - 1):
@@ -83,6 +91,13 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
             'C': [16, 16, 16, 16, 32, 32, 32, 64, 64, 64],
             'D': [16, 16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 64, 64, 64, 64, 64],
         }
+        if surrogate_arch == "longer":
+            print("Longer Archtecture in Resnet is not supported yet, change to default same architecture")
+            surrogate_arch = "same"
+        elif surrogate_arch == "shorter":
+            print("Shorter Archtecture in Resnet is not supported yet, change to default same architecture")
+            surrogate_arch = "same"
+        
         if train_clas_layer > 1:
             if surrogate_arch == "wider":
                 mul_factor = 2
@@ -112,7 +127,12 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
            [6,  96, 3, 1],
            [6, 160, 3, 2],
            [6, 320, 1, 1], 1280]}
-        
+        if surrogate_arch == "longer":
+            print("Longer Archtecture in mobilenetv2 is not supported yet, change to default same architecture")
+            surrogate_arch = "same"
+        elif surrogate_arch == "shorter":
+            print("Shorter Archtecture in mobilenetv2 is not supported yet, change to default same architecture")
+            surrogate_arch = "same"
         if train_clas_layer > 1:
             if surrogate_arch == "wider":
                 mul_factor = 2
@@ -233,15 +253,15 @@ class VGG_surrogate(nn.Module):
         self.local = feature[0]
         self.cloud = feature[1]
         self.length_tail = feature[2]
-        classifier_list = [nn.Dropout(),
-            nn.Linear(fc_cfg[0], fc_cfg[1]),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(fc_cfg[1], fc_cfg[2]),
-            nn.ReLU(True)]
-        classifier_list += [nn.Linear(fc_cfg[2], num_class)]
+
+        classifier_list = []
+
+        for i in range(len(fc_cfg) - 1):
+            classifier_list += [nn.Dropout(), nn.Linear(fc_cfg[i], fc_cfg[i+1]), nn.ReLU(True)]
+        
+        classifier_list += [nn.Linear(fc_cfg[-1], num_class)]
         self.classifier = nn.Sequential(*classifier_list)
-        self.length_clas = 3
+        self.length_clas = len(fc_cfg)
 
     def forward(self, x):
         self.local_output = self.local(x)

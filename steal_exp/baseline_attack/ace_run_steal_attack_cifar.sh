@@ -31,14 +31,14 @@ dataset=cifar10
 learning_rate=0.005 # 0.0005 for 7 & 8, 0.01 data proportion
 local_lr_list="0.005"
 
-attack_epochs=300
+attack_epochs=5
 attack_client=0
 num_query=10
 attack_style="TrainME_option"
 # data_proportion_list="0.2 0.01"
 data_proportion_list="0.2"
-train_clas_layer_list="2"
-
+train_clas_layer_list="5"
+surrogate_arch="longer"
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
                 for cutlayer in $cutlayer_list; do
@@ -52,7 +52,7 @@ for random_seed in $random_seed_list; do
                                                         --dataset=$dataset --scheme=$scheme --test_best  --learning_rate=$learning_rate\
                                                         --attack_epochs=$attack_epochs  --bottleneck_option ${bottleneck_option} \
                                                         --attack_client=$attack_client  --num_query=$num_query  --regularization=$regularization  --regularization_strength=${regularization_strength} \
-                                                        --attack_style=$attack_style  --data_proportion=${data_proportion} --train_clas_layer=${train_clas_layer}
+                                                        --attack_style=$attack_style  --data_proportion=${data_proportion} --train_clas_layer=${train_clas_layer} --surrogate_arch=${surrogate_arch}
                                                 done
                                         done
                                 done
