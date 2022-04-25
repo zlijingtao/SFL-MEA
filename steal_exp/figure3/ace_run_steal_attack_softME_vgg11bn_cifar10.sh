@@ -22,7 +22,7 @@ num_query_list="1000 10000"
 attack_style_list="SoftTrain_option"
 data_proportion_list="0.02 0.2"
 
-train_clas_layer_list="2 5"
+train_clas_layer_list="2 3 4 5"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
@@ -49,7 +49,7 @@ done
 
 learning_rate=0.05
 
-train_clas_layer_list="8 -1"
+train_clas_layer_list="6 7 8"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do

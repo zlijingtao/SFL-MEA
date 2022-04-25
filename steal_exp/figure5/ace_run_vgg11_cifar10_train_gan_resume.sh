@@ -25,7 +25,8 @@ attack_style="Generator_option_resume"
 regularization_list="gan_train_ME_nopoison_start160 gan_train_ME_nopoison_start120"
 data_proportion_list="0.0"
 train_clas_layer_list="2 5 8"
-num_client_list="6 11"
+# num_client_list="6 11"
+num_client_list="11"
 cutlayer="4"
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do

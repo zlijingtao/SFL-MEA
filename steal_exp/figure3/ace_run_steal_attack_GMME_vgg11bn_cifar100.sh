@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=4
+GPU_id=0
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
@@ -23,7 +23,7 @@ num_query_list="1000 10000"
 attack_style_list="GM_option_CIFAR10"
 data_proportion_list="1.0"
 
-train_clas_layer_list="2 5"
+train_clas_layer_list="2 3 4 5"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
@@ -50,7 +50,7 @@ done
 
 learning_rate=0.05
 
-train_clas_layer_list="8 -1"
+train_clas_layer_list="6 7 8"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
