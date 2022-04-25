@@ -2418,7 +2418,7 @@ class MIA:
         ''' TrainME: Use available training dataset for surrogate model training'''
         ''' Because of data augmentation, set query to 10 there'''
 
-        if (TrainME_option) and (attacker_dataloader is not None):
+        if TrainME_option:
             
             
             if resume_option and TrainME_option and gradient_matching: #TODO: Test correctness.cluster all label together.
@@ -2431,16 +2431,25 @@ class MIA:
                 else:
                     print("No saved data is presented!")
                     exit()
+                
+                max_image_id = 0
                 for file in glob.glob(saved_crafted_image_path + "*"):
                     if "image" in file and "grad_image" not in file:
                         image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
-                        saved_image = torch.load(file)
-                        saved_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
-                        saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+                        if image_id > max_image_id:
+                            max_image_id = image_id
+                for label in range(self.num_class): # put same label together
+                    for file in glob.glob(saved_crafted_image_path + "*"):
+                        if "image" in file and "grad_image" not in file:
+                            image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                            if image_id >= max_image_id - 5:
+                                saved_image = torch.load(file)
+                                saved_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
+                                saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
 
-                        assist_images.append(saved_image.clone())
-                        assist_grad.append(saved_grad.clone()) # add a random existing grad.
-                        assist_label.append(saved_label.clone())
+                                assist_images.append(saved_image.clone())
+                                assist_grad.append(saved_grad.clone()) # add a random existing grad.
+                                assist_label.append(saved_label.clone())
 
             if self.arch == "vgg11_bn" and train_clas_layer == 2:
                 attack_from_later_layer = 21 # VGG-11: 21 for N = 2, 17 for N = 3, 14 for N = 4, 10 for N = 5, 7 for N = 6, 3 for N = 7, z_private for N = 8
@@ -2520,7 +2529,7 @@ class MIA:
                 save_label.append(labels.cpu().clone())
         
         ''' SoftTrainME, crafts soft input label pairs for surrogate model training'''
-        if  SoftTrain_option and attacker_dataloader is not None:
+        if  SoftTrain_option:
             # Use SoftTrain_option, query the gradients on inputs with all label combinations
             similar_func = torch.nn.CosineSimilarity(dim = 1)
             if resume_option:
@@ -2532,6 +2541,7 @@ class MIA:
                     exit()
                 for file in glob.glob(saved_crafted_image_path + "*"):
                     if "image" in file and "grad_image" not in file:
+                        
                         saved_image = torch.load(file)
         
                         image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
@@ -2992,14 +3002,7 @@ class MIA:
                             output = output.view(output.size(0), -1)
                             output = self.surrogate_classifier(output)
 
-                        if Knockoff_option:
-                            log_prob = torch.nn.functional.log_softmax(output, dim=1)
-                            ce_loss = torch.mean(torch.sum(-label * log_prob, dim=1))
-                        elif SoftTrain_option:
-                            _, real_label = label.max(dim = 1)
-                            ce_loss = (1 - soft_lambda) * criterion(output, real_label) + soft_lambda * torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
-                        else:
-                            ce_loss = criterion(output, label)
+                        ce_loss = criterion(output, label)
 
                         # grad_lambda controls the strength of gradient matching lass
                         # ce_loss_lower_bound controls when enters the gradient matching phase.

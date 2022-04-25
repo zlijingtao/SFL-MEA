@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=6
+GPU_id=0
 arch=vgg11_bn
 batch_size=128
 
@@ -22,9 +22,11 @@ attack_client=0
 num_query=10
 attack_style="gradient_matching_TrainME_option_resume"
 regularization_list="normal_train_ME_start120 normal_train_ME_start160"
-data_proportion_list="0.2"
+# regularization_list="normal_train_ME_start120"
+data_proportion_list="0.2 0.02"
 train_clas_layer_list="2 5 8"
-num_client_list="5"
+# train_clas_layer_list="2"
+num_client_list="5 10"
 cutlayer="4"
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do

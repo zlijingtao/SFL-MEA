@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=5
+GPU_id=0
 arch=vgg11_bn
 batch_size=128
 
@@ -15,7 +15,7 @@ random_seed_list="125"
 
 scheme=V2_epoch
 ssim_threshold=0.5
-regularization_strength_list="0.1"
+regularization_strength_list="1.0"
 folder_name="saves/train_attack"
 
 # source_task_list="svhn mnist facescrub cifar10"
