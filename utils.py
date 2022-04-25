@@ -166,6 +166,19 @@ def accuracy(output, target, topk=(1,), compress_V4shadowlabel = False, num_clie
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
+def set_bn_eval(module):
+    if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+        print(module)
+        module.eval()
+
+def student_Loss(s_logit, t_logit):
+    # loss_fn = F.kl_div
+    loss_fn = F.l1_loss
+    loss = loss_fn(s_logit, t_logit.detach())
+    # s_logit = F.log_softmax(s_logit, dim=1)
+    # t_logit = F.softmax(t_logit, dim=1)
+    # loss = loss_fn(s_logit, t_logit.detach(), reduction="batchmean")
+    return loss
 
 def fidelity(output, target):
     """Computes the precision@k for the specified values of k"""

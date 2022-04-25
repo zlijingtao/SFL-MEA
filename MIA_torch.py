@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch.serialization import save
 import torchvision.transforms as transforms
 import architectures_torch as architectures
-from utils import setup_logger, accuracy, fidelity, AverageMeter, WarmUpLR, apply_transform_test, apply_transform, TV, l2loss, dist_corr, get_PSNR, zeroing_grad
+from utils import setup_logger, accuracy, fidelity, set_bn_eval, student_Loss, AverageMeter, WarmUpLR, apply_transform_test, apply_transform, TV, l2loss, dist_corr, get_PSNR, zeroing_grad
 from utils import freeze_model_bn, average_weights, DistanceCorrelationLoss, spurious_loss, prune_top_n_percent_left, dropout_defense, prune_defense
 from thop import profile
 import logging
@@ -1021,7 +1021,6 @@ class MIA:
                                                                                             batch * self.batch_size + self.batch_size))
         
         # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
-        noise_w = 1.0
         g_noise_out_dist = torch.mean(torch.abs(x_private[:B, :] - x_private[B:, :]))
         g_noise_z_dist = torch.mean(torch.abs(z[:B, :] - z[B:, :]).view(B,-1),dim=1)
         g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
@@ -2132,12 +2131,21 @@ class MIA:
         if "Generator_option" in attack_style: # perform GAN ME attack, its Train-time variant is Generator_train_option
             Generator_option = True
             gradient_matching = False
-            nz = 256
+            nz = 512
             if "Generator_option_resume" in attack_style:
                 resume_option = True
             else:
                 resume_option = False
-            self.generator = architectures.GeneratorC(nz=nz, num_classes = self.num_class, ngf=128, nc=3, img_size=32)
+            if "Generator_option_pred" in attack_style:
+                pred_option = True
+
+                self.generator = architectures.GeneratorC(nz=nz, num_classes = self.num_class, ngf=128, nc=3, img_size=32)
+                # self.generator = architectures.GeneratorA(nz=nz, nc=3, img_size=32)
+            else:
+                pred_option = False 
+
+             
+                self.generator = architectures.GeneratorC(nz=nz, num_classes = self.num_class, ngf=128, nc=3, img_size=32)
             # later call we call train_generator to train self.generator
         else:
             Generator_option = False
@@ -2181,14 +2189,33 @@ class MIA:
 
         surrogate_params = []
 
+
+
+
+
         # no matter what, load known client-side model to surrogate_client
         if train_clas_layer != -1:  
-            self.surrogate_client = self.model.local_list[attack_client]
-        
+            self.surrogate_client = copy.deepcopy(self.model.local_list[attack_client])
+            for param in self.surrogate_client.parameters():
+                param.requires_grad = False
         if not train_tail:
-            self.surrogate_tail = self.f_tail
+            self.surrogate_tail = copy.deepcopy(self.f_tail)
         if not train_clas:
-            self.surrogate_classifier = self.classifier
+            self.surrogate_classifier = copy.deepcopy(self.classifier)
+
+
+        if train_cli:
+            self.surrogate_client.train()
+        else:
+            self.surrogate_client.eval()
+        if train_tail:
+            self.surrogate_tail.train()
+        else:
+            self.surrogate_tail.eval()
+        if train_clas:
+            self.surrogate_classifier.train()
+        else:
+            self.surrogate_classifier.eval()
 
         if train_tail: # This only hold for VGG architecture
             if length_clas < train_clas_layer and train_clas_layer < min(length_clas + length_tail, reduced_threshold):   
@@ -2202,6 +2229,19 @@ class MIA:
                 self.surrogate_tail.load_state_dict(w_out)
                 tail_param_list = list(self.surrogate_tail.parameters())
                 surrogate_params += tail_param_list[int(length_tail*parameter_entries_per_tail_layer - (train_clas_layer - length_clas) * parameter_entries_per_tail_layer):]
+                for param in tail_param_list[:int(length_tail*parameter_entries_per_tail_layer - (train_clas_layer - length_clas) * parameter_entries_per_tail_layer)]:
+                    param.requires_grad = False
+
+                # set later layer batch norm to Eval() mode
+                batch_norm_count = 0
+                for name, module in self.surrogate_tail.named_modules():
+                    # if "bn" in
+                    if "BatchNorm" in str(module) and "Sequential" not in str(module):
+                        batch_norm_count += 1
+                        if batch_norm_count > length_tail - (train_clas_layer - length_clas):
+                            module.eval()
+                            print(f"Set {batch_norm_count}-th BN in server-side model to eval()")
+                print("number of bn in server-side model: ", batch_norm_count)
             else:
                 surrogate_params += list(self.surrogate_tail.parameters())
                 print("add entire server-side model to optimizer")
@@ -2217,6 +2257,18 @@ class MIA:
                 self.surrogate_classifier.load_state_dict(w_out)
                 clas_param_list = list(self.surrogate_classifier.parameters())
                 surrogate_params += clas_param_list[int(length_clas*parameter_entries_per_clas_layer - train_clas_layer * parameter_entries_per_clas_layer):]
+                for param in clas_param_list[:int(length_clas*parameter_entries_per_clas_layer - train_clas_layer * parameter_entries_per_clas_layer)]:
+                    param.requires_grad = False
+                
+                batch_norm_count = 0
+                for name, module in self.surrogate_classifier.named_modules():
+                    # if "bn" in
+                    if "BatchNorm" in str(module) and "Sequential" not in str(module):
+                        batch_norm_count += 1
+                        if batch_norm_count > length_clas - train_clas_layer:
+                            module.eval()
+                            print(f"Set {batch_norm_count}-th BN in classifier model (final FC of server-side model) to eval()")
+                print("number of bn in classifier: ", batch_norm_count)
             else:
                 surrogate_params += list(self.surrogate_classifier.parameters())
                 print("add entire classifier model to optimizer")
@@ -2235,11 +2287,15 @@ class MIA:
             self.logger.debug("surrogate parameter has {} trainable parameters!".format(len(surrogate_params)))
             
         if optimizer_option == "SGD":
-            suro_optimizer = torch.optim.SGD(surrogate_params, lr=learning_rate, momentum=0.9, weight_decay=5e-4)
+            self.suro_optimizer = torch.optim.SGD(surrogate_params, lr=learning_rate, momentum=0.9, weight_decay=5e-4)
         else:
-            suro_optimizer = torch.optim.Adam(surrogate_params, lr=0.0001, weight_decay=5e-4)
+            self.suro_optimizer = torch.optim.Adam(surrogate_params, lr=0.0001, weight_decay=5e-4)
         
-        suro_scheduler = torch.optim.lr_scheduler.MultiStepLR(suro_optimizer, milestones=milestones,
+
+        if "Generator_option_pred" in attack_style:
+            milestones = sorted([int(step * (num_query // 200)) for step in [0.2, 0.5, 0.8]])
+
+        self.suro_scheduler = torch.optim.lr_scheduler.MultiStepLR(self.suro_optimizer, milestones=milestones,
                                                                     gamma=0.2)  # learning rate decay
 
         # query getting data
@@ -2734,10 +2790,11 @@ class MIA:
         if Generator_option:
             # get prototypical data using GAN, training generator consumes grad query.
             self.train_generator(num_query = num_query, nz = nz, 
-                                    client_model = self.model.local_list[attack_client], 
                                     data_helper = attacker_dataloader, resume = resume_option,
-                                    discriminator_option=False)
-        
+                                    discriminator_option=False, pred_option = pred_option)
+            if pred_option:
+                exit()
+
         # Packing list to dataloader.
         if not Generator_option:
 
@@ -2794,18 +2851,6 @@ class MIA:
         if SoftTrain_option and resume_option: #TODO: test the usefulness of this.
             dl_transforms = None
         
-        if train_cli:
-            self.surrogate_client.train()
-        else:
-            self.surrogate_client.eval()
-        if train_tail:
-            self.surrogate_tail.train()
-        else:
-            self.surrogate_tail.eval()
-        if train_clas:
-            self.surrogate_classifier.train()
-        else:
-            self.surrogate_classifier.eval()
 
         min_grad_loss = 9.9
         acc_loss_min_grad_loss = 9.9
@@ -2824,7 +2869,7 @@ class MIA:
             grad_loss_list = []
             acc_loss_list = []
             acc_list = []
-            suro_scheduler.step(epoch)
+            self.suro_scheduler.step(epoch)
 
             # Use grads only for training surrogate
             if GM_option: 
@@ -2836,7 +2881,7 @@ class MIA:
                     image = image.cuda()
                     grad = grad.cuda()
                     label = label.cuda()
-                    suro_optimizer.zero_grad()
+                    self.suro_optimizer.zero_grad()
                     act = self.surrogate_client(image)
                     output = self.surrogate_tail(act)
 
@@ -2872,7 +2917,7 @@ class MIA:
 
                     
                     total_loss.backward()
-                    suro_optimizer.step()
+                    self.suro_optimizer.step()
 
                     grad_loss_list.append(total_loss.detach().cpu().item())
 
@@ -2885,7 +2930,7 @@ class MIA:
                     grad = grad.cuda()
                     label = label.cuda()
 
-                    suro_optimizer.zero_grad()
+                    self.suro_optimizer.zero_grad()
                     act = self.surrogate_client(image)
                     output = self.surrogate_tail(act)
 
@@ -2912,7 +2957,7 @@ class MIA:
 
                     total_loss = ce_loss
                     total_loss.backward()
-                    suro_optimizer.step()
+                    self.suro_optimizer.step()
 
                     acc_loss_list.append(ce_loss.detach().cpu().item())
 
@@ -2931,7 +2976,7 @@ class MIA:
                         grad = grad.cuda()
                         label = label.cuda()
 
-                        suro_optimizer.zero_grad()
+                        self.suro_optimizer.zero_grad()
                         act = self.surrogate_client(image)
                         output = self.surrogate_tail(act)
 
@@ -2975,7 +3020,7 @@ class MIA:
                         total_loss = grad_loss * grad_lambda
                         
                         total_loss.backward()
-                        suro_optimizer.step()
+                        self.suro_optimizer.step()
 
                         grad_loss_list.append(grad_loss.detach().cpu().item())
 
@@ -2996,7 +3041,7 @@ class MIA:
                             os.mkdir(test_output_path + "/{}".format(epoch))
                         torchvision.utils.save_image(imgGen, test_output_path + '/{}/out_{}.jpg'.format(epoch,
                                                                                                         i * self.batch_size + self.batch_size))
-                    suro_optimizer.zero_grad()
+                    self.suro_optimizer.zero_grad()
 
                     output = self.surrogate_client(fake_input)
                     output = self.surrogate_tail(output)
@@ -3018,7 +3063,7 @@ class MIA:
                     
                     total_loss.backward()
 
-                    suro_optimizer.step()
+                    self.suro_optimizer.step()
                     
                     acc_loss_list.append(ce_loss.detach().cpu().item())
                     acc = accuracy(output.data, label)[0]
@@ -3105,35 +3150,47 @@ class MIA:
 
 
 
-    def train_generator(self, num_query, nz, client_model, data_helper = None, resume = False, discriminator_option = False):
+    def train_generator(self, num_query, nz, data_helper = None, resume = False, discriminator_option = False, pred_option = False):
+        
         lr_G = 1e-4
         lr_C = 1e-4
+        d_iter = 5
+        # lr_G = 1e-3
+        # lr_C = 1e-3
 
         # num_step_per_epoch = 100
-        num_steps = num_query // 100
+        if pred_option:
+            num_steps = num_query // 100 // (1 + d_iter) # train g_iter + d_iter times
+        else:
+            num_steps = num_query // 100 # train once
         steps = sorted([int(step * num_steps) for step in [0.1, 0.3, 0.5]])
         scale = 3e-1
         
-        self.f_tail.cuda()
-        self.f_tail.eval()
-        self.classifier.cuda()
-        self.classifier.eval()
-        client_model.cuda()
-        client_model.eval()
+        # self.f_tail.cuda()
+        # self.f_tail.eval()
+        # self.classifier.cuda()
+        # self.classifier.eval()
+        # self.model.local_list[0].cuda()
+        # self.model.local_list[0].eval()
 
-        noise_w = 1.0
+        # noise_w = 1.0
+        noise_w = 50.0
         D_w = noise_w
 
         if self.dataset == "cifar10":
             D_w = D_w * 10
+        
         # Define Discriminator, ways to suppress D: reduce_learning rate, increase label_smooth, enable dropout, reduce Resblock_repeat
-        label_smoothing = 0.1
+        label_smoothing = 0.1 #TODO: default setting
+        # label_smoothing = 0.0 #TODO: test setting
         gan_discriminator = architectures.discriminator((3, 32, 32), True, resblock_repeat = 0, dropout = True)
-
-        optimizer_G = torch.optim.Adam(self.generator.parameters(), lr=lr_G )
-        optimizer_C = torch.optim.Adam(gan_discriminator.parameters(), lr=lr_C )
         # optimizer_C = torch.optim.SGD(gan_discriminator.parameters(), lr=lr_C, weight_decay=5e-4, momentum=0.9)
+        optimizer_C = torch.optim.Adam(gan_discriminator.parameters(), lr=lr_C )
         scheduler_C = torch.optim.lr_scheduler.MultiStepLR(optimizer_C, steps, scale)
+        
+        
+        # optimizer_G = torch.optim.SGD(self.generator.parameters(), lr=lr_G, weight_decay=5e-4, momentum=0.9)
+        optimizer_G = torch.optim.Adam(self.generator.parameters(), lr=lr_G )
         scheduler_G = torch.optim.lr_scheduler.MultiStepLR(optimizer_G, steps, scale)
         
         train_output_path = self.save_dir + "generator_train"
@@ -3179,12 +3236,35 @@ class MIA:
             ce_losses = AverageMeter()
             g_losses = AverageMeter()
 
+
+
+            max_acc = 0
+            max_fidelity = 0
+
+            
+
             for i in range(1, num_steps + 1):
+                
+
+                if pred_option:
+                    if i % 10 == 0:
+                        self.suro_scheduler.step()
+                        val_accu, fidel_score = self.steal_test()
+                        if val_accu > max_acc:
+                            max_acc = val_accu
+                        if fidel_score > max_fidelity:
+                            max_fidelity = fidel_score
+                        self.logger.debug("Step: {}, val_acc: {}, val_fidelity: {}".format(i, val_accu, fidel_score))
+                    
+
                 if i % 10 == 0:
                     bc_losses = AverageMeter()
                     bc_losses_gan = AverageMeter()
                     ce_losses = AverageMeter()
                     g_losses = AverageMeter()
+                    
+
+                
                 scheduler_G.step()
                 scheduler_C.step()
 
@@ -3196,16 +3276,18 @@ class MIA:
                 labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
                 labels_r = copy.deepcopy(labels_l).cuda()
                 labels = torch.stack([labels_l, labels_r]).view(-1)
-                zero_label = torch.zeros((100, )).cuda() 
+                zero_label = torch.zeros((50, )).cuda() 
                 
-                one_label = torch.ones((100, )).cuda() 
+                one_label = torch.ones((50, )).cuda() 
 
                 '''Train Generator'''
                 optimizer_G.zero_grad()
                 
                 #Get fake image from generator
+                # if not pred_option:
                 fake = self.generator(z, labels) # pre_x returns the output of G before applying the activation
-
+                # else:
+                #     fake = self.generator(z)
                 if i % 10 == 0:
                     imgGen = fake.clone()
                     if DENORMALIZE_OPTION:
@@ -3213,7 +3295,10 @@ class MIA:
                     if not os.path.isdir(train_output_path + "/train"):
                         os.mkdir(train_output_path + "/train")
                     torchvision.utils.save_image(imgGen, train_output_path + '/train/out_{}.jpg'.format(i * 100 + 100))
-                output = client_model(fake)
+                
+                
+                # with torch.no_grad(): 
+                output = self.model.local_list[0](fake)
 
                 output = self.f_tail(output)
 
@@ -3229,32 +3314,115 @@ class MIA:
                     output = output.view(output.size(0), -1)
                     output = self.classifier(output)
 
+                s_output = self.surrogate_client(fake)
+
+                s_output = self.surrogate_tail(s_output)
+
+                if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
+                    s_output = F.avg_pool2d(s_output, 4)
+                    s_output = s_output.view(s_output.size(0), -1)
+                    s_output = self.surrogate_classifier(s_output)
+                elif self.arch == "resnet20" or self.arch == "resnet32":
+                    s_output = F.avg_pool2d(s_output, 8)
+                    s_output = s_output.view(s_output.size(0), -1)
+                    s_output = self.surrogate_classifier(s_output)
+                else:
+                    s_output = s_output.view(s_output.size(0), -1)
+                    s_output = self.surrogate_classifier(s_output)
                 
                 # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
-                noise_w = 1.0
+                
                 g_noise_out_dist = torch.mean(torch.abs(fake[:B, :] - fake[B:, :]))
                 g_noise_z_dist = torch.mean(torch.abs(z[:B, :] - z[B:, :]).view(B,-1),dim=1)
                 g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
 
-                #Cross Entropy Loss
-                ce_loss = criterion(output, labels)
 
-                # Total loss
-                loss = ce_loss - g_noise
+                if not pred_option:
+                    #Cross Entropy Loss
+                    ce_loss = criterion(output, labels)
 
+                    loss = ce_loss - g_noise
+
+                    
+                else:
+                    # ce_loss = criterion(output, labels) - 0.5* student_Loss(s_output, output)
+                    # ce_loss = - 1* student_Loss(s_output, output)
+                    ce_loss = criterion(output, labels)
+                    # ce_loss = - 0.1* student_Loss(s_output, output)
+                    # F.kl_div(s_output, output.detach(), reduction='none').sum(dim = 1).view(-1, m + 1) 
+                    loss = ce_loss - g_noise
                 ## Discriminator Loss
                 if data_helper is not None and discriminator_option:
                     d_out = gan_discriminator(fake)
                     bc_loss_gan = D_w * BCE_loss(d_out.reshape(-1), one_label)
                     loss += bc_loss_gan
                     bc_losses_gan.update(bc_loss_gan.item(), 100)
+                
                 loss.backward()
 
                 optimizer_G.step()
 
                 ce_losses.update(ce_loss.item(), 100)
+                
                 g_losses.update(g_noise.item(), 100)
 
+                '''Train surrogate model (to match teacher and student, assuming having prediction access)'''
+                if pred_option:
+                    
+                    # val_accu, fidel_score = self.steal_test()
+                    # self.logger.debug("Beginning, val_acc: {}, val_fidelity: {}".format(val_accu, fidel_score))
+
+                    # self.surrogate_client.eval()
+                    # self.surrogate_client.train()
+                    # self.surrogate_client.apply(set_bn_eval)
+                    # self.surrogate_tail.eval()
+                    # self.surrogate_tail.train()
+                    # self.surrogate_tail.apply(set_bn_eval)
+                    # set_bn_eval(self.surrogate_tail)
+                    # self.surrogate_classifier.train()
+                    for _ in range(d_iter):
+                        z = torch.randn((100, nz)).cuda()
+                        labels = torch.randint(low=0, high=self.num_class, size = [100, ]).cuda()
+
+                        fake = self.generator(z, labels).detach()
+                        # fake = self.generator(z).detach()
+                        
+
+                        with torch.no_grad(): 
+                            t_out = self.model.local_list[0](fake)
+                            t_out = self.f_tail(t_out)
+                            if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
+                                t_out = F.avg_pool2d(t_out, 4)
+                                t_out = t_out.view(t_out.size(0), -1)
+                                t_out = self.classifier(t_out)
+                            elif self.arch == "resnet20" or self.arch == "resnet32":
+                                t_out = F.avg_pool2d(t_out, 8)
+                                t_out = t_out.view(t_out.size(0), -1)
+                                t_out = self.classifier(t_out)
+                            else:
+                                t_out = t_out.view(t_out.size(0), -1)
+                                t_out = self.classifier(t_out)
+                            t_out = F.log_softmax(t_out, dim=1).detach()
+                        
+                        self.suro_optimizer.zero_grad()
+                        s_out = self.surrogate_client(fake)
+                        s_out = self.surrogate_tail(s_out)
+                        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
+                            s_out = F.avg_pool2d(s_out, 4)
+                            s_out = s_out.view(s_out.size(0), -1)
+                            s_out = self.surrogate_classifier(s_out)
+                        elif self.arch == "resnet20" or self.arch == "resnet32":
+                            s_out = F.avg_pool2d(s_out, 8)
+                            s_out = s_out.view(s_out.size(0), -1)
+                            s_out = self.surrogate_classifier(s_out)
+                        else:
+                            s_out = s_out.view(s_out.size(0), -1)
+                            s_out = self.surrogate_classifier(s_out)
+
+                        loss_S = student_Loss(s_out, t_out) 
+                        # loss_S = student_Loss(s_out, t_out) + criterion(s_out, labels)
+                        loss_S.backward()
+                        self.suro_optimizer.step()
 
                 '''Train Discriminator (tell real/fake, using data_helper)'''
                 if data_helper is not None and discriminator_option:
@@ -3289,7 +3457,8 @@ class MIA:
                 if i % 10 == 0:
                     self.logger.debug(f'Train step: {i}\t CE_Loss: {ce_losses.avg:.10f} diversity_Loss: {g_losses.avg:.10f} bc_losses (G): {bc_losses_gan.avg: .10f}  bc_losses (D)): {bc_losses.avg: .10f}')
             
-            
+            if pred_option:
+                self.logger.debug("Best perform model, val_acc: {}, fidel_score: {}".format(max_acc, max_fidelity))
             self.logger.debug(f'End of Training: {i}\t CE_Loss: {ce_losses.avg:.10f} diversity_Loss: {g_losses.avg:.10f} bc_losses (G): {bc_losses_gan.avg: .10f}  bc_losses (D)): {bc_losses.avg: .10f}')
 
             self.generator.cuda()
@@ -3318,12 +3487,12 @@ class MIA:
         val_loader = self.pub_dataloader
 
         # switch to evaluate mode
-        self.surrogate_client.cuda()
-        self.surrogate_client.eval()
-        self.surrogate_tail.cuda()
-        self.surrogate_tail.eval()
-        self.surrogate_classifier.cuda()
-        self.surrogate_classifier.eval()
+        # self.surrogate_client.cuda()
+        # self.surrogate_client.eval()
+        # self.surrogate_tail.cuda()
+        # self.surrogate_tail.eval()
+        # self.surrogate_classifier.cuda()
+        # self.surrogate_classifier.eval()
 
         self.model.local_list[0].cuda()
         self.model.local_list[0].eval()
@@ -3370,6 +3539,9 @@ class MIA:
 
             # measure accuracy and record loss
             prec1 = accuracy(output.data, target)[0]
+
+            #TODO: temporary
+            # prec_target = accuracy(output_target.data, target)[0]
 
             fidel = fidelity(output.data, output_target.data)[0]
             top1.update(prec1.item(), input.size(0))
