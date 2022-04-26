@@ -1,0 +1,357 @@
+2022-04-22 14:07:14,433 DEBUG Namespace(arch='vgg11_bn', attack_client=0, attack_epochs=300, attack_style='Generator_option', average_time=1, batch_size=128, bottleneck_option='None', cutlayer=4, data_proportion=0.0, dataset='cifar100', filename='ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_cifar100_lr_0.05_200epoch', folder='saves/baseline', learning_rate=0.005, noniid_ratio=1.0, num_client=1, num_epochs='best', num_query=10000, random_seed=123, regularization='None', regularization_strength=0.0, scheme='V2_epoch', surrogate_arch='same', test_best=True, train_clas_layer=4.0)
+2022-04-22 14:07:17,976 DEBUG Test (client-0):	Loss 1.2311 (1.7817)	Prec@1 75.000 (68.630)
+2022-04-22 14:07:17,976 DEBUG  * Prec@1 68.630
+2022-04-22 14:07:17,982 DEBUG load 0.weight to surrogate
+2022-04-22 14:07:17,983 DEBUG load 0.bias to surrogate
+2022-04-22 14:07:17,983 DEBUG load 1.weight to surrogate
+2022-04-22 14:07:17,983 DEBUG load 1.bias to surrogate
+2022-04-22 14:07:17,983 DEBUG load 1.running_mean to surrogate
+2022-04-22 14:07:17,983 DEBUG load 1.running_var to surrogate
+2022-04-22 14:07:17,984 DEBUG load 1.num_batches_tracked to surrogate
+2022-04-22 14:07:17,984 DEBUG load 3.weight to surrogate
+2022-04-22 14:07:17,984 DEBUG load 3.bias to surrogate
+2022-04-22 14:07:17,984 DEBUG load 4.weight to surrogate
+2022-04-22 14:07:17,984 DEBUG load 4.bias to surrogate
+2022-04-22 14:07:17,984 DEBUG load 4.running_mean to surrogate
+2022-04-22 14:07:17,985 DEBUG load 4.running_var to surrogate
+2022-04-22 14:07:17,985 DEBUG load 4.num_batches_tracked to surrogate
+2022-04-22 14:07:17,985 DEBUG load 7.weight to surrogate
+2022-04-22 14:07:17,985 DEBUG load 7.bias to surrogate
+2022-04-22 14:07:17,985 DEBUG load 8.weight to surrogate
+2022-04-22 14:07:17,986 DEBUG load 8.bias to surrogate
+2022-04-22 14:07:17,986 DEBUG load 8.running_mean to surrogate
+2022-04-22 14:07:17,986 DEBUG load 8.running_var to surrogate
+2022-04-22 14:07:17,986 DEBUG load 8.num_batches_tracked to surrogate
+2022-04-22 14:07:17,986 DEBUG load 10.weight to surrogate
+2022-04-22 14:07:17,986 DEBUG load 10.bias to surrogate
+2022-04-22 14:07:17,986 DEBUG load 11.weight to surrogate
+2022-04-22 14:07:17,987 DEBUG load 11.bias to surrogate
+2022-04-22 14:07:17,987 DEBUG load 11.running_mean to surrogate
+2022-04-22 14:07:17,987 DEBUG load 11.running_var to surrogate
+2022-04-22 14:07:17,987 DEBUG load 11.num_batches_tracked to surrogate
+2022-04-22 14:07:17,987 DEBUG load 14.weight to surrogate
+2022-04-22 14:07:17,987 DEBUG load 14.bias to surrogate
+2022-04-22 14:07:17,987 DEBUG load 15.weight to surrogate
+2022-04-22 14:07:17,987 DEBUG load 15.bias to surrogate
+2022-04-22 14:07:17,987 DEBUG load 15.running_mean to surrogate
+2022-04-22 14:07:17,988 DEBUG load 15.running_var to surrogate
+2022-04-22 14:07:17,988 DEBUG load 15.num_batches_tracked to surrogate
+2022-04-22 14:07:17,993 DEBUG 4
+2022-04-22 14:07:17,994 DEBUG 10
+2022-04-22 14:07:17,994 DEBUG surrogate parameter has 10 trainable parameters!
+2022-04-22 14:07:18,254 DEBUG Train step: 10	 CE_Loss: 7.3164191246 diversity_Loss: 0.7180930376 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:18,490 DEBUG Train step: 20	 CE_Loss: 7.2350907326 diversity_Loss: 0.7216882706 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:18,726 DEBUG Train step: 30	 CE_Loss: 5.6249027252 diversity_Loss: 0.7184084654 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:18,963 DEBUG Train step: 40	 CE_Loss: 5.7729673386 diversity_Loss: 0.7075257897 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:19,201 DEBUG Train step: 50	 CE_Loss: 5.5254564285 diversity_Loss: 0.6970551610 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:19,437 DEBUG Train step: 60	 CE_Loss: 5.6040320396 diversity_Loss: 0.7074737549 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:19,674 DEBUG Train step: 70	 CE_Loss: 5.3812122345 diversity_Loss: 0.7098293900 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:19,910 DEBUG Train step: 80	 CE_Loss: 5.7291321754 diversity_Loss: 0.7116093040 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:20,149 DEBUG Train step: 90	 CE_Loss: 5.7515478134 diversity_Loss: 0.7142301798 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:20,386 DEBUG Train step: 100	 CE_Loss: 5.7208714485 diversity_Loss: 0.7153674960 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:20,386 DEBUG End of Training: 100	 CE_Loss: 5.7208714485 diversity_Loss: 0.7153674960 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-22 14:07:21,361 DEBUG epoch: 0, val_acc: 1.38, val_fidelity: 1.59
+2022-04-22 14:07:22,687 DEBUG epoch: 1, train_acc: 1.09375, val_acc: 1.36, fidel_score: 1.47, acc_loss: 4.605013918876648, grad_loss: None
+2022-04-22 14:07:23,962 DEBUG epoch: 2, train_acc: 1.0546875, val_acc: 1.25, fidel_score: 1.33, acc_loss: 4.604200744628907, grad_loss: None
+2022-04-22 14:07:25,242 DEBUG epoch: 3, train_acc: 1.0546875, val_acc: 1.2, fidel_score: 1.21, acc_loss: 4.603031182289124, grad_loss: None
+2022-04-22 14:07:26,524 DEBUG epoch: 4, train_acc: 0.7421875, val_acc: 1.23, fidel_score: 1.23, acc_loss: 4.6028827905654905, grad_loss: None
+2022-04-22 14:07:27,800 DEBUG epoch: 5, train_acc: 1.71875, val_acc: 1.38, fidel_score: 1.44, acc_loss: 4.602506327629089, grad_loss: None
+2022-04-22 14:07:29,078 DEBUG epoch: 6, train_acc: 1.5625, val_acc: 1.34, fidel_score: 1.41, acc_loss: 4.601745367050171, grad_loss: None
+2022-04-22 14:07:30,366 DEBUG epoch: 7, train_acc: 1.171875, val_acc: 1.3, fidel_score: 1.36, acc_loss: 4.601139402389526, grad_loss: None
+2022-04-22 14:07:31,637 DEBUG epoch: 8, train_acc: 1.71875, val_acc: 1.46, fidel_score: 1.51, acc_loss: 4.600797438621521, grad_loss: None
+2022-04-22 14:07:32,906 DEBUG epoch: 9, train_acc: 2.65625, val_acc: 1.44, fidel_score: 1.47, acc_loss: 4.599581909179688, grad_loss: None
+2022-04-22 14:07:34,182 DEBUG epoch: 10, train_acc: 1.640625, val_acc: 1.28, fidel_score: 1.14, acc_loss: 4.598998355865478, grad_loss: None
+2022-04-22 14:07:35,466 DEBUG epoch: 11, train_acc: 0.9765625, val_acc: 1.32, fidel_score: 1.14, acc_loss: 4.599130487442016, grad_loss: None
+2022-04-22 14:07:36,737 DEBUG epoch: 12, train_acc: 1.171875, val_acc: 1.29, fidel_score: 1.11, acc_loss: 4.598290753364563, grad_loss: None
+2022-04-22 14:07:38,019 DEBUG epoch: 13, train_acc: 1.1328125, val_acc: 1.29, fidel_score: 1.13, acc_loss: 4.597705054283142, grad_loss: None
+2022-04-22 14:07:39,290 DEBUG epoch: 14, train_acc: 0.7421875, val_acc: 1.38, fidel_score: 1.26, acc_loss: 4.597079825401306, grad_loss: None
+2022-04-22 14:07:40,577 DEBUG epoch: 15, train_acc: 1.171875, val_acc: 1.43, fidel_score: 1.36, acc_loss: 4.596852207183838, grad_loss: None
+2022-04-22 14:07:41,853 DEBUG epoch: 16, train_acc: 2.265625, val_acc: 1.31, fidel_score: 1.24, acc_loss: 4.595088863372803, grad_loss: None
+2022-04-22 14:07:43,135 DEBUG epoch: 17, train_acc: 2.34375, val_acc: 1.36, fidel_score: 1.42, acc_loss: 4.594313526153565, grad_loss: None
+2022-04-22 14:07:44,411 DEBUG epoch: 18, train_acc: 2.265625, val_acc: 1.41, fidel_score: 1.52, acc_loss: 4.593755459785461, grad_loss: None
+2022-04-22 14:07:45,693 DEBUG epoch: 19, train_acc: 2.5, val_acc: 1.39, fidel_score: 1.46, acc_loss: 4.59289517402649, grad_loss: None
+2022-04-22 14:07:46,971 DEBUG epoch: 20, train_acc: 3.0078125, val_acc: 1.38, fidel_score: 1.45, acc_loss: 4.592256259918213, grad_loss: None
+2022-04-22 14:07:48,242 DEBUG epoch: 21, train_acc: 5.546875, val_acc: 1.77, fidel_score: 1.82, acc_loss: 4.5909830093383786, grad_loss: None
+2022-04-22 14:07:49,511 DEBUG epoch: 22, train_acc: 5.2734375, val_acc: 1.98, fidel_score: 2.16, acc_loss: 4.591053867340088, grad_loss: None
+2022-04-22 14:07:50,799 DEBUG epoch: 23, train_acc: 3.984375, val_acc: 1.41, fidel_score: 1.63, acc_loss: 4.589922094345093, grad_loss: None
+2022-04-22 14:07:52,072 DEBUG epoch: 24, train_acc: 3.4375, val_acc: 1.33, fidel_score: 1.57, acc_loss: 4.589289760589599, grad_loss: None
+2022-04-22 14:07:53,350 DEBUG epoch: 25, train_acc: 4.84375, val_acc: 1.56, fidel_score: 1.79, acc_loss: 4.5892067670822145, grad_loss: None
+2022-04-22 14:07:54,627 DEBUG epoch: 26, train_acc: 6.640625, val_acc: 1.6, fidel_score: 1.77, acc_loss: 4.587055230140686, grad_loss: None
+2022-04-22 14:07:55,900 DEBUG epoch: 27, train_acc: 6.9921875, val_acc: 1.63, fidel_score: 1.85, acc_loss: 4.585336399078369, grad_loss: None
+2022-04-22 14:07:57,171 DEBUG epoch: 28, train_acc: 5.390625, val_acc: 1.61, fidel_score: 1.66, acc_loss: 4.585657477378845, grad_loss: None
+2022-04-22 14:07:58,439 DEBUG epoch: 29, train_acc: 3.59375, val_acc: 1.84, fidel_score: 1.92, acc_loss: 4.5852327108383175, grad_loss: None
+2022-04-22 14:07:59,726 DEBUG epoch: 30, train_acc: 4.4921875, val_acc: 2.06, fidel_score: 2.31, acc_loss: 4.583567976951599, grad_loss: None
+2022-04-22 14:08:01,007 DEBUG epoch: 31, train_acc: 7.734375, val_acc: 2.22, fidel_score: 2.56, acc_loss: 4.582062768936157, grad_loss: None
+2022-04-22 14:08:02,284 DEBUG epoch: 32, train_acc: 5.7421875, val_acc: 2.24, fidel_score: 2.7, acc_loss: 4.581738615036011, grad_loss: None
+2022-04-22 14:08:03,565 DEBUG epoch: 33, train_acc: 7.8515625, val_acc: 2.54, fidel_score: 3.11, acc_loss: 4.580386924743652, grad_loss: None
+2022-04-22 14:08:04,836 DEBUG epoch: 34, train_acc: 8.515625, val_acc: 2.75, fidel_score: 3.08, acc_loss: 4.5802919387817385, grad_loss: None
+2022-04-22 14:08:06,126 DEBUG epoch: 35, train_acc: 9.84375, val_acc: 2.95, fidel_score: 3.4, acc_loss: 4.577318954467773, grad_loss: None
+2022-04-22 14:08:07,400 DEBUG epoch: 36, train_acc: 8.1640625, val_acc: 2.68, fidel_score: 3.01, acc_loss: 4.576581740379334, grad_loss: None
+2022-04-22 14:08:08,671 DEBUG epoch: 37, train_acc: 6.640625, val_acc: 2.78, fidel_score: 3.21, acc_loss: 4.575917220115661, grad_loss: None
+2022-04-22 14:08:09,950 DEBUG epoch: 38, train_acc: 5.8984375, val_acc: 2.39, fidel_score: 2.58, acc_loss: 4.574568510055542, grad_loss: None
+2022-04-22 14:08:11,226 DEBUG epoch: 39, train_acc: 5.0390625, val_acc: 2.55, fidel_score: 2.82, acc_loss: 4.572932553291321, grad_loss: None
+2022-04-22 14:08:12,497 DEBUG epoch: 40, train_acc: 6.5625, val_acc: 2.41, fidel_score: 2.82, acc_loss: 4.571716690063477, grad_loss: None
+2022-04-22 14:08:13,784 DEBUG epoch: 41, train_acc: 5.625, val_acc: 2.65, fidel_score: 3.02, acc_loss: 4.568298649787903, grad_loss: None
+2022-04-22 14:08:15,063 DEBUG epoch: 42, train_acc: 6.6796875, val_acc: 2.61, fidel_score: 2.92, acc_loss: 4.5692771673202515, grad_loss: None
+2022-04-22 14:08:16,347 DEBUG epoch: 43, train_acc: 7.734375, val_acc: 2.39, fidel_score: 2.66, acc_loss: 4.567142963409424, grad_loss: None
+2022-04-22 14:08:17,623 DEBUG epoch: 44, train_acc: 6.6015625, val_acc: 2.39, fidel_score: 2.55, acc_loss: 4.566384816169739, grad_loss: None
+2022-04-22 14:08:18,896 DEBUG epoch: 45, train_acc: 7.65625, val_acc: 2.54, fidel_score: 2.75, acc_loss: 4.564508152008057, grad_loss: None
+2022-04-22 14:08:20,164 DEBUG epoch: 46, train_acc: 8.359375, val_acc: 2.5, fidel_score: 2.59, acc_loss: 4.560302829742431, grad_loss: None
+2022-04-22 14:08:21,441 DEBUG epoch: 47, train_acc: 6.1328125, val_acc: 1.94, fidel_score: 2.08, acc_loss: 4.560399508476257, grad_loss: None
+2022-04-22 14:08:22,711 DEBUG epoch: 48, train_acc: 5.546875, val_acc: 2.18, fidel_score: 2.17, acc_loss: 4.558559608459473, grad_loss: None
+2022-04-22 14:08:23,991 DEBUG epoch: 49, train_acc: 6.2109375, val_acc: 2.34, fidel_score: 2.46, acc_loss: 4.556197953224182, grad_loss: None
+2022-04-22 14:08:25,264 DEBUG epoch: 50, train_acc: 6.09375, val_acc: 1.92, fidel_score: 2.08, acc_loss: 4.552415490150452, grad_loss: None
+2022-04-22 14:08:26,539 DEBUG epoch: 51, train_acc: 5.9765625, val_acc: 1.77, fidel_score: 1.84, acc_loss: 4.550676608085633, grad_loss: None
+2022-04-22 14:08:27,816 DEBUG epoch: 52, train_acc: 6.5625, val_acc: 2.07, fidel_score: 2.2, acc_loss: 4.548739814758301, grad_loss: None
+2022-04-22 14:08:29,088 DEBUG epoch: 53, train_acc: 7.34375, val_acc: 2.49, fidel_score: 2.64, acc_loss: 4.543308854103088, grad_loss: None
+2022-04-22 14:08:30,365 DEBUG epoch: 54, train_acc: 5.546875, val_acc: 2.27, fidel_score: 2.47, acc_loss: 4.544136333465576, grad_loss: None
+2022-04-22 14:08:31,640 DEBUG epoch: 55, train_acc: 5.8984375, val_acc: 1.45, fidel_score: 1.53, acc_loss: 4.539578557014465, grad_loss: None
+2022-04-22 14:08:32,917 DEBUG epoch: 56, train_acc: 5.625, val_acc: 2.23, fidel_score: 2.3, acc_loss: 4.534756159782409, grad_loss: None
+2022-04-22 14:08:34,194 DEBUG epoch: 57, train_acc: 4.921875, val_acc: 2.47, fidel_score: 2.52, acc_loss: 4.534497094154358, grad_loss: None
+2022-04-22 14:08:35,477 DEBUG epoch: 58, train_acc: 4.3359375, val_acc: 2.5, fidel_score: 2.51, acc_loss: 4.5307998895645145, grad_loss: None
+2022-04-22 14:08:36,760 DEBUG epoch: 59, train_acc: 4.765625, val_acc: 2.3, fidel_score: 2.37, acc_loss: 4.521510100364685, grad_loss: None
+2022-04-22 14:08:38,032 DEBUG epoch: 60, train_acc: 4.8828125, val_acc: 2.31, fidel_score: 2.35, acc_loss: 4.521140742301941, grad_loss: None
+2022-04-22 14:08:39,303 DEBUG epoch: 61, train_acc: 4.2578125, val_acc: 2.41, fidel_score: 2.44, acc_loss: 4.520404601097107, grad_loss: None
+2022-04-22 14:08:40,583 DEBUG epoch: 62, train_acc: 4.3359375, val_acc: 2.43, fidel_score: 2.47, acc_loss: 4.517473292350769, grad_loss: None
+2022-04-22 14:08:41,861 DEBUG epoch: 63, train_acc: 4.0625, val_acc: 2.45, fidel_score: 2.57, acc_loss: 4.522706341743469, grad_loss: None
+2022-04-22 14:08:43,144 DEBUG epoch: 64, train_acc: 4.2578125, val_acc: 2.6, fidel_score: 2.76, acc_loss: 4.521915245056152, grad_loss: None
+2022-04-22 14:08:44,413 DEBUG epoch: 65, train_acc: 4.921875, val_acc: 2.56, fidel_score: 2.75, acc_loss: 4.5194600343704225, grad_loss: None
+2022-04-22 14:08:45,688 DEBUG epoch: 66, train_acc: 6.015625, val_acc: 2.59, fidel_score: 2.73, acc_loss: 4.5158151388168335, grad_loss: None
+2022-04-22 14:08:46,967 DEBUG epoch: 67, train_acc: 4.609375, val_acc: 2.62, fidel_score: 2.81, acc_loss: 4.516171503067016, grad_loss: None
+2022-04-22 14:08:48,242 DEBUG epoch: 68, train_acc: 5.5859375, val_acc: 2.77, fidel_score: 3.0, acc_loss: 4.512795376777649, grad_loss: None
+2022-04-22 14:08:49,523 DEBUG epoch: 69, train_acc: 5.3515625, val_acc: 2.67, fidel_score: 2.84, acc_loss: 4.514216446876526, grad_loss: None
+2022-04-22 14:08:50,800 DEBUG epoch: 70, train_acc: 5.0390625, val_acc: 2.65, fidel_score: 2.71, acc_loss: 4.512419843673706, grad_loss: None
+2022-04-22 14:08:52,079 DEBUG epoch: 71, train_acc: 4.7265625, val_acc: 2.67, fidel_score: 2.79, acc_loss: 4.511552524566651, grad_loss: None
+2022-04-22 14:08:53,359 DEBUG epoch: 72, train_acc: 4.84375, val_acc: 2.74, fidel_score: 2.9, acc_loss: 4.51445050239563, grad_loss: None
+2022-04-22 14:08:54,637 DEBUG epoch: 73, train_acc: 4.84375, val_acc: 2.77, fidel_score: 2.96, acc_loss: 4.511586236953735, grad_loss: None
+2022-04-22 14:08:55,911 DEBUG epoch: 74, train_acc: 4.6484375, val_acc: 2.78, fidel_score: 2.99, acc_loss: 4.513880586624145, grad_loss: None
+2022-04-22 14:08:57,192 DEBUG epoch: 75, train_acc: 5.0390625, val_acc: 2.83, fidel_score: 3.09, acc_loss: 4.505799722671509, grad_loss: None
+2022-04-22 14:08:58,472 DEBUG epoch: 76, train_acc: 5.1953125, val_acc: 2.87, fidel_score: 3.1, acc_loss: 4.509639263153076, grad_loss: None
+2022-04-22 14:08:59,742 DEBUG epoch: 77, train_acc: 5.859375, val_acc: 2.82, fidel_score: 3.07, acc_loss: 4.50417468547821, grad_loss: None
+2022-04-22 14:09:01,021 DEBUG epoch: 78, train_acc: 5.234375, val_acc: 2.73, fidel_score: 2.97, acc_loss: 4.503325009346009, grad_loss: None
+2022-04-22 14:09:02,311 DEBUG epoch: 79, train_acc: 5.5859375, val_acc: 2.79, fidel_score: 3.0, acc_loss: 4.5045888185501095, grad_loss: None
+2022-04-22 14:09:03,580 DEBUG epoch: 80, train_acc: 5.8203125, val_acc: 2.77, fidel_score: 3.0, acc_loss: 4.500012302398682, grad_loss: None
+2022-04-22 14:09:04,855 DEBUG epoch: 81, train_acc: 5.234375, val_acc: 2.69, fidel_score: 2.91, acc_loss: 4.500011682510376, grad_loss: None
+2022-04-22 14:09:06,128 DEBUG epoch: 82, train_acc: 4.8828125, val_acc: 2.62, fidel_score: 2.85, acc_loss: 4.4988861083984375, grad_loss: None
+2022-04-22 14:09:07,400 DEBUG epoch: 83, train_acc: 4.84375, val_acc: 2.54, fidel_score: 2.82, acc_loss: 4.499420976638794, grad_loss: None
+2022-04-22 14:09:08,669 DEBUG epoch: 84, train_acc: 5.0, val_acc: 2.73, fidel_score: 3.0, acc_loss: 4.50059289932251, grad_loss: None
+2022-04-22 14:09:09,951 DEBUG epoch: 85, train_acc: 5.703125, val_acc: 2.9, fidel_score: 3.13, acc_loss: 4.4946658372879025, grad_loss: None
+2022-04-22 14:09:11,241 DEBUG epoch: 86, train_acc: 5.390625, val_acc: 2.82, fidel_score: 3.05, acc_loss: 4.493484902381897, grad_loss: None
+2022-04-22 14:09:12,532 DEBUG epoch: 87, train_acc: 5.3125, val_acc: 2.82, fidel_score: 3.05, acc_loss: 4.491035318374633, grad_loss: None
+2022-04-22 14:09:13,803 DEBUG epoch: 88, train_acc: 4.765625, val_acc: 2.86, fidel_score: 3.06, acc_loss: 4.495885038375855, grad_loss: None
+2022-04-22 14:09:15,084 DEBUG epoch: 89, train_acc: 5.3125, val_acc: 2.83, fidel_score: 3.02, acc_loss: 4.491224050521851, grad_loss: None
+2022-04-22 14:09:16,359 DEBUG epoch: 90, train_acc: 5.703125, val_acc: 2.88, fidel_score: 3.11, acc_loss: 4.486998963356018, grad_loss: None
+2022-04-22 14:09:17,647 DEBUG epoch: 91, train_acc: 5.625, val_acc: 2.96, fidel_score: 3.22, acc_loss: 4.489801239967346, grad_loss: None
+2022-04-22 14:09:18,932 DEBUG epoch: 92, train_acc: 4.7265625, val_acc: 2.9, fidel_score: 3.16, acc_loss: 4.489306020736694, grad_loss: None
+2022-04-22 14:09:20,208 DEBUG epoch: 93, train_acc: 5.0, val_acc: 2.94, fidel_score: 3.21, acc_loss: 4.48953263759613, grad_loss: None
+2022-04-22 14:09:21,480 DEBUG epoch: 94, train_acc: 4.0234375, val_acc: 3.06, fidel_score: 3.32, acc_loss: 4.490928149223327, grad_loss: None
+2022-04-22 14:09:22,751 DEBUG epoch: 95, train_acc: 6.4453125, val_acc: 3.22, fidel_score: 3.5, acc_loss: 4.48455777168274, grad_loss: None
+2022-04-22 14:09:24,032 DEBUG epoch: 96, train_acc: 5.78125, val_acc: 3.26, fidel_score: 3.55, acc_loss: 4.481341910362244, grad_loss: None
+2022-04-22 14:09:25,311 DEBUG epoch: 97, train_acc: 5.46875, val_acc: 3.14, fidel_score: 3.41, acc_loss: 4.475582909584046, grad_loss: None
+2022-04-22 14:09:26,582 DEBUG epoch: 98, train_acc: 4.8046875, val_acc: 3.12, fidel_score: 3.4, acc_loss: 4.478088355064392, grad_loss: None
+2022-04-22 14:09:27,855 DEBUG epoch: 99, train_acc: 5.703125, val_acc: 3.0, fidel_score: 3.23, acc_loss: 4.475719213485718, grad_loss: None
+2022-04-22 14:09:29,125 DEBUG epoch: 100, train_acc: 5.3515625, val_acc: 2.9, fidel_score: 3.03, acc_loss: 4.475886106491089, grad_loss: None
+2022-04-22 14:09:30,404 DEBUG epoch: 101, train_acc: 5.5078125, val_acc: 2.91, fidel_score: 3.14, acc_loss: 4.470167636871338, grad_loss: None
+2022-04-22 14:09:31,681 DEBUG epoch: 102, train_acc: 4.5703125, val_acc: 2.91, fidel_score: 3.19, acc_loss: 4.477933716773987, grad_loss: None
+2022-04-22 14:09:32,964 DEBUG epoch: 103, train_acc: 5.5859375, val_acc: 2.83, fidel_score: 3.08, acc_loss: 4.464054226875305, grad_loss: None
+2022-04-22 14:09:34,240 DEBUG epoch: 104, train_acc: 5.2734375, val_acc: 2.9, fidel_score: 3.16, acc_loss: 4.467352962493896, grad_loss: None
+2022-04-22 14:09:35,523 DEBUG epoch: 105, train_acc: 4.53125, val_acc: 2.94, fidel_score: 3.15, acc_loss: 4.465403532981872, grad_loss: None
+2022-04-22 14:09:36,794 DEBUG epoch: 106, train_acc: 3.984375, val_acc: 3.23, fidel_score: 3.51, acc_loss: 4.472323060035706, grad_loss: None
+2022-04-22 14:09:38,081 DEBUG epoch: 107, train_acc: 4.3359375, val_acc: 3.29, fidel_score: 3.63, acc_loss: 4.462395358085632, grad_loss: None
+2022-04-22 14:09:39,355 DEBUG epoch: 108, train_acc: 5.2734375, val_acc: 3.39, fidel_score: 3.73, acc_loss: 4.462347030639648, grad_loss: None
+2022-04-22 14:09:40,642 DEBUG epoch: 109, train_acc: 5.546875, val_acc: 3.31, fidel_score: 3.61, acc_loss: 4.4652002334594725, grad_loss: None
+2022-04-22 14:09:41,923 DEBUG epoch: 110, train_acc: 4.765625, val_acc: 3.37, fidel_score: 3.59, acc_loss: 4.4663104772567745, grad_loss: None
+2022-04-22 14:09:43,211 DEBUG epoch: 111, train_acc: 5.625, val_acc: 3.37, fidel_score: 3.58, acc_loss: 4.458084940910339, grad_loss: None
+2022-04-22 14:09:44,485 DEBUG epoch: 112, train_acc: 6.015625, val_acc: 3.36, fidel_score: 3.72, acc_loss: 4.455926990509033, grad_loss: None
+2022-04-22 14:09:45,761 DEBUG epoch: 113, train_acc: 5.6640625, val_acc: 3.44, fidel_score: 3.78, acc_loss: 4.455783700942993, grad_loss: None
+2022-04-22 14:09:47,037 DEBUG epoch: 114, train_acc: 5.3125, val_acc: 3.43, fidel_score: 3.71, acc_loss: 4.4531269550323485, grad_loss: None
+2022-04-22 14:09:48,318 DEBUG epoch: 115, train_acc: 4.84375, val_acc: 3.3, fidel_score: 3.41, acc_loss: 4.44609842300415, grad_loss: None
+2022-04-22 14:09:49,589 DEBUG epoch: 116, train_acc: 4.9609375, val_acc: 3.17, fidel_score: 3.18, acc_loss: 4.444227790832519, grad_loss: None
+2022-04-22 14:09:50,864 DEBUG epoch: 117, train_acc: 4.375, val_acc: 3.2, fidel_score: 3.22, acc_loss: 4.444316744804382, grad_loss: None
+2022-04-22 14:09:52,145 DEBUG epoch: 118, train_acc: 5.390625, val_acc: 3.2, fidel_score: 3.27, acc_loss: 4.443263649940491, grad_loss: None
+2022-04-22 14:09:53,429 DEBUG epoch: 119, train_acc: 5.7421875, val_acc: 3.17, fidel_score: 3.34, acc_loss: 4.43791892528534, grad_loss: None
+2022-04-22 14:09:54,705 DEBUG epoch: 120, train_acc: 5.234375, val_acc: 3.24, fidel_score: 3.4, acc_loss: 4.438778567314148, grad_loss: None
+2022-04-22 14:09:55,984 DEBUG epoch: 121, train_acc: 5.5859375, val_acc: 3.32, fidel_score: 3.51, acc_loss: 4.4380580425262455, grad_loss: None
+2022-04-22 14:09:57,267 DEBUG epoch: 122, train_acc: 5.15625, val_acc: 3.35, fidel_score: 3.47, acc_loss: 4.434275054931641, grad_loss: None
+2022-04-22 14:09:58,545 DEBUG epoch: 123, train_acc: 5.7421875, val_acc: 3.12, fidel_score: 3.26, acc_loss: 4.430751514434815, grad_loss: None
+2022-04-22 14:09:59,819 DEBUG epoch: 124, train_acc: 5.4296875, val_acc: 3.1, fidel_score: 3.23, acc_loss: 4.434786963462829, grad_loss: None
+2022-04-22 14:10:01,086 DEBUG epoch: 125, train_acc: 4.53125, val_acc: 3.2, fidel_score: 3.4, acc_loss: 4.423871183395386, grad_loss: None
+2022-04-22 14:10:02,370 DEBUG epoch: 126, train_acc: 5.46875, val_acc: 3.19, fidel_score: 3.47, acc_loss: 4.424109625816345, grad_loss: None
+2022-04-22 14:10:03,666 DEBUG epoch: 127, train_acc: 5.46875, val_acc: 3.1, fidel_score: 3.3, acc_loss: 4.418113875389099, grad_loss: None
+2022-04-22 14:10:04,942 DEBUG epoch: 128, train_acc: 4.8828125, val_acc: 2.83, fidel_score: 2.88, acc_loss: 4.421370625495911, grad_loss: None
+2022-04-22 14:10:06,226 DEBUG epoch: 129, train_acc: 5.3125, val_acc: 3.15, fidel_score: 3.28, acc_loss: 4.423058581352234, grad_loss: None
+2022-04-22 14:10:07,501 DEBUG epoch: 130, train_acc: 5.390625, val_acc: 3.37, fidel_score: 3.65, acc_loss: 4.415814018249511, grad_loss: None
+2022-04-22 14:10:08,781 DEBUG epoch: 131, train_acc: 5.859375, val_acc: 3.4, fidel_score: 3.67, acc_loss: 4.4097750902175905, grad_loss: None
+2022-04-22 14:10:10,054 DEBUG epoch: 132, train_acc: 5.703125, val_acc: 3.45, fidel_score: 3.74, acc_loss: 4.409832572937011, grad_loss: None
+2022-04-22 14:10:11,333 DEBUG epoch: 133, train_acc: 5.3125, val_acc: 3.45, fidel_score: 3.69, acc_loss: 4.404177665710449, grad_loss: None
+2022-04-22 14:10:12,608 DEBUG epoch: 134, train_acc: 5.46875, val_acc: 3.51, fidel_score: 3.74, acc_loss: 4.408966660499573, grad_loss: None
+2022-04-22 14:10:13,880 DEBUG epoch: 135, train_acc: 5.15625, val_acc: 3.41, fidel_score: 3.68, acc_loss: 4.406927824020386, grad_loss: None
+2022-04-22 14:10:15,158 DEBUG epoch: 136, train_acc: 4.8828125, val_acc: 3.56, fidel_score: 3.87, acc_loss: 4.405448627471924, grad_loss: None
+2022-04-22 14:10:16,431 DEBUG epoch: 137, train_acc: 4.765625, val_acc: 3.59, fidel_score: 3.89, acc_loss: 4.398095750808716, grad_loss: None
+2022-04-22 14:10:17,698 DEBUG epoch: 138, train_acc: 5.6640625, val_acc: 3.45, fidel_score: 3.67, acc_loss: 4.394359397888183, grad_loss: None
+2022-04-22 14:10:18,974 DEBUG epoch: 139, train_acc: 5.0, val_acc: 3.46, fidel_score: 3.67, acc_loss: 4.400672531127929, grad_loss: None
+2022-04-22 14:10:20,264 DEBUG epoch: 140, train_acc: 5.1953125, val_acc: 3.55, fidel_score: 3.8, acc_loss: 4.391759872436523, grad_loss: None
+2022-04-22 14:10:21,541 DEBUG epoch: 141, train_acc: 5.7421875, val_acc: 3.51, fidel_score: 3.86, acc_loss: 4.385117411613464, grad_loss: None
+2022-04-22 14:10:22,815 DEBUG epoch: 142, train_acc: 5.46875, val_acc: 3.48, fidel_score: 3.82, acc_loss: 4.380239343643188, grad_loss: None
+2022-04-22 14:10:24,091 DEBUG epoch: 143, train_acc: 5.3125, val_acc: 3.51, fidel_score: 3.76, acc_loss: 4.382364535331726, grad_loss: None
+2022-04-22 14:10:25,375 DEBUG epoch: 144, train_acc: 6.0546875, val_acc: 3.49, fidel_score: 3.75, acc_loss: 4.381552267074585, grad_loss: None
+2022-04-22 14:10:26,655 DEBUG epoch: 145, train_acc: 5.234375, val_acc: 3.49, fidel_score: 3.8, acc_loss: 4.377133631706238, grad_loss: None
+2022-04-22 14:10:27,941 DEBUG epoch: 146, train_acc: 5.78125, val_acc: 3.44, fidel_score: 3.73, acc_loss: 4.373142385482788, grad_loss: None
+2022-04-22 14:10:29,214 DEBUG epoch: 147, train_acc: 6.40625, val_acc: 3.52, fidel_score: 3.85, acc_loss: 4.3720661163330075, grad_loss: None
+2022-04-22 14:10:30,481 DEBUG epoch: 148, train_acc: 5.9375, val_acc: 3.47, fidel_score: 3.73, acc_loss: 4.36672739982605, grad_loss: None
+2022-04-22 14:10:31,763 DEBUG epoch: 149, train_acc: 5.625, val_acc: 3.57, fidel_score: 3.86, acc_loss: 4.374303531646729, grad_loss: None
+2022-04-22 14:10:33,039 DEBUG epoch: 150, train_acc: 6.71875, val_acc: 3.55, fidel_score: 3.84, acc_loss: 4.357673454284668, grad_loss: None
+2022-04-22 14:10:34,314 DEBUG epoch: 151, train_acc: 5.9375, val_acc: 3.54, fidel_score: 3.82, acc_loss: 4.368196678161621, grad_loss: None
+2022-04-22 14:10:35,586 DEBUG epoch: 152, train_acc: 6.40625, val_acc: 3.47, fidel_score: 3.74, acc_loss: 4.365003252029419, grad_loss: None
+2022-04-22 14:10:36,860 DEBUG epoch: 153, train_acc: 6.5234375, val_acc: 3.48, fidel_score: 3.76, acc_loss: 4.368740510940552, grad_loss: None
+2022-04-22 14:10:38,136 DEBUG epoch: 154, train_acc: 5.8984375, val_acc: 3.44, fidel_score: 3.69, acc_loss: 4.366478967666626, grad_loss: None
+2022-04-22 14:10:39,411 DEBUG epoch: 155, train_acc: 5.859375, val_acc: 3.41, fidel_score: 3.67, acc_loss: 4.365851664543152, grad_loss: None
+2022-04-22 14:10:40,686 DEBUG epoch: 156, train_acc: 6.09375, val_acc: 3.42, fidel_score: 3.68, acc_loss: 4.360710024833679, grad_loss: None
+2022-04-22 14:10:41,959 DEBUG epoch: 157, train_acc: 6.1328125, val_acc: 3.45, fidel_score: 3.71, acc_loss: 4.3556814908981325, grad_loss: None
+2022-04-22 14:10:43,252 DEBUG epoch: 158, train_acc: 5.9765625, val_acc: 3.43, fidel_score: 3.69, acc_loss: 4.362541007995605, grad_loss: None
+2022-04-22 14:10:44,536 DEBUG epoch: 159, train_acc: 6.2109375, val_acc: 3.41, fidel_score: 3.7, acc_loss: 4.35334324836731, grad_loss: None
+2022-04-22 14:10:45,820 DEBUG epoch: 160, train_acc: 6.09375, val_acc: 3.4, fidel_score: 3.68, acc_loss: 4.362619233131409, grad_loss: None
+2022-04-22 14:10:47,093 DEBUG epoch: 161, train_acc: 5.7421875, val_acc: 3.43, fidel_score: 3.68, acc_loss: 4.367101573944092, grad_loss: None
+2022-04-22 14:10:48,375 DEBUG epoch: 162, train_acc: 6.25, val_acc: 3.41, fidel_score: 3.59, acc_loss: 4.347128438949585, grad_loss: None
+2022-04-22 14:10:49,651 DEBUG epoch: 163, train_acc: 6.5234375, val_acc: 3.41, fidel_score: 3.58, acc_loss: 4.355693984031677, grad_loss: None
+2022-04-22 14:10:50,930 DEBUG epoch: 164, train_acc: 6.0546875, val_acc: 3.39, fidel_score: 3.65, acc_loss: 4.355623435974121, grad_loss: None
+2022-04-22 14:10:52,221 DEBUG epoch: 165, train_acc: 6.1328125, val_acc: 3.42, fidel_score: 3.67, acc_loss: 4.3556763410568236, grad_loss: None
+2022-04-22 14:10:53,507 DEBUG epoch: 166, train_acc: 5.625, val_acc: 3.46, fidel_score: 3.68, acc_loss: 4.35883891582489, grad_loss: None
+2022-04-22 14:10:54,773 DEBUG epoch: 167, train_acc: 6.6015625, val_acc: 3.48, fidel_score: 3.65, acc_loss: 4.347803235054016, grad_loss: None
+2022-04-22 14:10:56,052 DEBUG epoch: 168, train_acc: 6.6796875, val_acc: 3.4, fidel_score: 3.58, acc_loss: 4.350918936729431, grad_loss: None
+2022-04-22 14:10:57,331 DEBUG epoch: 169, train_acc: 5.8203125, val_acc: 3.39, fidel_score: 3.58, acc_loss: 4.3536052227020265, grad_loss: None
+2022-04-22 14:10:58,615 DEBUG epoch: 170, train_acc: 6.4453125, val_acc: 3.37, fidel_score: 3.54, acc_loss: 4.349374842643738, grad_loss: None
+2022-04-22 14:10:59,893 DEBUG epoch: 171, train_acc: 5.234375, val_acc: 3.37, fidel_score: 3.55, acc_loss: 4.354539108276367, grad_loss: None
+2022-04-22 14:11:01,174 DEBUG epoch: 172, train_acc: 5.78125, val_acc: 3.37, fidel_score: 3.55, acc_loss: 4.337120985984802, grad_loss: None
+2022-04-22 14:11:02,461 DEBUG epoch: 173, train_acc: 6.328125, val_acc: 3.39, fidel_score: 3.57, acc_loss: 4.346362447738647, grad_loss: None
+2022-04-22 14:11:03,742 DEBUG epoch: 174, train_acc: 5.625, val_acc: 3.41, fidel_score: 3.61, acc_loss: 4.366267108917237, grad_loss: None
+2022-04-22 14:11:05,022 DEBUG epoch: 175, train_acc: 6.1328125, val_acc: 3.42, fidel_score: 3.62, acc_loss: 4.348392724990845, grad_loss: None
+2022-04-22 14:11:06,306 DEBUG epoch: 176, train_acc: 6.640625, val_acc: 3.44, fidel_score: 3.63, acc_loss: 4.352510666847229, grad_loss: None
+2022-04-22 14:11:07,588 DEBUG epoch: 177, train_acc: 6.640625, val_acc: 3.43, fidel_score: 3.6, acc_loss: 4.345312070846558, grad_loss: None
+2022-04-22 14:11:08,877 DEBUG epoch: 178, train_acc: 5.8203125, val_acc: 3.42, fidel_score: 3.59, acc_loss: 4.34516134262085, grad_loss: None
+2022-04-22 14:11:10,149 DEBUG epoch: 179, train_acc: 6.2890625, val_acc: 3.43, fidel_score: 3.62, acc_loss: 4.350114202499389, grad_loss: None
+2022-04-22 14:11:11,434 DEBUG epoch: 180, train_acc: 6.484375, val_acc: 3.47, fidel_score: 3.66, acc_loss: 4.332748603820801, grad_loss: None
+2022-04-22 14:11:12,708 DEBUG epoch: 181, train_acc: 6.0546875, val_acc: 3.45, fidel_score: 3.67, acc_loss: 4.355069541931153, grad_loss: None
+2022-04-22 14:11:13,981 DEBUG epoch: 182, train_acc: 7.3828125, val_acc: 3.46, fidel_score: 3.69, acc_loss: 4.3392080783844, grad_loss: None
+2022-04-22 14:11:15,254 DEBUG epoch: 183, train_acc: 6.015625, val_acc: 3.46, fidel_score: 3.73, acc_loss: 4.3518418073654175, grad_loss: None
+2022-04-22 14:11:16,530 DEBUG epoch: 184, train_acc: 6.328125, val_acc: 3.47, fidel_score: 3.72, acc_loss: 4.349259638786316, grad_loss: None
+2022-04-22 14:11:17,801 DEBUG epoch: 185, train_acc: 6.328125, val_acc: 3.53, fidel_score: 3.75, acc_loss: 4.347467541694641, grad_loss: None
+2022-04-22 14:11:19,078 DEBUG epoch: 186, train_acc: 6.2890625, val_acc: 3.45, fidel_score: 3.71, acc_loss: 4.3352669954299925, grad_loss: None
+2022-04-22 14:11:20,363 DEBUG epoch: 187, train_acc: 5.5859375, val_acc: 3.43, fidel_score: 3.68, acc_loss: 4.3517817735671995, grad_loss: None
+2022-04-22 14:11:21,650 DEBUG epoch: 188, train_acc: 6.71875, val_acc: 3.42, fidel_score: 3.68, acc_loss: 4.340484929084778, grad_loss: None
+2022-04-22 14:11:22,922 DEBUG epoch: 189, train_acc: 5.625, val_acc: 3.4, fidel_score: 3.66, acc_loss: 4.3447500705719, grad_loss: None
+2022-04-22 14:11:24,205 DEBUG epoch: 190, train_acc: 6.6796875, val_acc: 3.41, fidel_score: 3.68, acc_loss: 4.338664650917053, grad_loss: None
+2022-04-22 14:11:25,476 DEBUG epoch: 191, train_acc: 6.4453125, val_acc: 3.4, fidel_score: 3.68, acc_loss: 4.338363480567932, grad_loss: None
+2022-04-22 14:11:26,747 DEBUG epoch: 192, train_acc: 5.4296875, val_acc: 3.38, fidel_score: 3.67, acc_loss: 4.343464088439942, grad_loss: None
+2022-04-22 14:11:28,023 DEBUG epoch: 193, train_acc: 5.546875, val_acc: 3.47, fidel_score: 3.76, acc_loss: 4.343299651145935, grad_loss: None
+2022-04-22 14:11:29,310 DEBUG epoch: 194, train_acc: 5.46875, val_acc: 3.44, fidel_score: 3.73, acc_loss: 4.343646574020386, grad_loss: None
+2022-04-22 14:11:30,589 DEBUG epoch: 195, train_acc: 6.796875, val_acc: 3.41, fidel_score: 3.71, acc_loss: 4.341785597801208, grad_loss: None
+2022-04-22 14:11:31,876 DEBUG epoch: 196, train_acc: 6.6796875, val_acc: 3.38, fidel_score: 3.69, acc_loss: 4.331703162193298, grad_loss: None
+2022-04-22 14:11:33,147 DEBUG epoch: 197, train_acc: 5.546875, val_acc: 3.33, fidel_score: 3.65, acc_loss: 4.3439456701278685, grad_loss: None
+2022-04-22 14:11:34,418 DEBUG epoch: 198, train_acc: 6.5625, val_acc: 3.32, fidel_score: 3.63, acc_loss: 4.325102305412292, grad_loss: None
+2022-04-22 14:11:35,704 DEBUG epoch: 199, train_acc: 6.484375, val_acc: 3.35, fidel_score: 3.65, acc_loss: 4.335110688209534, grad_loss: None
+2022-04-22 14:11:36,982 DEBUG epoch: 200, train_acc: 6.640625, val_acc: 3.36, fidel_score: 3.66, acc_loss: 4.328483295440674, grad_loss: None
+2022-04-22 14:11:38,272 DEBUG epoch: 201, train_acc: 6.484375, val_acc: 3.41, fidel_score: 3.72, acc_loss: 4.321049928665161, grad_loss: None
+2022-04-22 14:11:39,548 DEBUG epoch: 202, train_acc: 6.2109375, val_acc: 3.45, fidel_score: 3.76, acc_loss: 4.3380722284317015, grad_loss: None
+2022-04-22 14:11:40,839 DEBUG epoch: 203, train_acc: 6.71875, val_acc: 3.42, fidel_score: 3.69, acc_loss: 4.324103140830994, grad_loss: None
+2022-04-22 14:11:42,116 DEBUG epoch: 204, train_acc: 5.859375, val_acc: 3.43, fidel_score: 3.69, acc_loss: 4.329133033752441, grad_loss: None
+2022-04-22 14:11:43,390 DEBUG epoch: 205, train_acc: 6.875, val_acc: 3.42, fidel_score: 3.68, acc_loss: 4.3327216625213625, grad_loss: None
+2022-04-22 14:11:44,662 DEBUG epoch: 206, train_acc: 7.4609375, val_acc: 3.38, fidel_score: 3.62, acc_loss: 4.332398509979248, grad_loss: None
+2022-04-22 14:11:45,952 DEBUG epoch: 207, train_acc: 6.0546875, val_acc: 3.41, fidel_score: 3.65, acc_loss: 4.3382134437561035, grad_loss: None
+2022-04-22 14:11:47,230 DEBUG epoch: 208, train_acc: 7.3828125, val_acc: 3.43, fidel_score: 3.65, acc_loss: 4.327062487602234, grad_loss: None
+2022-04-22 14:11:48,513 DEBUG epoch: 209, train_acc: 7.6953125, val_acc: 3.43, fidel_score: 3.67, acc_loss: 4.312817764282227, grad_loss: None
+2022-04-22 14:11:49,795 DEBUG epoch: 210, train_acc: 6.6015625, val_acc: 3.34, fidel_score: 3.57, acc_loss: 4.328392362594604, grad_loss: None
+2022-04-22 14:11:51,072 DEBUG epoch: 211, train_acc: 6.5234375, val_acc: 3.29, fidel_score: 3.52, acc_loss: 4.3245508670806885, grad_loss: None
+2022-04-22 14:11:52,346 DEBUG epoch: 212, train_acc: 6.171875, val_acc: 3.35, fidel_score: 3.57, acc_loss: 4.325296306610108, grad_loss: None
+2022-04-22 14:11:53,624 DEBUG epoch: 213, train_acc: 6.5234375, val_acc: 3.35, fidel_score: 3.63, acc_loss: 4.330020523071289, grad_loss: None
+2022-04-22 14:11:54,923 DEBUG epoch: 214, train_acc: 6.71875, val_acc: 3.37, fidel_score: 3.66, acc_loss: 4.3243736028671265, grad_loss: None
+2022-04-22 14:11:56,207 DEBUG epoch: 215, train_acc: 6.9921875, val_acc: 3.43, fidel_score: 3.68, acc_loss: 4.325778460502624, grad_loss: None
+2022-04-22 14:11:57,482 DEBUG epoch: 216, train_acc: 7.5390625, val_acc: 3.44, fidel_score: 3.72, acc_loss: 4.319059109687805, grad_loss: None
+2022-04-22 14:11:58,754 DEBUG epoch: 217, train_acc: 7.1875, val_acc: 3.37, fidel_score: 3.63, acc_loss: 4.311157774925232, grad_loss: None
+2022-04-22 14:12:00,033 DEBUG epoch: 218, train_acc: 6.9921875, val_acc: 3.34, fidel_score: 3.62, acc_loss: 4.321285343170166, grad_loss: None
+2022-04-22 14:12:01,327 DEBUG epoch: 219, train_acc: 6.953125, val_acc: 3.36, fidel_score: 3.65, acc_loss: 4.317102003097534, grad_loss: None
+2022-04-22 14:12:02,597 DEBUG epoch: 220, train_acc: 6.171875, val_acc: 3.38, fidel_score: 3.64, acc_loss: 4.323806571960449, grad_loss: None
+2022-04-22 14:12:03,874 DEBUG epoch: 221, train_acc: 7.0703125, val_acc: 3.4, fidel_score: 3.67, acc_loss: 4.316866421699524, grad_loss: None
+2022-04-22 14:12:05,154 DEBUG epoch: 222, train_acc: 6.5625, val_acc: 3.33, fidel_score: 3.58, acc_loss: 4.314017629623413, grad_loss: None
+2022-04-22 14:12:06,447 DEBUG epoch: 223, train_acc: 6.09375, val_acc: 3.35, fidel_score: 3.61, acc_loss: 4.3212130784988405, grad_loss: None
+2022-04-22 14:12:07,723 DEBUG epoch: 224, train_acc: 6.71875, val_acc: 3.36, fidel_score: 3.61, acc_loss: 4.307523941993713, grad_loss: None
+2022-04-22 14:12:08,997 DEBUG epoch: 225, train_acc: 6.5625, val_acc: 3.34, fidel_score: 3.62, acc_loss: 4.314043951034546, grad_loss: None
+2022-04-22 14:12:10,276 DEBUG epoch: 226, train_acc: 6.875, val_acc: 3.35, fidel_score: 3.61, acc_loss: 4.313108515739441, grad_loss: None
+2022-04-22 14:12:11,553 DEBUG epoch: 227, train_acc: 7.421875, val_acc: 3.34, fidel_score: 3.6, acc_loss: 4.308181643486023, grad_loss: None
+2022-04-22 14:12:12,836 DEBUG epoch: 228, train_acc: 6.7578125, val_acc: 3.31, fidel_score: 3.6, acc_loss: 4.319376850128174, grad_loss: None
+2022-04-22 14:12:14,112 DEBUG epoch: 229, train_acc: 7.2265625, val_acc: 3.33, fidel_score: 3.59, acc_loss: 4.3219046831130985, grad_loss: None
+2022-04-22 14:12:15,389 DEBUG epoch: 230, train_acc: 6.328125, val_acc: 3.34, fidel_score: 3.6, acc_loss: 4.296779203414917, grad_loss: None
+2022-04-22 14:12:16,689 DEBUG epoch: 231, train_acc: 7.7734375, val_acc: 3.32, fidel_score: 3.58, acc_loss: 4.309336948394775, grad_loss: None
+2022-04-22 14:12:17,968 DEBUG epoch: 232, train_acc: 7.03125, val_acc: 3.33, fidel_score: 3.61, acc_loss: 4.315449690818786, grad_loss: None
+2022-04-22 14:12:19,257 DEBUG epoch: 233, train_acc: 6.2890625, val_acc: 3.36, fidel_score: 3.68, acc_loss: 4.311582541465759, grad_loss: None
+2022-04-22 14:12:20,529 DEBUG epoch: 234, train_acc: 6.953125, val_acc: 3.36, fidel_score: 3.64, acc_loss: 4.302747344970703, grad_loss: None
+2022-04-22 14:12:21,798 DEBUG epoch: 235, train_acc: 6.0546875, val_acc: 3.35, fidel_score: 3.62, acc_loss: 4.320166444778442, grad_loss: None
+2022-04-22 14:12:23,072 DEBUG epoch: 236, train_acc: 7.34375, val_acc: 3.33, fidel_score: 3.57, acc_loss: 4.3011698722839355, grad_loss: None
+2022-04-22 14:12:24,343 DEBUG epoch: 237, train_acc: 6.9140625, val_acc: 3.3, fidel_score: 3.52, acc_loss: 4.311989378929138, grad_loss: None
+2022-04-22 14:12:25,628 DEBUG epoch: 238, train_acc: 7.34375, val_acc: 3.3, fidel_score: 3.52, acc_loss: 4.304020357131958, grad_loss: None
+2022-04-22 14:12:26,905 DEBUG epoch: 239, train_acc: 7.265625, val_acc: 3.28, fidel_score: 3.51, acc_loss: 4.308646011352539, grad_loss: None
+2022-04-22 14:12:28,178 DEBUG epoch: 240, train_acc: 6.484375, val_acc: 3.27, fidel_score: 3.49, acc_loss: 4.306497049331665, grad_loss: None
+2022-04-22 14:12:29,464 DEBUG epoch: 241, train_acc: 6.875, val_acc: 3.26, fidel_score: 3.5, acc_loss: 4.308583521842957, grad_loss: None
+2022-04-22 14:12:30,736 DEBUG epoch: 242, train_acc: 6.1328125, val_acc: 3.26, fidel_score: 3.5, acc_loss: 4.30774073600769, grad_loss: None
+2022-04-22 14:12:32,019 DEBUG epoch: 243, train_acc: 6.875, val_acc: 3.26, fidel_score: 3.5, acc_loss: 4.313218998908996, grad_loss: None
+2022-04-22 14:12:33,295 DEBUG epoch: 244, train_acc: 7.6171875, val_acc: 3.25, fidel_score: 3.48, acc_loss: 4.306899094581604, grad_loss: None
+2022-04-22 14:12:34,565 DEBUG epoch: 245, train_acc: 5.9765625, val_acc: 3.26, fidel_score: 3.49, acc_loss: 4.3185720205307, grad_loss: None
+2022-04-22 14:12:35,843 DEBUG epoch: 246, train_acc: 6.953125, val_acc: 3.26, fidel_score: 3.48, acc_loss: 4.317166090011597, grad_loss: None
+2022-04-22 14:12:37,114 DEBUG epoch: 247, train_acc: 6.40625, val_acc: 3.26, fidel_score: 3.47, acc_loss: 4.307958960533142, grad_loss: None
+2022-04-22 14:12:38,388 DEBUG epoch: 248, train_acc: 6.875, val_acc: 3.26, fidel_score: 3.47, acc_loss: 4.293274712562561, grad_loss: None
+2022-04-22 14:12:39,666 DEBUG epoch: 249, train_acc: 6.640625, val_acc: 3.26, fidel_score: 3.48, acc_loss: 4.305512714385986, grad_loss: None
+2022-04-22 14:12:40,938 DEBUG epoch: 250, train_acc: 6.4453125, val_acc: 3.25, fidel_score: 3.5, acc_loss: 4.302524471282959, grad_loss: None
+2022-04-22 14:12:42,230 DEBUG epoch: 251, train_acc: 6.953125, val_acc: 3.25, fidel_score: 3.5, acc_loss: 4.298192286491394, grad_loss: None
+2022-04-22 14:12:43,517 DEBUG epoch: 252, train_acc: 7.34375, val_acc: 3.26, fidel_score: 3.5, acc_loss: 4.305704998970032, grad_loss: None
+2022-04-22 14:12:44,792 DEBUG epoch: 253, train_acc: 6.796875, val_acc: 3.26, fidel_score: 3.49, acc_loss: 4.3146577835083, grad_loss: None
+2022-04-22 14:12:46,073 DEBUG epoch: 254, train_acc: 7.3046875, val_acc: 3.25, fidel_score: 3.5, acc_loss: 4.297003769874573, grad_loss: None
+2022-04-22 14:12:47,345 DEBUG epoch: 255, train_acc: 7.1875, val_acc: 3.28, fidel_score: 3.54, acc_loss: 4.300998878479004, grad_loss: None
+2022-04-22 14:12:48,616 DEBUG epoch: 256, train_acc: 7.2265625, val_acc: 3.28, fidel_score: 3.54, acc_loss: 4.297241139411926, grad_loss: None
+2022-04-22 14:12:49,893 DEBUG epoch: 257, train_acc: 6.796875, val_acc: 3.26, fidel_score: 3.51, acc_loss: 4.30353877544403, grad_loss: None
+2022-04-22 14:12:51,167 DEBUG epoch: 258, train_acc: 6.71875, val_acc: 3.26, fidel_score: 3.5, acc_loss: 4.303912019729614, grad_loss: None
+2022-04-22 14:12:52,444 DEBUG epoch: 259, train_acc: 6.7578125, val_acc: 3.25, fidel_score: 3.51, acc_loss: 4.3141062498092655, grad_loss: None
+2022-04-22 14:12:53,714 DEBUG epoch: 260, train_acc: 7.578125, val_acc: 3.23, fidel_score: 3.48, acc_loss: 4.303596377372742, grad_loss: None
+2022-04-22 14:12:54,995 DEBUG epoch: 261, train_acc: 6.6015625, val_acc: 3.24, fidel_score: 3.49, acc_loss: 4.310519027709961, grad_loss: None
+2022-04-22 14:12:56,279 DEBUG epoch: 262, train_acc: 6.5234375, val_acc: 3.24, fidel_score: 3.49, acc_loss: 4.313603067398072, grad_loss: None
+2022-04-22 14:12:57,555 DEBUG epoch: 263, train_acc: 6.875, val_acc: 3.24, fidel_score: 3.5, acc_loss: 4.303696537017823, grad_loss: None
+2022-04-22 14:12:58,840 DEBUG epoch: 264, train_acc: 6.875, val_acc: 3.21, fidel_score: 3.45, acc_loss: 4.308854460716248, grad_loss: None
+2022-04-22 14:13:00,123 DEBUG epoch: 265, train_acc: 6.171875, val_acc: 3.22, fidel_score: 3.48, acc_loss: 4.313049936294556, grad_loss: None
+2022-04-22 14:13:01,399 DEBUG epoch: 266, train_acc: 6.5625, val_acc: 3.25, fidel_score: 3.52, acc_loss: 4.303202676773071, grad_loss: None
+2022-04-22 14:13:02,670 DEBUG epoch: 267, train_acc: 6.3671875, val_acc: 3.25, fidel_score: 3.52, acc_loss: 4.297768068313599, grad_loss: None
+2022-04-22 14:13:03,952 DEBUG epoch: 268, train_acc: 7.2265625, val_acc: 3.25, fidel_score: 3.54, acc_loss: 4.311647486686707, grad_loss: None
+2022-04-22 14:13:05,247 DEBUG epoch: 269, train_acc: 6.2109375, val_acc: 3.25, fidel_score: 3.54, acc_loss: 4.3091010570526125, grad_loss: None
+2022-04-22 14:13:06,519 DEBUG epoch: 270, train_acc: 6.7578125, val_acc: 3.28, fidel_score: 3.56, acc_loss: 4.297973322868347, grad_loss: None
+2022-04-22 14:13:07,802 DEBUG epoch: 271, train_acc: 7.1875, val_acc: 3.27, fidel_score: 3.56, acc_loss: 4.295184755325318, grad_loss: None
+2022-04-22 14:13:09,086 DEBUG epoch: 272, train_acc: 7.3046875, val_acc: 3.26, fidel_score: 3.55, acc_loss: 4.300057530403137, grad_loss: None
+2022-04-22 14:13:10,361 DEBUG epoch: 273, train_acc: 7.5390625, val_acc: 3.26, fidel_score: 3.56, acc_loss: 4.301268482208252, grad_loss: None
+2022-04-22 14:13:11,654 DEBUG epoch: 274, train_acc: 6.2109375, val_acc: 3.29, fidel_score: 3.6, acc_loss: 4.307118892669678, grad_loss: None
+2022-04-22 14:13:12,938 DEBUG epoch: 275, train_acc: 6.7578125, val_acc: 3.29, fidel_score: 3.6, acc_loss: 4.300808382034302, grad_loss: None
+2022-04-22 14:13:14,205 DEBUG epoch: 276, train_acc: 7.6953125, val_acc: 3.32, fidel_score: 3.62, acc_loss: 4.29598023891449, grad_loss: None
+2022-04-22 14:13:15,474 DEBUG epoch: 277, train_acc: 7.2265625, val_acc: 3.31, fidel_score: 3.62, acc_loss: 4.306803679466247, grad_loss: None
+2022-04-22 14:13:16,754 DEBUG epoch: 278, train_acc: 7.5, val_acc: 3.31, fidel_score: 3.61, acc_loss: 4.306182050704956, grad_loss: None
+2022-04-22 14:13:18,033 DEBUG epoch: 279, train_acc: 7.3828125, val_acc: 3.34, fidel_score: 3.63, acc_loss: 4.31866352558136, grad_loss: None
+2022-04-22 14:13:19,309 DEBUG epoch: 280, train_acc: 6.640625, val_acc: 3.31, fidel_score: 3.62, acc_loss: 4.295570230484008, grad_loss: None
+2022-04-22 14:13:20,591 DEBUG epoch: 281, train_acc: 7.34375, val_acc: 3.33, fidel_score: 3.63, acc_loss: 4.29718337059021, grad_loss: None
+2022-04-22 14:13:21,859 DEBUG epoch: 282, train_acc: 7.03125, val_acc: 3.34, fidel_score: 3.64, acc_loss: 4.306336140632629, grad_loss: None
+2022-04-22 14:13:23,140 DEBUG epoch: 283, train_acc: 8.046875, val_acc: 3.35, fidel_score: 3.65, acc_loss: 4.294834017753601, grad_loss: None
+2022-04-22 14:13:24,425 DEBUG epoch: 284, train_acc: 6.7578125, val_acc: 3.35, fidel_score: 3.65, acc_loss: 4.315810418128967, grad_loss: None
+2022-04-22 14:13:25,708 DEBUG epoch: 285, train_acc: 7.578125, val_acc: 3.36, fidel_score: 3.63, acc_loss: 4.297290325164795, grad_loss: None
+2022-04-22 14:13:26,981 DEBUG epoch: 286, train_acc: 6.6796875, val_acc: 3.36, fidel_score: 3.64, acc_loss: 4.310208463668824, grad_loss: None
+2022-04-22 14:13:28,258 DEBUG epoch: 287, train_acc: 7.421875, val_acc: 3.36, fidel_score: 3.65, acc_loss: 4.300145292282105, grad_loss: None
+2022-04-22 14:13:29,535 DEBUG epoch: 288, train_acc: 7.6953125, val_acc: 3.34, fidel_score: 3.63, acc_loss: 4.296425795555114, grad_loss: None
+2022-04-22 14:13:30,816 DEBUG epoch: 289, train_acc: 7.109375, val_acc: 3.32, fidel_score: 3.63, acc_loss: 4.29530291557312, grad_loss: None
+2022-04-22 14:13:32,100 DEBUG epoch: 290, train_acc: 7.5, val_acc: 3.32, fidel_score: 3.63, acc_loss: 4.303309321403503, grad_loss: None
+2022-04-22 14:13:33,393 DEBUG epoch: 291, train_acc: 7.578125, val_acc: 3.32, fidel_score: 3.63, acc_loss: 4.301483941078186, grad_loss: None
+2022-04-22 14:13:34,668 DEBUG epoch: 292, train_acc: 6.5625, val_acc: 3.32, fidel_score: 3.63, acc_loss: 4.304584097862244, grad_loss: None
+2022-04-22 14:13:35,952 DEBUG epoch: 293, train_acc: 6.71875, val_acc: 3.32, fidel_score: 3.63, acc_loss: 4.3058542013168335, grad_loss: None
+2022-04-22 14:13:37,254 DEBUG epoch: 294, train_acc: 7.3046875, val_acc: 3.28, fidel_score: 3.57, acc_loss: 4.311376023292541, grad_loss: None
+2022-04-22 14:13:38,533 DEBUG epoch: 295, train_acc: 7.5390625, val_acc: 3.29, fidel_score: 3.58, acc_loss: 4.300252294540405, grad_loss: None
+2022-04-22 14:13:39,807 DEBUG epoch: 296, train_acc: 8.1640625, val_acc: 3.28, fidel_score: 3.58, acc_loss: 4.307898378372192, grad_loss: None
+2022-04-22 14:13:41,081 DEBUG epoch: 297, train_acc: 7.421875, val_acc: 3.28, fidel_score: 3.58, acc_loss: 4.299702119827271, grad_loss: None
+2022-04-22 14:13:42,362 DEBUG epoch: 298, train_acc: 6.71875, val_acc: 3.29, fidel_score: 3.58, acc_loss: 4.303236484527588, grad_loss: None
+2022-04-22 14:13:43,641 DEBUG epoch: 299, train_acc: 6.484375, val_acc: 3.29, fidel_score: 3.58, acc_loss: 4.315821313858033, grad_loss: None
+2022-04-22 14:13:44,912 DEBUG epoch: 300, train_acc: 7.5390625, val_acc: 3.29, fidel_score: 3.58, acc_loss: 4.297835206985473, grad_loss: None
+2022-04-22 14:13:44,913 DEBUG load best stealed model.
+2022-04-22 14:13:44,913 DEBUG Best perform model, val_acc: 3.59, fidel_score: 3.89, acc_loss: 4.398095750808716
+2022-04-22 14:13:44,913 DEBUG load cloest stealed model.
+2022-04-22 14:13:44,913 DEBUG Closest perform model, val_acc: 3.59, fidel_score: 3.89, acc_loss: 4.398095750808716

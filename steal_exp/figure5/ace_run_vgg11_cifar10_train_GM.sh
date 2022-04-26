@@ -9,8 +9,8 @@ dataset_list="cifar10"
 scheme=V2_epoch
 random_seed_list="125"
 
-regularization_list="GM_train_ME_CIFAR100_start120"
-# regularization_list="GM_train_ME_CIFAR100_start120 GM_train_ME_CIFAR100_start160"
+# regularization_list="GM_train_ME_CIFAR100_start120"
+regularization_list="GM_train_ME_CIFAR100_start120 GM_train_ME_CIFAR100_start160"
 
 learning_rate=0.05
 regularization_strength_list="1.0"
