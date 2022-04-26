@@ -21,7 +21,7 @@ attack_client=0
 num_query_list="1000 10000"
 attack_style_list="GM_option_CIFAR100 GM_option_SVHN"
 data_proportion_list="1.0"
-surrogate_arch="thinner"
+surrogate_arch="longer"
 # train_clas_layer_list="2 5"
 
 # for random_seed in $random_seed_list; do

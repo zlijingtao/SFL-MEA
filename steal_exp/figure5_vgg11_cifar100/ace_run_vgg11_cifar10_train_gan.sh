@@ -5,15 +5,14 @@ GPU_id=0
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
-dataset_list="cifar10"
+dataset_list="cifar100"
 scheme=V2_epoch
 random_seed_list="125"
 
-# regularization_list="GM_train_ME_CIFAR100_start120"
-regularization_list="GM_train_ME_CIFAR100_start120 GM_train_ME_CIFAR100_start160"
+regularization_list="gan_train_ME_nopoison_start160 gan_train_ME_nopoison_start120"
 
 learning_rate=0.05
-regularization_strength_list="1.0"
+regularization_strength_list="0.0"
 cutlayer="4"
 num_client_list="6 11"
 folder_name="saves/train_attack"

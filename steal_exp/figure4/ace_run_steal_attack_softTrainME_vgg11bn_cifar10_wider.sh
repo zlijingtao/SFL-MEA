@@ -18,10 +18,10 @@ learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300
 attack_client=0
-num_query_list="1000 10000"
-attack_style_list="GM_option_CIFAR100 GM_option_SVHN"
-data_proportion_list="1.0"
-surrogate_arch="shorter"
+num_query_list="10000"
+attack_style_list="SoftTrain_option"
+data_proportion_list="0.2 0.02"
+surrogate_arch="wider"
 # train_clas_layer_list="2 5"
 
 # for random_seed in $random_seed_list; do

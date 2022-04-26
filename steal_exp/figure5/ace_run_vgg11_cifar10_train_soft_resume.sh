@@ -27,12 +27,9 @@ attack_epochs=300
 attack_client=0
 num_query=10
 attack_style="SoftTrain_option_resume"
-# regularization_list="soft_train_ME_start160"
 regularization_list="soft_train_ME_start160 soft_train_ME_start120"
 data_proportion_list="0.0"
-train_clas_layer_list="2 5 8"
-# train_clas_layer_list="2"
-# num_client_list="5"
+train_clas_layer_list="2 5"
 num_client_list="5 10"
 cutlayer="4"
 for random_seed in $random_seed_list; do
@@ -55,7 +52,7 @@ for random_seed in $random_seed_list; do
         done
 done
 learning_rate=0.02
-train_clas_layer_list="6 7 8" #TODO: revise this. find corresponding train_clas_layer_list to 4 and 8
+train_clas_layer_list="8" #TODO: revise this. find corresponding train_clas_layer_list to 4 and 8
 num_client_list="6"
 cutlayer_list="4"
 for random_seed in $random_seed_list; do
