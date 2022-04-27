@@ -2018,14 +2018,12 @@ class MIA:
     def steal_attack(self, num_query = 10, num_epoch = 200, attack_client=0, attack_style = "TrainME_option", data_proportion = 0.2, noniid_ratio = 1.0, train_clas_layer = -1, surrogate_arch = "same"):
         
         self.validate_target(attack_client)
-
+        self.model.resplit(train_clas_layer)
+        
         if train_clas_layer < 0:  
             self.surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, 0, "same")
         else:
             self.surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, train_clas_layer, surrogate_arch)
-
-        self.surrogate_model.resplit(train_clas_layer)
-        self.model.resplit(train_clas_layer)
 
         if surrogate_arch == "longer":
             train_clas_layer += 1
@@ -2035,7 +2033,8 @@ class MIA:
             if train_clas_layer == -1:
                 print("train class layer is too small for shorter architecture")
                 exit()
-
+        self.surrogate_model.resplit(train_clas_layer)
+        
 
         length_clas = self.surrogate_model.length_clas
         length_tail = self.surrogate_model.length_tail
@@ -2050,19 +2049,6 @@ class MIA:
         # you can always lower the requirement to allow training of client-side surrogate model.
         # to compare with frozen client-side model
         # we don't recommend doing that unless you have lots of data.
-        reduced_threshold = length_clas + length_tail # can change to interger lower than it.
-
-        # Some Exceptions: can change to interger lower than it. allowing train_cli leads to better accuracy.
-        # if ("vgg11" in self.arch) and ("TrainME_option" in attack_style or "SoftTrain_option" in attack_style) and (data_proportion < 0.1):
-        #     reduced_threshold = 6 # for vgg, 7,8,9 if freeze client can hardly be trainable for small data.
-        
-        if train_clas_layer > min(length_clas + length_tail, reduced_threshold):
-            train_cli = True
-        else:
-            train_cli = False
-
-        if train_clas_layer == -1:
-            train_cli = True
 
         learning_rate = self.lr
 
