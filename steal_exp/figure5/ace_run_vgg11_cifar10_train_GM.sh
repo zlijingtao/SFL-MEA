@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=0
+GPU_id=4
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
@@ -13,8 +13,8 @@ random_seed_list="125"
 regularization_list="GM_train_ME_CIFAR100_start120 GM_train_ME_CIFAR100_start160"
 
 learning_rate=0.05
-regularization_strength="1.0"
-cutlayer="13 12 11 9"
+regularization_strength=1.0
+cutlayer_list="13 12 11 9"
 num_client_list="6 11"
 folder_name="saves/train_attack"
 # ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_None_both_custom_0.0_200epoch_bottleneck_None
