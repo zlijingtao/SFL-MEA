@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.nn.functional import sigmoid
 import torch.nn.functional as F
 import torch.nn.init as init
-from architectures_torch import ResBlock
+from architectures_torch import ResBlock, VGGView
 from correlation import dist_corr
 from thop import profile
 from utils import GaussianSmoothing, CustomPad
@@ -35,8 +35,9 @@ class VGG(nn.Module):
     def __init__(self, feature, logger, num_client = 1, num_class = 10, initialize_different = False):
         super(VGG, self).__init__()
         self.current_client = 0
-        
+        self.cloud_classifier_merge = False
         self.local_list = []
+        self.num_client = num_client
         for i in range(num_client):
             if i == 0:
                 self.local_list.append(feature[0])
@@ -53,10 +54,17 @@ class VGG(nn.Module):
             #     break
         self.local = self.local_list[0]
         self.cloud = feature[1]
+
+
+
+
         self.logger = logger
         self.initialize = True
         self.privacy_score_accu = 0.0
         self.privacy_score = 0.0
+
+        
+        
         classifier_list = [nn.Dropout(),
             nn.Linear(512, 512),
             nn.ReLU(True),
@@ -64,6 +72,8 @@ class VGG(nn.Module):
             nn.Linear(512, 512),
             nn.ReLU(True)]
         classifier_list += [nn.Linear(512, num_class)]
+
+        
         self.classifier = nn.Sequential(*classifier_list)
 
         print("local:")
@@ -72,6 +82,74 @@ class VGG(nn.Module):
         print(self.cloud)
         print("classifier:")
         print(self.classifier)
+        self.original_num_cloud = self.get_num_of_cloud_layer()
+    
+    def merge_classifier_cloud(self):
+        self.cloud_classifier_merge = True
+        cloud_list = list(self.cloud.children())
+        cloud_list.append(VGGView())
+        classifier_list = list(self.classifier.children())
+        cloud_list.extend(classifier_list)
+        self.cloud = nn.Sequential(*cloud_list)
+
+    def unmerge_classifier_cloud(self):
+        self.cloud_classifier_merge = False
+        cloud_list = list(self.cloud.children())
+        orig_cloud_list = []
+        for i, module in enumerate(cloud_list):
+            if "VGGView" in str(module):
+                break
+            else:
+                orig_cloud_list.append(module)
+        self.cloud = nn.Sequential(*orig_cloud_list)
+
+    def get_num_of_cloud_layer(self):
+        num_of_cloud_layer = 0
+        if not self.cloud_classifier_merge:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "Conv2d" in str(module) or "Linear" in str(module):
+                    num_of_cloud_layer += 1
+            num_of_cloud_layer += 3
+        else:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "Conv2d" in str(module) or "Linear" in str(module):
+                    num_of_cloud_layer += 1
+        return num_of_cloud_layer
+
+    def recover(self):
+        if self.cloud_classifier_merge:
+            self.resplit(self.original_num_cloud)
+            self.unmerge_classifier_cloud()
+            
+
+    def resplit(self, num_of_cloud_layer):
+        if not self.cloud_classifier_merge:
+            self.merge_classifier_cloud()
+            
+        for i in range(self.num_client):
+            list_of_layers = list(self.local_list[i].children())
+            list_of_layers.extend(list(self.cloud.children()))
+            total_layer = 0
+            for _, module in enumerate(list_of_layers):
+                if "Conv2d" in str(module) or "Linear" in str(module):
+                    total_layer += 1
+            
+            num_of_local_layer = (total_layer - num_of_cloud_layer)
+            local_list = []
+            local_count = 0
+            cloud_list = []
+            for _, module in enumerate(list_of_layers):
+                if "Conv2d" in str(module) or "Linear" in str(module):
+                    local_count += 1
+                if local_count <= num_of_local_layer:
+                    local_list.append(module)
+                else:
+                    cloud_list.append(module)
+            
+            self.cloud = nn.Sequential(*cloud_list)
+            self.local_list[i] = nn.Sequential(*local_list)
 
     def switch_model(self, client_id):
         self.current_client = client_id
@@ -257,17 +335,6 @@ class VGG(nn.Module):
 
     def forward(self, x):
         self.local_output = self.local(x)
-
-
-
-        flattened_input = x.view(x.size(0), -1)
-        flattened_local_output = self.local_output.view(x.size(0), -1)
-        #Accumulate the privacy score
-        self.privacy_score = dist_corr(flattened_input, flattened_local_output)
-        self.privacy_score_accu += self.privacy_score.detach()
-        if self.initialize:
-            self.logger.debug(f"Parameter Volume: { 4 * np.prod(list(self.local_output.size()))} Byte per batch!")
-            self.initialize = False
         x = self.cloud(self.local_output)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)

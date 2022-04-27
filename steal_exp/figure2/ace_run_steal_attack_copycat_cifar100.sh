@@ -34,7 +34,6 @@ attack_epochs=200
 attack_client=0
 num_query_list="1000 10000"
 attack_style="Copycat_option_CIFAR100"
-# data_proportion_list="0.01 0.2"
 data_proportion_list="1.0"
 
 train_clas_layer_list="2 5"

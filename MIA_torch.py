@@ -1,6 +1,7 @@
 from dis import dis
 from re import T
 from selectors import EpollSelector
+import pickle
 import torch
 import numpy as np
 import torch.nn as nn
@@ -482,13 +483,12 @@ class MIA:
             self.f = model.local_list[0]
             if self.num_client > 1:
                 self.c = model.local_list[1]
-            self.f_tail = model.cloud
             self.classifier = model.classifier
             self.f.cuda()
-            self.f_tail.cuda()
+            self.model.cloud.cuda()
             self.classifier.cuda()
 
-            self.params = list(self.f_tail.parameters()) + list(self.classifier.parameters())
+            self.params = list(self.model.cloud.parameters()) + list(self.classifier.parameters())
             self.local_params = []
             if cutting_layer > 0:
                 self.local_params.append(self.f.parameters())
@@ -536,12 +536,12 @@ class MIA:
             self.c = self.f
             for i in range(1, self.num_client):
                 self.model.local_list.append(self.f)
-            self.f_tail = model.cloud
+            self.model.cloud = model.cloud
             self.classifier = model.classifier
             self.f.cuda()
-            self.f_tail.cuda()
+            self.model.cloud.cuda()
             self.classifier.cuda()
-            self.params = list(self.f_tail.parameters()) + list(self.classifier.parameters())
+            self.params = list(self.model.cloud.parameters()) + list(self.classifier.parameters())
             self.local_params = []
             if cutting_layer > 0:
                 self.local_params.append(self.f.parameters())
@@ -723,7 +723,7 @@ class MIA:
             self.gan_scheduler_list[i].step(epoch)
     
     def train_target_step(self, x_private, label_private, client_id=0):
-        self.f_tail.train()
+        self.model.cloud.train()
         self.classifier.train()
         if "V" in self.scheme:
             self.model.local_list[client_id].train()
@@ -787,7 +787,7 @@ class MIA:
                 grad += torch.sign(fake_act.grad)  
             z_private = z_private - grad.detach() * epsilon
 
-        output = self.f_tail(z_private)
+        output = self.model.cloud(z_private)
 
         if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
             output = F.avg_pool2d(output, 4)
@@ -856,7 +856,9 @@ class MIA:
 
 
     def gradcollect_train_target_step(self, x_private, label_private, client_id=0):
-        self.f_tail.train()
+
+        self.model.merge_classifier_cloud()
+        self.model.cloud.train()
         self.classifier.train()
         self.model.local_list[client_id].train()
         x_private = x_private.cuda()
@@ -867,19 +869,17 @@ class MIA:
         
         z_private.retain_grad()
 
-        output = self.f_tail(z_private)
+        # hook all layer gradients
+        # gradients_dict = {}
+        # def get_gradients(name):
+        #     def hook(model, input, output):
+        #         gradients_dict[name + "-grad"] = output[0].detach().cpu().numpy()
 
-        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-            output = F.avg_pool2d(output, 4)
-            output = output.view(output.size(0), -1)
-            output = self.classifier(output)
-        elif self.arch == "resnet20" or self.arch == "resnet32":
-            output = F.avg_pool2d(output, 8)
-            output = output.view(output.size(0), -1)
-            output = self.classifier(output)
-        else:
-            output = output.view(output.size(0), -1)
-            output = self.classifier(output)
+        #     return hook
+        # for name, m in self.model.cloud.named_modules():
+        #     m.register_backward_hook(get_gradients("Gradients-Server-{}-{}".format(name, str(m).split("(")[0])))
+
+        output = self.model.cloud(z_private)
         
         criterion = torch.nn.CrossEntropyLoss()
 
@@ -894,13 +894,16 @@ class MIA:
         if not os.path.isdir(self.save_dir + "saved_grads"):
             os.makedirs(self.save_dir + "saved_grads")
         torch.save(z_private.grad.detach().cpu(), self.save_dir + f"saved_grads/grad_image{self.soft_image_id}_label{self.soft_train_count}.pt")
+        # f = open(self.save_dir + f"saved_grads/grad_image{self.soft_image_id}_label{self.soft_train_count}.pkl","wb")
+        # pickle.dump(gradients_dict, f)
+        # f.close()
         if self.soft_train_count == 0:
             torch.save(x_private.detach().cpu(), self.save_dir + f"saved_grads/image_{self.soft_image_id}.pt")
             torch.save(label_private.detach().cpu(), self.save_dir + f"saved_grads/label_{self.soft_image_id}.pt")
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
-
+        self.model.unmerge_classifier_cloud()
         return total_losses, f_losses
     
     def craft_train_target_step(self, client_id):
@@ -945,7 +948,7 @@ class MIA:
 
         z_private = self.model.local_list[client_id](fake_image)  # Simulate Original
         z_private.retain_grad()
-        output = self.f_tail(z_private)
+        output = self.model.cloud(z_private)
 
         if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
             output = F.avg_pool2d(output, 4)
@@ -983,7 +986,7 @@ class MIA:
         #if enable poison option
         poison_option = False
 
-        self.f_tail.train()
+        self.model.cloud.train()
         self.classifier.train()
         self.model.local_list[client_id].train()
         self.generator.cuda()
@@ -1028,7 +1031,7 @@ class MIA:
 
         z_private = self.model.local_list[client_id](x_private)
 
-        output = self.f_tail(z_private)
+        output = self.model.cloud(z_private)
 
         if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
             output = F.avg_pool2d(output, 4)
@@ -1080,7 +1083,7 @@ class MIA:
             self.c.eval()
         elif client_id > 1:
             self.model.local_list[client_id].eval()
-        self.f_tail.eval()
+        self.model.cloud.eval()
         self.classifier.eval()
         criterion = nn.CrossEntropyLoss()
 
@@ -1095,7 +1098,7 @@ class MIA:
         for name, m in self.model.local_list[client_id].named_modules():
             m.register_forward_hook(get_activation_0("ACT-client-{}-{}".format(name, str(m).split("(")[0])))
 
-        for name, m in self.f_tail.named_modules():
+        for name, m in self.model.cloud.named_modules():
             m.register_forward_hook(get_activation_0("ACT-server-{}-{}".format(name, str(m).split("(")[0])))
 
 
@@ -1150,7 +1153,7 @@ class MIA:
 
                 output = output - grad.detach() * epsilon
             with torch.no_grad():
-                output = self.f_tail(output)
+                output = self.model.cloud(output)
 
                 if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
                     output = F.avg_pool2d(output, 4)
@@ -1188,7 +1191,7 @@ class MIA:
                     for name, m in self.model.local_list[client_id].named_modules():
                         handle = m.register_forward_hook(get_activation_0("ACT-client-{}-{}".format(name, str(m).split("(")[0])))
                         handle.remove()
-                    for name, m in self.f_tail.named_modules():
+                    for name, m in self.model.cloud.named_modules():
                         handle = m.register_forward_hook(get_activation_0("ACT-server-{}-{}".format(name, str(m).split("(")[0])))
                         handle.remove()
                 except:
@@ -1280,8 +1283,8 @@ class MIA:
             self.call_resume = True
             print("load cloud")
             checkpoint = torch.load(self.save_dir + "checkpoint_cloud_{}.tar".format(self.n_epochs))
-            self.f_tail.cuda()
-            self.f_tail.load_state_dict(checkpoint, strict = False)
+            self.model.cloud.cuda()
+            self.model.cloud.load_state_dict(checkpoint, strict = False)
             print("load classifier")
             checkpoint = torch.load(self.save_dir + "checkpoint_classifier_{}.tar".format(self.n_epochs))
             self.classifier.cuda()
@@ -1294,8 +1297,7 @@ class MIA:
             self.call_resume = True
             self.f = self.model.local
             self.f.cuda()
-            self.f_tail = self.model.cloud
-            self.f_tail.cuda()
+            self.model.cloud.cuda()
             self.classifier = self.model.classifier
             self.classifier.cuda()
 
@@ -1443,8 +1445,8 @@ class MIA:
                 if self.load_from_checkpoint_server:
                     print("load cloud")
                     checkpoint = torch.load(checkpoint_dir + "checkpoint_cloud_best.tar")
-                    self.f_tail.cuda()
-                    self.f_tail.load_state_dict(checkpoint)
+                    self.model.cloud.cuda()
+                    self.model.cloud.load_state_dict(checkpoint)
                 if load_classfier:
                     print("load classifier")
                     checkpoint = torch.load(checkpoint_dir + "checkpoint_classifier_best.tar")
@@ -1676,6 +1678,7 @@ class MIA:
                                         train_loss, f_loss = self.gradcollect_train_target_step(images, labels, client_id)
                                     else:
                                         pass
+                                
                                 elif self.trigger_stop == False and self.Normal_train_option:
                                     train_loss, f_loss = self.gradcollect_train_target_step(images, labels, client_id)
                                 elif self.trigger_stop == False and self.Soft_train_option:
@@ -1795,7 +1798,7 @@ class MIA:
             torch.save(self.f.state_dict(), self.save_dir + 'checkpoint_f_{}.tar'.format(epoch))
             if self.num_client > 1:
                 torch.save(self.c.state_dict(), self.save_dir + 'checkpoint_c_{}.tar'.format(epoch))
-            torch.save(self.f_tail.state_dict(), self.save_dir + 'checkpoint_cloud_{}.tar'.format(epoch))
+            torch.save(self.model.cloud.state_dict(), self.save_dir + 'checkpoint_cloud_{}.tar'.format(epoch))
             torch.save(self.classifier.state_dict(), self.save_dir + 'checkpoint_classifier_{}.tar'.format(epoch))
             if self.num_client > 2 and self.num_client < 10:
                 for i in range(2, self.num_client):
@@ -1807,7 +1810,7 @@ class MIA:
                                 self.save_dir + 'checkpoint_local{}_{}.tar'.format(i, epoch))
         else:
             torch.save(self.model.state_dict(), self.save_dir + 'checkpoint_{}.tar'.format(epoch))
-            torch.save(self.f_tail.state_dict(), self.save_dir + 'checkpoint_cloud_{}.tar'.format(epoch))
+            torch.save(self.model.cloud.state_dict(), self.save_dir + 'checkpoint_cloud_{}.tar'.format(epoch))
             torch.save(self.classifier.state_dict(), self.save_dir + 'checkpoint_classifier_{}.tar'.format(epoch))
 
     def gen_ir(self, val_single_loader, local_model, img_folder="./tmp", intermed_reps_folder="./tmp", all_label=True,
@@ -2014,15 +2017,16 @@ class MIA:
 
     def steal_attack(self, num_query = 10, num_epoch = 200, attack_client=0, attack_style = "TrainME_option", data_proportion = 0.2, noniid_ratio = 1.0, train_clas_layer = -1, surrogate_arch = "same"):
         
-        # train_clas_layer = 0: use the original model
+        self.validate_target(attack_client)
 
-        # train_clas_layer = -1: traditional ME, extract the entire model
-        
         if train_clas_layer < 0:  
-            surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, 0, "same")
+            self.surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, 0, "same")
         else:
-            surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, train_clas_layer, surrogate_arch)
-        
+            self.surrogate_model = architectures.create_surrogate_model(self.arch, self.cutting_layer, self.num_class, train_clas_layer, surrogate_arch)
+
+        self.surrogate_model.resplit(train_clas_layer)
+        self.model.resplit(train_clas_layer)
+
         if surrogate_arch == "longer":
             train_clas_layer += 1
         
@@ -2033,40 +2037,15 @@ class MIA:
                 exit()
 
 
-        length_clas = surrogate_model.length_clas
-        state_dict_entries_per_clas_layer = 2
-        parameter_entries_per_clas_layer = 2
-        length_tail = surrogate_model.length_tail
+        length_clas = self.surrogate_model.length_clas
+        length_tail = self.surrogate_model.length_tail
         print("Tail model has {} cuttable & non-trivial layer".format(length_tail))
         print("Classifier model has {} cuttable & non-trivial layer".format(length_clas))
-        
-        if "vgg" in self.arch:
-            state_dict_entries_per_tail_layer = 7
-            parameter_entries_per_tail_layer = 4
-        elif "resnet" in self.arch:
-            state_dict_entries_per_tail_layer = 12
-            parameter_entries_per_tail_layer = 6
-        elif "mobilenet" in self.arch:
-            state_dict_entries_per_tail_layer = 18
-            parameter_entries_per_tail_layer = 9
-        
-        self.surrogate_tail = surrogate_model.cloud
-        self.surrogate_classifier = surrogate_model.classifier
-        self.surrogate_client = surrogate_model.local
 
-        self.surrogate_client.apply(init_weights)
-        self.surrogate_tail.apply(init_weights)
-        self.surrogate_classifier.apply(init_weights)
+        self.surrogate_model.local.apply(init_weights)
+        self.surrogate_model.cloud.apply(init_weights)
+        self.surrogate_model.classifier.apply(init_weights)
 
-        if train_clas_layer == 0:
-            train_clas = False
-        else:
-            train_clas = True
-
-        if train_clas_layer <= length_clas:
-            train_tail = False
-        else:
-            train_tail = True
 
         # you can always lower the requirement to allow training of client-side surrogate model.
         # to compare with frozen client-side model
@@ -2083,8 +2062,6 @@ class MIA:
             train_cli = False
 
         if train_clas_layer == -1:
-            train_clas = True
-            train_tail = True
             train_cli = True
 
         learning_rate = self.lr
@@ -2096,6 +2073,7 @@ class MIA:
         Copycat_option = False
         Knockoff_option = False
         resume_option = False
+
         if "Copycat_option" in attack_style:
             Copycat_option = True # perform Copycat, use auxiliary dataset, inference is required
         if "Knockoff_option" in attack_style:
@@ -2161,8 +2139,6 @@ class MIA:
         else:
             GM_option = False
 
-
-
         if "TrainME_option" in attack_style:
             TrainME_option = True # perform direct trainning on the surrogate model
 
@@ -2185,99 +2161,23 @@ class MIA:
         else:
             SoftTrain_option = False
 
-        self.validate_target(attack_client)
+        
 
         surrogate_params = []
 
+        if train_clas_layer != -1:  # This only hold for VGG architecture
 
-
-
-
-        # no matter what, load known client-side model to surrogate_client
-        if train_clas_layer != -1:  
-            self.surrogate_client = copy.deepcopy(self.model.local_list[attack_client])
-            for param in self.surrogate_client.parameters():
-                param.requires_grad = False
-        if not train_tail:
-            self.surrogate_tail = copy.deepcopy(self.f_tail)
-        if not train_clas:
-            self.surrogate_classifier = copy.deepcopy(self.classifier)
-
-
-        if train_cli:
-            self.surrogate_client.train()
-        else:
-            self.surrogate_client.eval()
-        if train_tail:
-            self.surrogate_tail.train()
-        else:
-            self.surrogate_tail.eval()
-        if train_clas:
-            self.surrogate_classifier.train()
-        else:
-            self.surrogate_classifier.eval()
-
-        if train_tail: # This only hold for VGG architecture
-            if length_clas < train_clas_layer and train_clas_layer < min(length_clas + length_tail, reduced_threshold):   
-                w_out = copy.deepcopy(self.surrogate_tail.state_dict())
-                print(w_out.keys())       
-                print(self.f_tail.state_dict().keys())       
-                for i, key in enumerate(w_out.keys()):
-                    if (length_tail*state_dict_entries_per_tail_layer - i) > (train_clas_layer - length_clas) * state_dict_entries_per_tail_layer:
-                        self.logger.debug("load {} to surrogate".format(key))
-                        w_out[key] = self.f_tail.state_dict()[key]
-                self.surrogate_tail.load_state_dict(w_out)
-                tail_param_list = list(self.surrogate_tail.parameters())
-                surrogate_params += tail_param_list[int(length_tail*parameter_entries_per_tail_layer - (train_clas_layer - length_clas) * parameter_entries_per_tail_layer):]
-                for param in tail_param_list[:int(length_tail*parameter_entries_per_tail_layer - (train_clas_layer - length_clas) * parameter_entries_per_tail_layer)]:
-                    param.requires_grad = False
-
-                # set later layer batch norm to Eval() mode
-                batch_norm_count = 0
-                for name, module in self.surrogate_tail.named_modules():
-                    # if "bn" in
-                    if "BatchNorm" in str(module) and "Sequential" not in str(module):
-                        batch_norm_count += 1
-                        if batch_norm_count > length_tail - (train_clas_layer - length_clas):
-                            module.eval()
-                            print(f"Set {batch_norm_count}-th BN in server-side model to eval()")
-                print("number of bn in server-side model: ", batch_norm_count)
-            else:
-                surrogate_params += list(self.surrogate_tail.parameters())
-                print("add entire server-side model to optimizer")
+            w_out =  self.model.local_list[attack_client].state_dict()
+            self.surrogate_model.local.load_state_dict(w_out)
+            self.surrogate_model.local.eval()
+            self.surrogate_model.cloud.train()
+            surrogate_params += list(self.surrogate_model.cloud.parameters())
             self.logger.debug(len(surrogate_params))
-
-        if train_clas:
-            w_out = copy.deepcopy(self.surrogate_classifier.state_dict())
-            if 0 < train_clas_layer and train_clas_layer < length_clas:
-                for i, key in enumerate(w_out.keys()):
-                    if (length_clas*state_dict_entries_per_clas_layer - i) > train_clas_layer * state_dict_entries_per_clas_layer:
-                        self.logger.debug("load {} to surrogate".format(key))
-                        w_out[key] = self.classifier.state_dict()[key]
-                self.surrogate_classifier.load_state_dict(w_out)
-                clas_param_list = list(self.surrogate_classifier.parameters())
-                surrogate_params += clas_param_list[int(length_clas*parameter_entries_per_clas_layer - train_clas_layer * parameter_entries_per_clas_layer):]
-                for param in clas_param_list[:int(length_clas*parameter_entries_per_clas_layer - train_clas_layer * parameter_entries_per_clas_layer)]:
-                    param.requires_grad = False
-                
-                batch_norm_count = 0
-                for name, module in self.surrogate_classifier.named_modules():
-                    # if "bn" in
-                    if "BatchNorm" in str(module) and "Sequential" not in str(module):
-                        batch_norm_count += 1
-                        if batch_norm_count > length_clas - train_clas_layer:
-                            module.eval()
-                            print(f"Set {batch_norm_count}-th BN in classifier model (final FC of server-side model) to eval()")
-                print("number of bn in classifier: ", batch_norm_count)
-            else:
-                surrogate_params += list(self.surrogate_classifier.parameters())
-                print("add entire classifier model to optimizer")
-            
-            self.logger.debug(len(surrogate_params))
-        
-        if train_cli:
-            surrogate_params += list(self.surrogate_client.parameters()) 
-            print("add entire client-side model to optimizer")
+        else:
+            self.surrogate_model.local.train()
+            self.surrogate_model.cloud.train()
+            surrogate_params += list(self.surrogate_model.local.parameters()) 
+            surrogate_params += list(self.surrogate_model.cloud.parameters())
 
         if len(surrogate_params) == 0:
             self.logger.debug("surrogate parameter got nothing, add dummy param to prevent error")
@@ -2319,18 +2219,14 @@ class MIA:
 
         attacker_dataloader = attacker_loader_list[attack_client]
 
-        # prepare model, please make sure f_tail and classifier are loaded from checkpoint.
+        # prepare model, please make sure model.cloud and classifier are loaded from checkpoint.
         self.model.local_list[attack_client].cuda()
         self.model.local_list[attack_client].eval()
-        self.f_tail.cuda()
-        self.f_tail.eval()
-        self.classifier.cuda()
-        self.classifier.eval()
+        self.model.cloud.cuda()
+        self.model.cloud.eval()
         
-        
-        self.surrogate_client.cuda()
-        self.surrogate_tail.cuda()
-        self.surrogate_classifier.cuda()
+        self.surrogate_model.local.cuda()
+        self.surrogate_model.cloud.cuda()
 
         # prepare activation/grad/label pairs for the grad inversion
         criterion = torch.nn.CrossEntropyLoss()
@@ -2372,19 +2268,8 @@ class MIA:
 
                             z_private = self.model.local_list[attack_client](fake_image)  # Simulate Original
                             z_private.retain_grad()
-                            output = self.f_tail(z_private)
+                            output = self.model.cloud(z_private)
 
-                            if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                                output = F.avg_pool2d(output, 4)
-                                output = output.view(output.size(0), -1)
-                                output = self.classifier(output)
-                            elif self.arch == "resnet20" or self.arch == "resnet32":
-                                output = F.avg_pool2d(output, 8)
-                                output = output.view(output.size(0), -1)
-                                output = self.classifier(output)
-                            else:
-                                output = output.view(output.size(0), -1)
-                                output = self.classifier(output)
                             featureLoss = criterion(output, fake_label)
 
                             TVLoss = TV(fake_image)
@@ -2404,16 +2289,6 @@ class MIA:
                         save_images.append(fake_image.detach().cpu().clone())
                         save_grad.append(z_private.grad.detach().cpu().clone())
                         save_label.append(fake_label.cpu().clone())
-                    
-                    # imgGen = fake_image.clone()
-
-                    # if DENORMALIZE_OPTION:
-                    #     imgGen = denormalize(imgGen, self.dataset)
-
-                    # if not os.path.isdir(self.save_dir + 'craft_option'):
-                    #     os.mkdir(self.save_dir + 'craft_option')
-                    
-                    # torchvision.utils.save_image(imgGen, self.save_dir + 'craft_option/out_c{}_{}.jpg'.format(c,i))
 
         ''' TrainME: Use available training dataset for surrogate model training'''
         ''' Because of data augmentation, set query to 10 there'''
@@ -2450,18 +2325,6 @@ class MIA:
                                 assist_images.append(saved_image.clone())
                                 assist_grad.append(saved_grad.clone()) # add a random existing grad.
                                 assist_label.append(saved_label.clone())
-
-            if self.arch == "vgg11_bn" and train_clas_layer == 2:
-                attack_from_later_layer = 21 # VGG-11: 21 for N = 2, 17 for N = 3, 14 for N = 4, 10 for N = 5, 7 for N = 6, 3 for N = 7, z_private for N = 8
-            elif self.arch == "vgg11_bn" and train_clas_layer == 5:
-                attack_from_later_layer = 10
-            elif self.arch == "vgg11_bn" and train_clas_layer == 8:
-                attack_from_later_layer = 0
-            else:
-                attack_from_later_layer = -1
-                
-            if not self.bhtsne:
-                attack_from_later_layer = -1 # this block the activation collection
             
             for images, labels in attacker_dataloader:
                 images = images.cuda()
@@ -2471,59 +2334,16 @@ class MIA:
                 z_private = self.model.local_list[attack_client](images)
                 z_private.retain_grad()
 
-
-
-                if attack_from_later_layer > 0:
-
-                    activation_3 = {}
-
-                    def get_activation_3(name):
-                        def hook(model, input, output):
-                            activation_3[name] = output.detach()
-
-                        return hook
-                    count = 0
-                    for name, m in self.f_tail.named_modules():
-                        print(name, m)
-                        if attack_from_later_layer == count:
-                            m.register_forward_hook(get_activation_3("ACT-{}".format(name)))
-                            valid_key = "ACT-{}".format(name)
-                            print(f"extract {valid_key}")
-                            break
-                        count += 1
-                    output = self.f_tail(z_private)
-
-                    try:
-                        save_activation = activation_3[valid_key]
-                        self.save_activation_bhtsne(save_activation, labels, images.size(0), attack_style, valid_key)
-                    except:
-                        print("cannot attack from later layer, server-side model is empty or does not have enough layers")
-                elif attack_from_later_layer == 0:
-
-                    save_activation = z_private
+                if self.bhtsne:
                     valid_key = "z_private"
-                    self.save_activation_bhtsne(save_activation, labels, images.size(0), attack_style, valid_key)
+                    self.save_activation_bhtsne(z_private, labels, images.size(0), attack_style, valid_key)
 
-                    output = self.f_tail(z_private)
-                else:
+                output = self.model.cloud(z_private)
 
-                    output = self.f_tail(z_private)
-
-                if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                    output = F.avg_pool2d(output, 4)
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
-                elif self.arch == "resnet20" or self.arch == "resnet32":
-                    output = F.avg_pool2d(output, 8)
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
-                else:
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
                 loss = criterion(output, labels)
                 loss.backward(retain_graph = True)
                 z_private_grad = z_private.grad.detach().cpu()
-                #Use hook to get activation out.
+                
                 save_images.append(images.cpu().clone())
                 save_grad.append(z_private_grad.clone())
                 save_label.append(labels.cpu().clone())
@@ -2583,19 +2403,8 @@ class MIA:
                     self.optimizer_zero_grad()
                     z_private = self.model.local_list[attack_client](images)
                     z_private.retain_grad()
-                    output = self.f_tail(z_private)
+                    output = self.model.cloud(z_private)
 
-                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                        output = F.avg_pool2d(output, 4)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    elif self.arch == "resnet20" or self.arch == "resnet32":
-                        output = F.avg_pool2d(output, 8)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    else:
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
                     loss = criterion(output, labels)
 
                     # one_hot_target = F.one_hot(labels, num_classes=self.num_class)
@@ -2612,18 +2421,8 @@ class MIA:
                             z_private = self.model.local_list[attack_client](images)
                             z_private.retain_grad()
 
-                            output = self.f_tail(z_private)
-                            if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                                output = F.avg_pool2d(output, 4)
-                                output = output.view(output.size(0), -1)
-                                output = self.classifier(output)
-                            elif self.arch == "resnet20" or self.arch == "resnet32":
-                                output = F.avg_pool2d(output, 8)
-                                output = output.view(output.size(0), -1)
-                                output = self.classifier(output)
-                            else:
-                                output = output.view(output.size(0), -1)
-                                output = self.classifier(output)
+                            output = self.model.cloud(z_private)
+
                             loss = criterion(output, fake_label)
                             
                             loss.backward(retain_graph = True)
@@ -2666,6 +2465,7 @@ class MIA:
             knockoff_loader = knockoff_loader_list[0]
         
         if GM_option and knockoff_loader is not None:
+
             if resume_option: #TODO: Test correctness. cluster all label together.
                 saved_crafted_image_path = self.save_dir + "saved_grads/"
                 if os.path.isdir(saved_crafted_image_path):
@@ -2698,8 +2498,7 @@ class MIA:
                                 save_label.append(saved_label.clone())
             else:
                 self.model.local_list[attack_client].eval()
-                self.f_tail.eval()
-                self.classifier.eval()
+                self.model.cloud.eval()
                 for i, (inputs, target) in enumerate(knockoff_loader):
                     if i * self.num_class * 100 >= num_query: # limit grad query budget
                         break
@@ -2711,32 +2510,24 @@ class MIA:
                         z_private = self.model.local_list[attack_client](inputs)
                         z_private.grad = None
                         z_private.retain_grad()
-                        output = self.f_tail(z_private)
-
-                        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                            output = F.avg_pool2d(output, 4)
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        elif self.arch == "resnet20" or self.arch == "resnet32":
-                            output = F.avg_pool2d(output, 8)
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
-                        else:
-                            output = output.view(output.size(0), -1)
-                            output = self.classifier(output)
+                        output = self.model.cloud(z_private)
+                        
                         loss = criterion(output, label)
                         loss.backward(retain_graph = True)
+                        
                         z_private_grad = z_private.grad.detach().cpu()
-
-                        save_images.append(inputs.cpu().clone())
+                        
                         save_grad.append(z_private_grad.clone()) # add a random existing grad.
+                        
+                        save_images.append(inputs.cpu().clone())
+                        
                         save_label.append(label.cpu().clone())
 
 
         if Copycat_option and knockoff_loader is not None:
             # implement transfer set as copycat paper, here we use cifar-10 dataset.
             self.model.local_list[attack_client].eval()
-            self.f_tail.eval()
+            self.model.cloud.eval()
             self.classifier.eval()
             for i, (inputs, target) in enumerate(knockoff_loader):
                 if i * 100 >= num_query:  # limit pred query budget
@@ -2744,19 +2535,7 @@ class MIA:
                 inputs = inputs.cuda()
                 with torch.no_grad():
                     z_private = self.model.local_list[attack_client](inputs)
-                    output = self.f_tail(z_private)
-
-                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                        output = F.avg_pool2d(output, 4)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    elif self.arch == "resnet20" or self.arch == "resnet32":
-                        output = F.avg_pool2d(output, 8)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    else:
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
+                    output = self.model.cloud(z_private)
                     _, pred = output.topk(1, 1, True, True)
 
                     save_images.append(inputs.cpu().clone())
@@ -2766,7 +2545,7 @@ class MIA:
         if Knockoff_option and knockoff_loader is not None:
             # implement transfer set as knockoff paper, where attacker get access to confidence score
             self.model.local_list[attack_client].eval()
-            self.f_tail.eval()
+            self.model.cloud.eval()
             self.classifier.eval()
             for i, (inputs, target) in enumerate(knockoff_loader):
                 if i * 100 >= num_query:   # limit pred query budget
@@ -2774,20 +2553,7 @@ class MIA:
                 inputs = inputs.cuda()
                 with torch.no_grad():
                     z_private = self.model.local_list[attack_client](inputs)
-                    output = self.f_tail(z_private)
-
-                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                        output = F.avg_pool2d(output, 4)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    elif self.arch == "resnet20" or self.arch == "resnet32":
-                        output = F.avg_pool2d(output, 8)
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    else:
-                        output = output.view(output.size(0), -1)
-                        output = self.classifier(output)
-                    # _, pred = output.topk(1, 1, True, True)
+                    output = self.model.cloud(z_private)
                     softmax_layer = torch.nn.Softmax(dim=None)
                     log_prob = softmax_layer(output)
                     save_images.append(inputs.cpu().clone())
@@ -2892,20 +2658,10 @@ class MIA:
                     grad = grad.cuda()
                     label = label.cuda()
                     self.suro_optimizer.zero_grad()
-                    act = self.surrogate_client(image)
-                    output = self.surrogate_tail(act)
+                    act = self.surrogate_model.local(image)
+                    act.requires_grad_()
 
-                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                        output = F.avg_pool2d(output, 4)
-                        output = output.view(output.size(0), -1)
-                        output = self.surrogate_classifier(output)
-                    elif self.arch == "resnet20" or self.arch == "resnet32":
-                        output = F.avg_pool2d(output, 8)
-                        output = output.view(output.size(0), -1)
-                        output = self.surrogate_classifier(output)
-                    else:
-                        output = output.view(output.size(0), -1)
-                        output = self.surrogate_classifier(output)
+                    output = self.surrogate_model.cloud(act)
 
                     ce_loss = criterion(output, label)
 
@@ -2914,6 +2670,9 @@ class MIA:
                     grad_lambda = 1.0
 
                     grad_approx = torch.autograd.grad(ce_loss, act, create_graph = True)[0]
+
+                    #TODO: just test difference, delete below
+                    # grad_approx = torch.autograd.grad(ce_loss, tail_output, create_graph = True)[0]
 
                     # grad_loss = ((grad - grad_approx).norm(dim=1, p =1)).mean() / mean_norm + torch.mean(1 - F.cosine_similarity(grad_approx, grad, dim=1))
                     if gradient_loss_style == "l2":
@@ -2930,7 +2689,7 @@ class MIA:
                     self.suro_optimizer.step()
 
                     grad_loss_list.append(total_loss.detach().cpu().item())
-
+                
             if not (Generator_option or GM_option): # dl contains input and label, very general framework
                 for idx, (index, image, grad, label) in enumerate(dl):
                     if dl_transforms is not None:
@@ -2941,20 +2700,8 @@ class MIA:
                     label = label.cuda()
 
                     self.suro_optimizer.zero_grad()
-                    act = self.surrogate_client(image)
-                    output = self.surrogate_tail(act)
-
-                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                        output = F.avg_pool2d(output, 4)
-                        output = output.view(output.size(0), -1)
-                        output = self.surrogate_classifier(output)
-                    elif self.arch == "resnet20" or self.arch == "resnet32":
-                        output = F.avg_pool2d(output, 8)
-                        output = output.view(output.size(0), -1)
-                        output = self.surrogate_classifier(output)
-                    else:
-                        output = output.view(output.size(0), -1)
-                        output = self.surrogate_classifier(output)
+                    act = self.surrogate_model.local(image)
+                    output = self.surrogate_model.cloud(act)
 
                     if Knockoff_option:
                         log_prob = torch.nn.functional.log_softmax(output, dim=1)
@@ -2987,20 +2734,8 @@ class MIA:
                         label = label.cuda()
 
                         self.suro_optimizer.zero_grad()
-                        act = self.surrogate_client(image)
-                        output = self.surrogate_tail(act)
-
-                        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                            output = F.avg_pool2d(output, 4)
-                            output = output.view(output.size(0), -1)
-                            output = self.surrogate_classifier(output)
-                        elif self.arch == "resnet20" or self.arch == "resnet32":
-                            output = F.avg_pool2d(output, 8)
-                            output = output.view(output.size(0), -1)
-                            output = self.surrogate_classifier(output)
-                        else:
-                            output = output.view(output.size(0), -1)
-                            output = self.surrogate_classifier(output)
+                        act = self.surrogate_model.local(image)
+                        output = self.surrogate_model.cloud(act)
 
                         ce_loss = criterion(output, label)
 
@@ -3046,20 +2781,9 @@ class MIA:
                                                                                                         i * self.batch_size + self.batch_size))
                     self.suro_optimizer.zero_grad()
 
-                    output = self.surrogate_client(fake_input)
-                    output = self.surrogate_tail(output)
+                    output = self.surrogate_model.local(fake_input)
+                    output = self.surrogate_model.cloud(output)
 
-                    if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                        output = F.avg_pool2d(output, 4)
-                        output = output.view(output.size(0), -1)
-                        output = self.surrogate_classifier(output)
-                    elif self.arch == "resnet20" or self.arch == "resnet32":
-                        output = F.avg_pool2d(output, 8)
-                        output = output.view(output.size(0), -1)
-                        output = self.surrogate_classifier(output)
-                    else:
-                        output = output.view(output.size(0), -1)
-                        output = self.surrogate_classifier(output)
                     ce_loss = criterion(output, label)
 
                     total_loss = ce_loss
@@ -3089,67 +2813,59 @@ class MIA:
                     acc_loss_min_grad_loss = acc_loss_mean
                     val_acc_max = val_accu
                     acc_max_fidelity = fidel_score
-                    best_client_state_dict = self.surrogate_client.state_dict()
-                    best_tail_state_dict = self.surrogate_tail.state_dict()
-                    best_classifier_state_dict = self.surrogate_classifier.state_dict()
+                    best_client_state_dict = self.surrogate_model.local.state_dict()
+                    best_tail_state_dict = self.surrogate_model.cloud.state_dict()
                 if fidel_score > fidelity_max:
                     min_grad_loss = grad_loss_mean
                     acc_loss_min_grad_loss = acc_loss_mean
                     fidelity_max = fidel_score
                     fidel_max_acc = val_accu
-                    closest_client_state_dict = self.surrogate_client.state_dict()
-                    closest_tail_state_dict = self.surrogate_tail.state_dict()
-                    closest_classifier_state_dict = self.surrogate_classifier.state_dict()
+                    closest_client_state_dict = self.surrogate_model.local.state_dict()
+                    closest_tail_state_dict = self.surrogate_model.cloud.state_dict()
             else:
                 if val_accu > val_acc_max:
                     acc_loss_min_grad_loss = acc_loss_mean
                     val_acc_max = val_accu
                     acc_max_fidelity = fidel_score
-                    best_client_state_dict = self.surrogate_client.state_dict()
-                    best_tail_state_dict = self.surrogate_tail.state_dict()
-                    best_classifier_state_dict = self.surrogate_classifier.state_dict()
+                    best_client_state_dict = self.surrogate_model.local.state_dict()
+                    best_tail_state_dict = self.surrogate_model.cloud.state_dict()
                 if fidel_score > fidelity_max:
                     acc_loss_min_grad_loss = acc_loss_mean
                     fidelity_max = fidel_score
                     fidel_max_acc = val_accu
-                    closest_client_state_dict = self.surrogate_client.state_dict()
-                    closest_tail_state_dict = self.surrogate_tail.state_dict()
-                    closest_classifier_state_dict = self.surrogate_classifier.state_dict()
+                    closest_client_state_dict = self.surrogate_model.local.state_dict()
+                    closest_tail_state_dict = self.surrogate_model.cloud.state_dict()
             
             self.logger.debug("epoch: {}, train_acc: {}, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(epoch, avg_acc, val_accu, fidel_score, acc_loss_mean, grad_loss_mean))
         
+
+        
+
         if gradient_matching:
             if best_tail_state_dict is not None:
                 self.logger.debug("load best stealed model.")
                 self.logger.debug("Best perform model, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(val_acc_max, acc_max_fidelity, acc_loss_min_grad_loss, min_grad_loss))
-                self.surrogate_client.load_state_dict(best_client_state_dict)
-                self.surrogate_tail.load_state_dict(best_tail_state_dict)
-                self.surrogate_classifier.load_state_dict(best_classifier_state_dict)
+                self.surrogate_model.local.load_state_dict(best_client_state_dict)
+                self.surrogate_model.cloud.load_state_dict(best_tail_state_dict)
             
             if closest_tail_state_dict is not None:
                 self.logger.debug("load cloest stealed model.")
                 self.logger.debug("Cloest perform model, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(fidel_max_acc, fidelity_max, acc_loss_min_grad_loss, min_grad_loss))
-                self.surrogate_client.load_state_dict(closest_client_state_dict)
-                self.surrogate_tail.load_state_dict(closest_tail_state_dict)
-                self.surrogate_classifier.load_state_dict(closest_classifier_state_dict)
+                self.surrogate_model.local.load_state_dict(closest_client_state_dict)
+                self.surrogate_model.cloud.load_state_dict(closest_tail_state_dict)
         
         else:
             self.logger.debug("load best stealed model.")
             self.logger.debug("Best perform model, val_acc: {}, fidel_score: {}, acc_loss: {}".format(val_acc_max, acc_max_fidelity, acc_loss_min_grad_loss))
-            self.surrogate_client.load_state_dict(best_client_state_dict)
-            self.surrogate_tail.load_state_dict(best_tail_state_dict)
-            self.surrogate_classifier.load_state_dict(best_classifier_state_dict)
+            self.surrogate_model.local.load_state_dict(best_client_state_dict)
+            self.surrogate_model.cloud.load_state_dict(best_tail_state_dict)
 
             self.logger.debug("load cloest stealed model.")
             self.logger.debug("Closest perform model, val_acc: {}, fidel_score: {}, acc_loss: {}".format(fidel_max_acc, fidelity_max, acc_loss_min_grad_loss))
-            self.surrogate_client.load_state_dict(closest_client_state_dict)
-            self.surrogate_tail.load_state_dict(closest_tail_state_dict)
-            self.surrogate_classifier.load_state_dict(closest_classifier_state_dict)
-
-
-
-
-
+            self.surrogate_model.local.load_state_dict(closest_client_state_dict)
+            self.surrogate_model.cloud.load_state_dict(closest_tail_state_dict)
+ 
+        #TODO: perform adversarial attack using surrogate model
 
 
 
@@ -3158,10 +2874,7 @@ class MIA:
         lr_G = 1e-4
         lr_C = 1e-4
         d_iter = 5
-        # lr_G = 1e-3
-        # lr_C = 1e-3
-
-        # num_step_per_epoch = 100
+        
         if pred_option:
             num_steps = num_query // 100 // (1 + d_iter) # train g_iter + d_iter times
         else:
@@ -3169,12 +2882,6 @@ class MIA:
         steps = sorted([int(step * num_steps) for step in [0.1, 0.3, 0.5]])
         scale = 3e-1
         
-        # self.f_tail.cuda()
-        # self.f_tail.eval()
-        # self.classifier.cuda()
-        # self.classifier.eval()
-        # self.model.local_list[0].cuda()
-        # self.model.local_list[0].eval()
 
         # noise_w = 1.0
         noise_w = 50.0
@@ -3184,15 +2891,11 @@ class MIA:
             D_w = D_w * 10
         
         # Define Discriminator, ways to suppress D: reduce_learning rate, increase label_smooth, enable dropout, reduce Resblock_repeat
-        label_smoothing = 0.1 #TODO: default setting
-        # label_smoothing = 0.0 #TODO: test setting
+        label_smoothing = 0.1
         gan_discriminator = architectures.discriminator((3, 32, 32), True, resblock_repeat = 0, dropout = True)
-        # optimizer_C = torch.optim.SGD(gan_discriminator.parameters(), lr=lr_C, weight_decay=5e-4, momentum=0.9)
         optimizer_C = torch.optim.Adam(gan_discriminator.parameters(), lr=lr_C )
         scheduler_C = torch.optim.lr_scheduler.MultiStepLR(optimizer_C, steps, scale)
         
-        
-        # optimizer_G = torch.optim.SGD(self.generator.parameters(), lr=lr_G, weight_decay=5e-4, momentum=0.9)
         optimizer_G = torch.optim.Adam(self.generator.parameters(), lr=lr_G )
         scheduler_G = torch.optim.lr_scheduler.MultiStepLR(optimizer_G, steps, scale)
         
@@ -3287,10 +2990,8 @@ class MIA:
                 optimizer_G.zero_grad()
                 
                 #Get fake image from generator
-                # if not pred_option:
                 fake = self.generator(z, labels) # pre_x returns the output of G before applying the activation
-                # else:
-                #     fake = self.generator(z)
+                
                 if i % 10 == 0:
                     imgGen = fake.clone()
                     if DENORMALIZE_OPTION:
@@ -3303,35 +3004,11 @@ class MIA:
                 # with torch.no_grad(): 
                 output = self.model.local_list[0](fake)
 
-                output = self.f_tail(output)
+                output = self.model.cloud(output)
 
-                if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                    output = F.avg_pool2d(output, 4)
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
-                elif self.arch == "resnet20" or self.arch == "resnet32":
-                    output = F.avg_pool2d(output, 8)
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
-                else:
-                    output = output.view(output.size(0), -1)
-                    output = self.classifier(output)
+                s_output = self.surrogate_model.local(fake)
 
-                s_output = self.surrogate_client(fake)
-
-                s_output = self.surrogate_tail(s_output)
-
-                if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                    s_output = F.avg_pool2d(s_output, 4)
-                    s_output = s_output.view(s_output.size(0), -1)
-                    s_output = self.surrogate_classifier(s_output)
-                elif self.arch == "resnet20" or self.arch == "resnet32":
-                    s_output = F.avg_pool2d(s_output, 8)
-                    s_output = s_output.view(s_output.size(0), -1)
-                    s_output = self.surrogate_classifier(s_output)
-                else:
-                    s_output = s_output.view(s_output.size(0), -1)
-                    s_output = self.surrogate_classifier(s_output)
+                s_output = self.surrogate_model.cloud(s_output)
                 
                 # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
                 
@@ -3345,7 +3022,6 @@ class MIA:
                     ce_loss = criterion(output, labels)
 
                     loss = ce_loss - g_noise
-
                     
                 else:
                     # ce_loss = criterion(output, labels) - 0.5* student_Loss(s_output, output)
@@ -3372,55 +3048,20 @@ class MIA:
                 '''Train surrogate model (to match teacher and student, assuming having prediction access)'''
                 if pred_option:
                     
-                    # val_accu, fidel_score = self.steal_test()
-                    # self.logger.debug("Beginning, val_acc: {}, val_fidelity: {}".format(val_accu, fidel_score))
-
-                    # self.surrogate_client.eval()
-                    # self.surrogate_client.train()
-                    # self.surrogate_client.apply(set_bn_eval)
-                    # self.surrogate_tail.eval()
-                    # self.surrogate_tail.train()
-                    # self.surrogate_tail.apply(set_bn_eval)
-                    # set_bn_eval(self.surrogate_tail)
-                    # self.surrogate_classifier.train()
                     for _ in range(d_iter):
                         z = torch.randn((100, nz)).cuda()
                         labels = torch.randint(low=0, high=self.num_class, size = [100, ]).cuda()
-
                         fake = self.generator(z, labels).detach()
-                        # fake = self.generator(z).detach()
                         
 
                         with torch.no_grad(): 
                             t_out = self.model.local_list[0](fake)
-                            t_out = self.f_tail(t_out)
-                            if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                                t_out = F.avg_pool2d(t_out, 4)
-                                t_out = t_out.view(t_out.size(0), -1)
-                                t_out = self.classifier(t_out)
-                            elif self.arch == "resnet20" or self.arch == "resnet32":
-                                t_out = F.avg_pool2d(t_out, 8)
-                                t_out = t_out.view(t_out.size(0), -1)
-                                t_out = self.classifier(t_out)
-                            else:
-                                t_out = t_out.view(t_out.size(0), -1)
-                                t_out = self.classifier(t_out)
+                            t_out = self.model.cloud(t_out)
                             t_out = F.log_softmax(t_out, dim=1).detach()
                         
                         self.suro_optimizer.zero_grad()
-                        s_out = self.surrogate_client(fake)
-                        s_out = self.surrogate_tail(s_out)
-                        if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                            s_out = F.avg_pool2d(s_out, 4)
-                            s_out = s_out.view(s_out.size(0), -1)
-                            s_out = self.surrogate_classifier(s_out)
-                        elif self.arch == "resnet20" or self.arch == "resnet32":
-                            s_out = F.avg_pool2d(s_out, 8)
-                            s_out = s_out.view(s_out.size(0), -1)
-                            s_out = self.surrogate_classifier(s_out)
-                        else:
-                            s_out = s_out.view(s_out.size(0), -1)
-                            s_out = self.surrogate_classifier(s_out)
+                        s_out = self.surrogate_model.local(fake)
+                        s_out = self.surrogate_model.cloud(s_out)
 
                         loss_S = student_Loss(s_out, t_out) 
                         # loss_S = student_Loss(s_out, t_out) + criterion(s_out, labels)
@@ -3490,17 +3131,17 @@ class MIA:
         val_loader = self.pub_dataloader
 
         # switch to evaluate mode
-        # self.surrogate_client.cuda()
-        # self.surrogate_client.eval()
-        # self.surrogate_tail.cuda()
-        # self.surrogate_tail.eval()
-        # self.surrogate_classifier.cuda()
-        # self.surrogate_classifier.eval()
+        # self.surrogate_model.local.cuda()
+        # self.surrogate_model.local.eval()
+        # self.surrogate_model.cloud.cuda()
+        # self.surrogate_model.cloud.eval()
+        # self.surrogate_model.classifier.cuda()
+        # self.surrogate_model.classifier.eval()
 
         self.model.local_list[0].cuda()
         self.model.local_list[0].eval()
-        self.f_tail.cuda()
-        self.f_tail.eval()
+        self.model.cloud.cuda()
+        self.model.cloud.eval()
         self.classifier.cuda()
         self.classifier.eval()
         
@@ -3511,31 +3152,37 @@ class MIA:
             # compute output
             with torch.no_grad():
 
-                output = self.surrogate_client(input)
+                output = self.surrogate_model.local(input)
                 output_target = self.model.local_list[0](input)
 
-                output = self.surrogate_tail(output)
-                output_target = self.f_tail(output_target)
+                output = self.surrogate_model.cloud(output)
+                output_target = self.model.cloud(output_target)
 
                 if self.arch == "resnet18" or self.arch == "resnet34" or "mobilenetv2" in self.arch:
-                    output = F.avg_pool2d(output, 4)
-                    output = output.view(output.size(0), -1)
-                    output = self.surrogate_classifier(output)
-                    output_target = F.avg_pool2d(output_target, 4)
-                    output_target = output_target.view(output_target.size(0), -1)
-                    output_target = self.classifier(output_target)
+                    if not self.surrogate_model.cloud_classifier_merge:
+                        output = F.avg_pool2d(output, 4)
+                        output = output.view(output.size(0), -1)
+                        output = self.surrogate_model.classifier(output)
+                    if not self.model.cloud_classifier_merge:
+                        output_target = F.avg_pool2d(output_target, 4)
+                        output_target = output_target.view(output_target.size(0), -1)
+                        output_target = self.classifier(output_target)
                 elif self.arch == "resnet20" or self.arch == "resnet32":
-                    output = F.avg_pool2d(output, 8)
-                    output = output.view(output.size(0), -1)
-                    output = self.surrogate_classifier(output)
-                    output_target = F.avg_pool2d(output_target, 8)
-                    output_target = output_target.view(output_target.size(0), -1)
-                    output_target = self.classifier(output_target)
+                    if not self.surrogate_model.cloud_classifier_merge:
+                        output = F.avg_pool2d(output, 8)
+                        output = output.view(output.size(0), -1)
+                        output = self.surrogate_model.classifier(output)
+                    if not self.model.cloud_classifier_merge:
+                        output_target = F.avg_pool2d(output_target, 8)
+                        output_target = output_target.view(output_target.size(0), -1)
+                        output_target = self.classifier(output_target)
                 else:
-                    output = output.view(output.size(0), -1)
-                    output = self.surrogate_classifier(output)
-                    output_target = output_target.view(output_target.size(0), -1)
-                    output_target = self.classifier(output_target)
+                    if not self.surrogate_model.cloud_classifier_merge:
+                        output = output.view(output.size(0), -1)
+                        output = self.surrogate_model.classifier(output)
+                    if not self.model.cloud_classifier_merge:
+                        output_target = output_target.view(output_target.size(0), -1)
+                        output_target = self.classifier(output_target)
 
             output = output.float()
             output_target = output_target.float()

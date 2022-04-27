@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from architectures_torch import ResBlock
+from architectures_torch import ResBlock, CifarResView
 from torch.nn import init
 import math
 import copy
@@ -79,9 +79,10 @@ class CifarResNet(nn.Module):
     assert (depth - 2) % 6 == 0, 'depth should be one of 20, 32, 44, 56, 110'
     layer_blocks = (depth - 2) // 6
     print ('CifarResNet : Depth : {} , Layers for each block : {}'.format(depth, layer_blocks))
+    self.num_client = num_client
     self.current_client = 0
     
-
+    self.cloud_classifier_merge = False
     layers = []
     layers.append(conv3x3(3, 16))
     self.inplanes = 16
@@ -177,6 +178,7 @@ class CifarResNet(nn.Module):
         #     break
     self.logger = logger
     self.classifier = nn.Linear(64*block.expansion, num_class)
+    self.original_num_cloud = self.get_num_of_cloud_layer()
     print("local:")
     print(self.local)
     print("cloud:")
@@ -190,8 +192,77 @@ class CifarResNet(nn.Module):
             if m.bias is not None:
                 m.bias.data.zero_()
   def switch_model(self, client_id):
-        self.current_client = client_id
-        self.local = self.local_list[client_id]
+      self.current_client = client_id
+      self.local = self.local_list[client_id]
+
+  def merge_classifier_cloud(self):
+      self.cloud_classifier_merge = True
+      cloud_list = list(self.cloud.children())
+      cloud_list.append(CifarResView())
+      # classifier_list = list(self.classifier.children())
+      cloud_list.append(self.classifier)
+      self.cloud = nn.Sequential(*cloud_list)
+
+  def unmerge_classifier_cloud(self):
+      self.cloud_classifier_merge = False
+      cloud_list = list(self.cloud.children())
+      orig_cloud_list = []
+      for i, module in enumerate(cloud_list):
+          if "CifarResView" in str(module):
+              break
+          else:
+              orig_cloud_list.append(module)
+      self.cloud = nn.Sequential(*orig_cloud_list)
+
+  def get_num_of_cloud_layer(self):
+      num_of_cloud_layer = 0
+      if not self.cloud_classifier_merge:
+          list_of_layers = list(self.cloud.children())
+          for i, module in enumerate(list_of_layers):
+              if "conv3x3" in str(module) or "Linear" in str(module) or "ResNetBasicblock" in str(module):
+                  num_of_cloud_layer += 1
+          num_of_cloud_layer += 1
+      else:
+          list_of_layers = list(self.cloud.children())
+          for i, module in enumerate(list_of_layers):
+              if "conv3x3" in str(module) or "Linear" in str(module) or "ResNetBasicblock" in str(module):
+                  num_of_cloud_layer += 1
+      return num_of_cloud_layer
+  
+  def recover(self):
+      if self.cloud_classifier_merge:
+          self.resplit(self.original_num_cloud)
+          self.unmerge_classifier_cloud()
+            
+
+  def resplit(self, num_of_cloud_layer):
+      if not self.cloud_classifier_merge:
+          self.merge_classifier_cloud()
+          
+      for i in range(self.num_client):
+          list_of_layers = list(self.local_list[i].children())
+          list_of_layers.extend(list(self.cloud.children()))
+          total_layer = 0
+          for _, module in enumerate(list_of_layers):
+              if "conv3x3" in str(module) or "Linear" in str(module) or "ResNetBasicblock" in str(module):
+                  total_layer += 1
+        #   print("total layer is: ", total_layer)
+          num_of_local_layer = (total_layer - num_of_cloud_layer)
+          local_list = []
+          local_count = 0
+          cloud_list = []
+          for _, module in enumerate(list_of_layers):
+              if "conv3x3" in str(module) or "Linear" in str(module) or "ResNetBasicblock" in str(module):
+                  local_count += 1
+              if local_count <= num_of_local_layer:
+                  local_list.append(module)
+              else:
+                  cloud_list.append(module)
+          
+          self.cloud = nn.Sequential(*cloud_list)
+          self.local_list[i] = nn.Sequential(*local_list)
+
+
 
   def get_smashed_data_size(self):
         with torch.no_grad():

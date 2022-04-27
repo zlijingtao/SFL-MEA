@@ -1,0 +1,23 @@
+vgg11: [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M', fc, fc, fc],
+
+vgg - 4:9
+vgg - 5:8
+vgg - 7:7
+vgg - 8:6
+vgg - 9:5
+vgg - 11:4
+vgg - 12:3
+vgg - 13:2
+vgg - 14:1
+
+ResNet20: (total layer 11, 1 x conv3x3, 9 x ResBasicBlock, 1 x FC)
+
+resnet20 - N : 11 - N
+
+ResNet18: (total layer 10, 1 x conv3x3, 8 x BasicBlock, 1 x FC)
+
+resnet18 - N : 10 - N
+
+Mobilenet: (total layer 20, 1 x Conv2d, 17 x Block, 1 x Conv2d, 1 x FC)
+
+mobilenetv2 - N : 20 - N

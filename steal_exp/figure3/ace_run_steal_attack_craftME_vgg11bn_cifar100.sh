@@ -18,10 +18,8 @@ learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300
 attack_client=0
-# num_query_list="1000 10000"
-num_query_list="1000"
-# attack_style_list="Craft_option_step20 Craft_option_step50"
-attack_style_list="Craft_option_step10"
+num_query_list="10000"
+attack_style_list="Craft_option_step20"
 data_proportion_list="0.0"
 
 train_clas_layer_list="2 3 4 5"

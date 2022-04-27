@@ -156,7 +156,19 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
 
 
 
+class MobView(nn.Module):
+    def __init__(self):
+        super().__init__()
 
+    def forward(self, input):
+        '''
+        Reshapes the input according to the shape saved in the view data structure.
+        '''
+        out = F.avg_pool2d(input, 4)
+        batch_size = input.size(0)
+        shape = (batch_size, -1)
+        out = out.view(shape)
+        return out
 
 
 
@@ -170,6 +182,77 @@ class MobileNet_surrogate(nn.Module):
         self.length_tail = feature[2]
         self.classifier = nn.Linear(1280, num_class)
         self.length_clas = 1
+        self.cloud_classifier_merge = False
+        self.original_num_cloud = self.get_num_of_cloud_layer()
+
+    def merge_classifier_cloud(self):
+        self.cloud_classifier_merge = True
+        cloud_list = list(self.cloud.children())
+        cloud_list.append(MobView())
+        cloud_list.append(self.classifier)
+        self.cloud = nn.Sequential(*cloud_list)
+
+    def unmerge_classifier_cloud(self):
+        self.cloud_classifier_merge = False
+        cloud_list = list(self.cloud.children())
+        orig_cloud_list = []
+        for i, module in enumerate(cloud_list):
+            if "MobView" in str(module):
+                break
+            else:
+                orig_cloud_list.append(module)
+        self.cloud = nn.Sequential(*orig_cloud_list)
+
+    def get_num_of_cloud_layer(self):
+        num_of_cloud_layer = 0
+        if not self.cloud_classifier_merge:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
+                    num_of_cloud_layer += 1
+            num_of_cloud_layer += 1
+        else:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
+                    num_of_cloud_layer += 1
+        return num_of_cloud_layer
+
+    def recover(self):
+        if self.cloud_classifier_merge:
+            self.resplit(self.original_num_cloud)
+            self.unmerge_classifier_cloud()
+            
+
+    def resplit(self, num_of_cloud_layer):
+        if not self.cloud_classifier_merge:
+            self.merge_classifier_cloud()
+            
+        list_of_layers = list(self.local.children())
+        list_of_layers.extend(list(self.cloud.children()))
+        total_layer = 0
+        for _, module in enumerate(list_of_layers):
+            if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
+                total_layer += 1
+        num_of_local_layer = (total_layer - num_of_cloud_layer)
+        local_list = []
+        local_count = 0
+        cloud_list = []
+        for _, module in enumerate(list_of_layers):
+            if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
+                local_count += 1
+            if local_count <= num_of_local_layer:
+                local_list.append(module)
+            else:
+                cloud_list.append(module)
+        
+        self.cloud = nn.Sequential(*cloud_list)
+        self.local = nn.Sequential(*local_list)
+
+    
+    
+    
+    
     def forward(self, x):
         local_output = self.local(x)
         x = self.cloud(local_output)
@@ -244,6 +327,35 @@ def make_mobilenet_layers(cutting_layer, cfg, in_planes):
 
 
 
+
+
+class CifarResView(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, input):
+        '''
+        Reshapes the input according to the shape saved in the view data structure.
+        '''
+        out = F.avg_pool2d(input, 8)
+        batch_size = input.size(0)
+        shape = (batch_size, -1)
+        out = out.view(shape)
+        return out
+
+class VGGView(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, input):
+        '''
+        Reshapes the input according to the shape saved in the view data structure.
+        '''
+        batch_size = input.size(0)
+        shape = (batch_size, -1)
+        out = input.view(shape)
+        return out
+
 class VGG_surrogate(nn.Module):
     '''
     VGG model 
@@ -253,7 +365,7 @@ class VGG_surrogate(nn.Module):
         self.local = feature[0]
         self.cloud = feature[1]
         self.length_tail = feature[2]
-
+        self.cloud_classifier_merge = False
         classifier_list = []
 
         for i in range(len(fc_cfg) - 1):
@@ -262,6 +374,8 @@ class VGG_surrogate(nn.Module):
         classifier_list += [nn.Linear(fc_cfg[-1], num_class)]
         self.classifier = nn.Sequential(*classifier_list)
         self.length_clas = len(fc_cfg)
+        self.fc_cfg = fc_cfg
+        self.original_num_cloud = self.get_num_of_cloud_layer()
 
     def forward(self, x):
         self.local_output = self.local(x)
@@ -269,6 +383,76 @@ class VGG_surrogate(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
         return x
+
+    def merge_classifier_cloud(self):
+        self.cloud_classifier_merge = True
+        cloud_list = list(self.cloud.children())
+        cloud_list.append(VGGView())
+        classifier_list = list(self.classifier.children())
+        cloud_list.extend(classifier_list)
+        self.cloud = nn.Sequential(*cloud_list)
+        self.length_clas = 0
+
+    def unmerge_classifier_cloud(self):
+        self.cloud_classifier_merge = False
+        cloud_list = list(self.cloud.children())
+        orig_cloud_list = []
+        for i, module in enumerate(cloud_list):
+            if "VGGView" in str(module):
+                break
+            else:
+                orig_cloud_list.append(module)
+        self.cloud = nn.Sequential(*orig_cloud_list)
+        self.length_clas = len(self.fc_cfg)
+
+    def get_num_of_cloud_layer(self):
+        num_of_cloud_layer = 0
+        if not self.cloud_classifier_merge:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "Conv2d" in str(module) or "Linear" in str(module):
+                    num_of_cloud_layer += 1
+            num_of_cloud_layer += self.length_clas
+        else:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "Conv2d" in str(module) or "Linear" in str(module):
+                    num_of_cloud_layer += 1
+        return num_of_cloud_layer
+    
+    def recover(self):
+        if self.cloud_classifier_merge:
+            self.resplit(self.original_num_cloud)
+            self.unmerge_classifier_cloud()
+
+    def resplit(self, num_of_cloud_layer):
+        if not self.cloud_classifier_merge:
+            self.merge_classifier_cloud()
+        list_of_layers = list(self.local.children())
+        list_of_layers.extend(list(self.cloud.children()))
+        total_layer = 0
+        for i, module in enumerate(list_of_layers):
+            if "Conv2d" in str(module) or "Linear" in str(module):
+                total_layer += 1
+        
+        num_of_local_layer = (total_layer - num_of_cloud_layer)
+        local_list = []
+        local_count = 0
+        cloud_list = []
+        for i, module in enumerate(list_of_layers):
+            if "Conv2d" in str(module) or "Linear" in str(module):
+                local_count += 1
+            if local_count <= num_of_local_layer:
+                local_list.append(module)
+            else:
+                cloud_list.append(module)
+        
+        self.cloud = nn.Sequential(*cloud_list)
+        self.local = nn.Sequential(*local_list)
+
+        self.length_tail = num_of_cloud_layer
+
+
 
 def make_vgg_layers(cutting_layer,cfg, batch_norm=False):
     local = []
@@ -325,6 +509,72 @@ class ResNet_surrogate(nn.Module):
         self.length_tail = feature[2]
         self.classifier = nn.Linear(fc_size*expansion, num_class)
         self.length_clas = 1
+        self.cloud_classifier_merge = False
+        self.original_num_cloud = self.get_num_of_cloud_layer()
+
+    def merge_classifier_cloud(self):
+        self.cloud_classifier_merge = True
+        cloud_list = list(self.cloud.children())
+        cloud_list.append(MobView())
+        cloud_list.append(self.classifier)
+        self.cloud = nn.Sequential(*cloud_list)
+
+    def unmerge_classifier_cloud(self):
+        self.cloud_classifier_merge = False
+        cloud_list = list(self.cloud.children())
+        orig_cloud_list = []
+        for i, module in enumerate(cloud_list):
+            if "MobView" in str(module):
+                break
+            else:
+                orig_cloud_list.append(module)
+        self.cloud = nn.Sequential(*orig_cloud_list)
+
+    def get_num_of_cloud_layer(self):
+        num_of_cloud_layer = 0
+        if not self.cloud_classifier_merge:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
+                    num_of_cloud_layer += 1
+            num_of_cloud_layer += 1
+        else:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
+                    num_of_cloud_layer += 1
+        return num_of_cloud_layer
+
+    def recover(self):
+        if self.cloud_classifier_merge:
+            self.resplit(self.original_num_cloud)
+            self.unmerge_classifier_cloud()
+            
+
+    def resplit(self, num_of_cloud_layer):
+        if not self.cloud_classifier_merge:
+            self.merge_classifier_cloud()
+        
+        list_of_layers = list(self.local.children())
+        list_of_layers.extend(list(self.cloud.children()))
+        total_layer = 0
+        for _, module in enumerate(list_of_layers):
+            if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
+                total_layer += 1
+        num_of_local_layer = (total_layer - num_of_cloud_layer)
+        local_list = []
+        local_count = 0
+        cloud_list = []
+        for _, module in enumerate(list_of_layers):
+            if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
+                local_count += 1
+            if local_count <= num_of_local_layer:
+                local_list.append(module)
+            else:
+                cloud_list.append(module)
+        
+        self.cloud = nn.Sequential(*cloud_list)
+        self.local = nn.Sequential(*local_list)
     def forward(self, x):
         self.local_output = self.local(x)
         x = self.cloud(self.local_output)
@@ -344,6 +594,73 @@ class cifarResNet_surrogate(nn.Module):
         self.length_tail = feature[2]
         self.classifier = nn.Linear(fc_size*expansion, num_class)
         self.length_clas = 1
+        self.cloud_classifier_merge = False
+        self.original_num_cloud = self.get_num_of_cloud_layer()
+    def merge_classifier_cloud(self):
+        self.cloud_classifier_merge = True
+        cloud_list = list(self.cloud.children())
+        cloud_list.append(CifarResView())
+        # classifier_list = list(self.classifier.children())
+        cloud_list.append(self.classifier)
+        self.cloud = nn.Sequential(*cloud_list)
+
+    def unmerge_classifier_cloud(self):
+        self.cloud_classifier_merge = False
+        cloud_list = list(self.cloud.children())
+        orig_cloud_list = []
+        for i, module in enumerate(cloud_list):
+            if "CifarResView" in str(module):
+                break
+            else:
+                orig_cloud_list.append(module)
+        self.cloud = nn.Sequential(*orig_cloud_list)
+
+    def get_num_of_cloud_layer(self):
+        num_of_cloud_layer = 0
+        if not self.cloud_classifier_merge:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "conv3x3" in str(module) or "Linear" in str(module) or "ResNet_BasicBlock" in str(module):
+                    num_of_cloud_layer += 1
+            num_of_cloud_layer += self.length_clas
+        else:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "conv3x3" in str(module) or "Linear" in str(module) or "ResNet_BasicBlock" in str(module):
+                    num_of_cloud_layer += 1
+        return num_of_cloud_layer
+    
+    def recover(self):
+        if self.cloud_classifier_merge:
+            self.resplit(self.original_num_cloud)
+            self.unmerge_classifier_cloud()
+                
+
+    def resplit(self, num_of_cloud_layer):
+        if not self.cloud_classifier_merge:
+            self.merge_classifier_cloud()
+            
+        list_of_layers = list(self.local.children())
+        list_of_layers.extend(list(self.cloud.children()))
+        total_layer = 0
+        for _, module in enumerate(list_of_layers):
+            if "conv3x3" in str(module) or "Linear" in str(module) or "ResNet_BasicBlock" in str(module):
+                total_layer += 1
+        
+        num_of_local_layer = (total_layer - num_of_cloud_layer)
+        local_list = []
+        local_count = 0
+        cloud_list = []
+        for _, module in enumerate(list_of_layers):
+            if "conv3x3" in str(module) or "Linear" in str(module) or "ResNet_BasicBlock" in str(module):
+                local_count += 1
+            if local_count <= num_of_local_layer:
+                local_list.append(module)
+            else:
+                cloud_list.append(module)
+        
+        self.cloud = nn.Sequential(*cloud_list)
+        self.local = nn.Sequential(*local_list)
     def forward(self, x):
         self.local_output = self.local(x)
         x = self.cloud(self.local_output)

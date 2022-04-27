@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from thop import profile
-from architectures_torch import ResBlock
+from architectures_torch import ResBlock, MobView
 
 class Block(nn.Module):
     '''expand + depthwise + pointwise'''
@@ -59,7 +59,7 @@ class MobileNet(nn.Module):
         super(MobileNet, self).__init__()
         # NOTE: change conv1 stride 2 -> 1 for CIFAR10
         self.current_client = 0
-
+        self.num_client = num_client
         self.local_list = []
         for i in range(num_client):
             if i == 0:
@@ -84,7 +84,8 @@ class MobileNet(nn.Module):
         self.initialize = True
 
         self.classifier = nn.Linear(1280, num_class)
-        
+        self.cloud_classifier_merge = False
+        self.original_num_cloud = self.get_num_of_cloud_layer()
         print("local:")
         print(self.local)
         print("cloud:")
@@ -95,7 +96,74 @@ class MobileNet(nn.Module):
     def switch_model(self, client_id):
         self.current_client = client_id
         self.local = self.local_list[client_id]
-    
+
+    def merge_classifier_cloud(self):
+        self.cloud_classifier_merge = True
+        cloud_list = list(self.cloud.children())
+        cloud_list.append(MobView())
+        cloud_list.append(self.classifier)
+        self.cloud = nn.Sequential(*cloud_list)
+
+    def unmerge_classifier_cloud(self):
+        self.cloud_classifier_merge = False
+        cloud_list = list(self.cloud.children())
+        orig_cloud_list = []
+        for i, module in enumerate(cloud_list):
+            if "MobView" in str(module):
+                break
+            else:
+                orig_cloud_list.append(module)
+        self.cloud = nn.Sequential(*orig_cloud_list)
+
+    def get_num_of_cloud_layer(self):
+        num_of_cloud_layer = 0
+        if not self.cloud_classifier_merge:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
+                    num_of_cloud_layer += 1
+            num_of_cloud_layer += 1
+        else:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
+                    num_of_cloud_layer += 1
+        return num_of_cloud_layer
+
+    def recover(self):
+        if self.cloud_classifier_merge:
+            self.resplit(self.original_num_cloud)
+            self.unmerge_classifier_cloud()
+            
+
+    def resplit(self, num_of_cloud_layer):
+        if not self.cloud_classifier_merge:
+            self.merge_classifier_cloud()
+            
+        for i in range(self.num_client):
+            list_of_layers = list(self.local_list[i].children())
+            list_of_layers.extend(list(self.cloud.children()))
+            total_layer = 0
+            for _, module in enumerate(list_of_layers):
+                print(str(module))
+                if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
+                    total_layer += 1
+            print("total layer is: ", total_layer)
+            num_of_local_layer = (total_layer - num_of_cloud_layer)
+            local_list = []
+            local_count = 0
+            cloud_list = []
+            for _, module in enumerate(list_of_layers):
+                if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
+                    local_count += 1
+                if local_count <= num_of_local_layer:
+                    local_list.append(module)
+                else:
+                    cloud_list.append(module)
+            
+            self.cloud = nn.Sequential(*cloud_list)
+            self.local_list[i] = nn.Sequential(*local_list)
+
     def get_current_client(self):
         return self.current_client
 

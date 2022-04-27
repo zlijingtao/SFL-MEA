@@ -12,6 +12,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+from architectures_torch import MobView
 
 def init_weights(m):
     if type(m) == nn.Linear:
@@ -103,6 +104,7 @@ class ResNet(nn.Module):
     def __init__(self, feature, logger, expansion = 1, num_client = 1, num_class = 10, initialize_different = False):
         super(ResNet, self).__init__()
         self.current_client = 0
+        self.num_client = num_client
         self.local_list = []
         for i in range(num_client):
             if i == 0:
@@ -124,6 +126,9 @@ class ResNet(nn.Module):
         self.image_size = feature[2]
         self.logger = logger
         self.classifier = nn.Linear(512*expansion, num_class)
+        self.cloud_classifier_merge = False
+        self.original_num_cloud = self.get_num_of_cloud_layer()
+
         print("local:")
         print(self.local)
         print("cloud:")
@@ -140,6 +145,73 @@ class ResNet(nn.Module):
     def switch_model(self, client_id):
         self.current_client = client_id
         self.local = self.local_list[client_id]
+
+    def merge_classifier_cloud(self):
+        self.cloud_classifier_merge = True
+        cloud_list = list(self.cloud.children())
+        cloud_list.append(MobView())
+        cloud_list.append(self.classifier)
+        self.cloud = nn.Sequential(*cloud_list)
+
+    def unmerge_classifier_cloud(self):
+        self.cloud_classifier_merge = False
+        cloud_list = list(self.cloud.children())
+        orig_cloud_list = []
+        for i, module in enumerate(cloud_list):
+            if "MobView" in str(module):
+                break
+            else:
+                orig_cloud_list.append(module)
+        self.cloud = nn.Sequential(*orig_cloud_list)
+
+    def get_num_of_cloud_layer(self):
+        num_of_cloud_layer = 0
+        if not self.cloud_classifier_merge:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
+                    num_of_cloud_layer += 1
+            num_of_cloud_layer += 1
+        else:
+            list_of_layers = list(self.cloud.children())
+            for i, module in enumerate(list_of_layers):
+                if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
+                    num_of_cloud_layer += 1
+        return num_of_cloud_layer
+
+    def recover(self):
+        if self.cloud_classifier_merge:
+            self.resplit(self.original_num_cloud)
+            self.unmerge_classifier_cloud()
+            
+
+    def resplit(self, num_of_cloud_layer):
+        if not self.cloud_classifier_merge:
+            self.merge_classifier_cloud()
+            
+        for i in range(self.num_client):
+            list_of_layers = list(self.local_list[i].children())
+            list_of_layers.extend(list(self.cloud.children()))
+            total_layer = 0
+            for _, module in enumerate(list_of_layers):
+                if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
+                    total_layer += 1
+            # print("total layer is: ", total_layer)
+            num_of_local_layer = (total_layer - num_of_cloud_layer)
+            local_list = []
+            local_count = 0
+            cloud_list = []
+            for _, module in enumerate(list_of_layers):
+                if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
+                    local_count += 1
+                if local_count <= num_of_local_layer:
+                    local_list.append(module)
+                else:
+                    cloud_list.append(module)
+            
+            self.cloud = nn.Sequential(*cloud_list)
+            self.local_list[i] = nn.Sequential(*local_list)
+
 
     def get_current_client(self):
         return self.current_client
