@@ -29,23 +29,21 @@ num_query=10
 attack_style="GM_option_resume"
 regularization_list="GM_train_ME_CIFAR100_start120 GM_train_ME_CIFAR100_start160"
 data_proportion_list="0.1"
-train_clas_layer_list="2 3 4 5" #TODO: revise this. find corresponding train_clas_layer_list to 4 and 8
 num_client_list="6 11"
-cutlayer="4"
+cutlayer_list=(13 12 11 9)
+train_clas_layer_list=(2 3 4 5)
 for random_seed in $random_seed_list; do
-        for regularization_strength in $regularization_strength_list; do
-                for regularization in $regularization_list; do
-                        for num_client in $num_client_list; do
-                                for data_proportion in $data_proportion_list; do
-                                        for train_clas_layer in $train_clas_layer_list; do
-                                        filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.05_${regularization}_${regularization_strength}_200epoch
-                                        CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=$cutlayer --batch_size=${batch_size} \
-                                                --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
-                                                --dataset=$dataset --scheme=$scheme  --learning_rate=$learning_rate\
-                                                --attack_epochs=$attack_epochs \
-                                                --attack_client=$attack_client  --num_query=$num_query  --regularization=$regularization  --regularization_strength=${regularization_strength} \
-                                                --attack_style=$attack_style  --data_proportion=${data_proportion} --train_clas_layer=${train_clas_layer}
-                                        done
+        for regularization in $regularization_list; do
+                for num_client in $num_client_list; do
+                        for data_proportion in $data_proportion_list; do
+                                for index in ${!cutlayer_list[*]}; do 
+                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer_list[$index]}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.05_${regularization}_${regularization_strength}_200epoch
+                                CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=${cutlayer_list[$index]} --batch_size=${batch_size} \
+                                        --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
+                                        --dataset=$dataset --scheme=$scheme  --learning_rate=$learning_rate\
+                                        --attack_epochs=$attack_epochs \
+                                        --attack_client=$attack_client  --num_query=$num_query  --regularization=$regularization  --regularization_strength=${regularization_strength} \
+                                        --attack_style=$attack_style  --data_proportion=${data_proportion} --train_clas_layer=${train_clas_layer_list[$index]}
                                 done
                         done
                 done
