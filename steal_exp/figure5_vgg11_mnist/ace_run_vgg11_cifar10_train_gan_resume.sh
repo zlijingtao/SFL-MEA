@@ -2,7 +2,7 @@
 cd "$(dirname "$0")"
 cd ../../
 GPU_id=0
-arch=mobilenetv2
+arch=vgg11_bn
 batch_size=128
 
 num_client=2
@@ -15,7 +15,7 @@ ssim_threshold=0.5
 regularization_strength_list="0.0"
 folder_name="saves/train_attack"
 transfer_source_task=cifar10
-dataset=cifar10
+dataset=mnist
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300
@@ -33,7 +33,7 @@ for random_seed in $random_seed_list; do
                         for num_client in $num_client_list; do
                                 for data_proportion in $data_proportion_list; do
                                         for train_clas_layer in $train_clas_layer_list; do
-                                        filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.02_${regularization}_${regularization_strength}_200epoch
+                                        filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.05_${regularization}_${regularization_strength}_200epoch
                                         CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=$cutlayer --batch_size=${batch_size} \
                                                 --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
                                                 --dataset=$dataset --scheme=$scheme  --learning_rate=$learning_rate\

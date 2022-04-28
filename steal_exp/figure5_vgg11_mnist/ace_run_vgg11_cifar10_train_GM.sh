@@ -5,12 +5,12 @@ GPU_id=3
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
-dataset_list="svhn"
+dataset_list="mnist"
 scheme=V2_epoch
 random_seed_list="125"
 
 # regularization_list="GM_train_ME_CIFAR100_start120"
-regularization_list="GM_train_ME_CIFAR10_start160 GM_train_ME_CIFAR100_start160 GM_train_ME_MNIST_start160"
+regularization_list="GM_train_ME_CIFAR10_start160 GM_train_ME_CIFAR100_start160 GM_train_ME_SVHN_start160"
 
 learning_rate=0.05
 regularization_strength="1.0"

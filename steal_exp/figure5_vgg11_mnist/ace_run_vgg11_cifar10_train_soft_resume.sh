@@ -20,7 +20,7 @@ folder_name="saves/train_attack"
 
 # source_task_list="svhn mnist facescrub cifar10"
 transfer_source_task=cifar10
-dataset=svhn
+dataset=mnist
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300
