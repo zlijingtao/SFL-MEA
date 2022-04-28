@@ -196,6 +196,7 @@ class MIA:
 
         if "gan_train_ME" in self.regularization_option:
             self.Generator_train_option = True
+            self.noise_w = 50.0
             try:
                 self.gan_train_start_epoch = int(self.regularization_option.split("start")[1])
             except:
@@ -437,7 +438,7 @@ class MIA:
 
         if self.Generator_train_option:
             # initialize generator.
-            self.nz = 256
+            self.nz = 512
             self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=3, img_size=32)
 
 
@@ -1026,7 +1027,7 @@ class MIA:
         # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
         g_noise_out_dist = torch.mean(torch.abs(x_private[:B, :] - x_private[B:, :]))
         g_noise_z_dist = torch.mean(torch.abs(z[:B, :] - z[B:, :]).view(B,-1),dim=1)
-        g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
+        g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * self.noise_w
 
 
         z_private = self.model.local_list[client_id](x_private)
@@ -2096,6 +2097,7 @@ class MIA:
             Generator_option = True
             gradient_matching = False
             nz = 512
+            self.noise_w = 50.0
             if "Generator_option_resume" in attack_style:
                 resume_option = True
             else:
@@ -2869,9 +2871,7 @@ class MIA:
         scale = 3e-1
         
 
-        # noise_w = 1.0
-        noise_w = 50.0
-        D_w = noise_w
+        D_w = self.noise_w
 
         if self.dataset == "cifar10":
             D_w = D_w * 10
@@ -3000,7 +3000,7 @@ class MIA:
                 
                 g_noise_out_dist = torch.mean(torch.abs(fake[:B, :] - fake[B:, :]))
                 g_noise_z_dist = torch.mean(torch.abs(z[:B, :] - z[B:, :]).view(B,-1),dim=1)
-                g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
+                g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * self.noise_w
 
 
                 if not pred_option:
