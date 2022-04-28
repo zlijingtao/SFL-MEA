@@ -19,7 +19,7 @@ ssim_threshold=0.5
 folder_name="saves/train_attack"
 
 transfer_source_task=cifar10
-dataset=svhn
+dataset=mnist
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300

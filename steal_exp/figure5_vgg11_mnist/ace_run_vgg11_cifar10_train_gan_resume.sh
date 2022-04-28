@@ -9,25 +9,20 @@ num_client=2
 num_epochs=200
 
 random_seed_list="125"
-#Extra argement (store_true): --collude_use_public, --initialize_different  --collude_not_regularize  --collude_not_regularize --num_client_regularize ${num_client_regularize}
-
-# regularization=gan_adv_step1
 
 scheme=V2_epoch
 ssim_threshold=0.5
-
+regularization_strength_list="0.0"
 folder_name="saves/train_attack"
-
 transfer_source_task=cifar10
-dataset=svhn
+dataset=mnist
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300
 attack_client=0
 num_query=10
-attack_style="Craft_option_resume"
-regularization_list="craft_train_ME_start120 craft_train_ME_start160"
-regularization_strength_list="20 50"
+attack_style="Generator_option_resume"
+regularization_list="gan_train_ME_nopoison_start160 gan_train_ME_nopoison_start120"
 data_proportion_list="0.0"
 train_clas_layer_list="2 3 4 5"
 num_client_list="6 11"

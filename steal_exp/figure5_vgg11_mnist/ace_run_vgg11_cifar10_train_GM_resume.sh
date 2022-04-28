@@ -15,21 +15,21 @@ random_seed_list="125"
 
 scheme=V2_epoch
 ssim_threshold=0.5
-regularization_strength_list="0.0"
+regularization_strength="1.0"
 folder_name="saves/train_attack"
 
 # source_task_list="svhn mnist facescrub cifar10"
 transfer_source_task=cifar10
-dataset=svhn
+dataset=mnist
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
-attack_epochs=300
+attack_epochs=100
 attack_client=0
 num_query=10
-attack_style="SoftTrain_option_resume"
-regularization_list="soft_train_ME_start160 soft_train_ME_start120"
-data_proportion_list="0.0"
-num_client_list="5 10"
+attack_style="GM_option_resume"
+regularization_list="GM_train_ME_CIFAR10_start160 GM_train_ME_CIFAR100_start160 GM_train_ME_SVHN_start160"
+data_proportion_list="0.1"
+num_client_list="6 11"
 
 cutlayer_list=(13 12 11 9)
 train_clas_layer_list=(2 3 4 5)

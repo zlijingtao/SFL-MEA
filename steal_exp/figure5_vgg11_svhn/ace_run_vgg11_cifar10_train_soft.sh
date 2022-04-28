@@ -5,7 +5,7 @@ GPU_id=3
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
-dataset_list="cifar100"
+dataset_list="svhn"
 scheme=V2_epoch
 random_seed_list="125"
 

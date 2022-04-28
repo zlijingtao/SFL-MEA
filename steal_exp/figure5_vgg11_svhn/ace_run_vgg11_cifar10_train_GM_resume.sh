@@ -20,14 +20,14 @@ folder_name="saves/train_attack"
 
 # source_task_list="svhn mnist facescrub cifar10"
 transfer_source_task=cifar10
-dataset=cifar100
+dataset=svhn
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=100
 attack_client=0
 num_query=10
 attack_style="GM_option_resume"
-regularization_list="GM_train_ME_CIFAR100_start120 GM_train_ME_CIFAR100_start160"
+regularization_list="GM_train_ME_CIFAR10_start160 GM_train_ME_CIFAR100_start160 GM_train_ME_MNIST_start160"
 data_proportion_list="0.1"
 num_client_list="6 11"
 

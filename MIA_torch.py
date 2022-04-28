@@ -2446,6 +2446,9 @@ class MIA:
                     knockoff_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
                 elif "SVHN" in attack_style:
                     knockoff_loader_list, _, _ = get_SVHN_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
+                elif "MNIST" in attack_style:
+                    knockoff_loader_list, _= get_mnist_bothloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
+                
                 else: # default use cifar10
                     knockoff_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
             knockoff_loader = knockoff_loader_list[0]
