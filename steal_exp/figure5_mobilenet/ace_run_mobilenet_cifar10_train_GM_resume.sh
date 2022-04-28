@@ -37,7 +37,7 @@ for random_seed in $random_seed_list; do
                 for num_client in $num_client_list; do
                         for data_proportion in $data_proportion_list; do
                                 for index in ${!cutlayer_list[*]}; do 
-                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer_list[$index]}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.05_${regularization}_${regularization_strength}_200epoch
+                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer_list[$index]}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.02_${regularization}_${regularization_strength}_200epoch
                                 CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=${cutlayer_list[$index]} --batch_size=${batch_size} \
                                         --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
                                         --dataset=$dataset --scheme=$scheme  --learning_rate=$learning_rate\
