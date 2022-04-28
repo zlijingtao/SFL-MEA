@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=3
+GPU_id=0
 arch=vgg11_bn
 batch_size=128
 
@@ -9,16 +9,10 @@ num_client=2
 num_epochs=200
 
 random_seed_list="125"
-#Extra argement (store_true): --collude_use_public, --initialize_different  --collude_not_regularize  --collude_not_regularize --num_client_regularize ${num_client_regularize}
-
-# regularization=gan_adv_step1
-
 scheme=V2_epoch
 ssim_threshold=0.5
-regularization_strength="1.0"
+regularization_strength_list="0.0"
 folder_name="saves/train_attack"
-
-# source_task_list="svhn mnist facescrub cifar10"
 transfer_source_task=cifar10
 dataset=cifar100
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
@@ -26,11 +20,11 @@ learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 attack_epochs=100
 attack_client=0
 num_query=10
-attack_style="GM_option_resume"
-regularization_list="GM_train_ME_CIFAR100_start120 GM_train_ME_CIFAR100_start160"
-data_proportion_list="0.1"
-num_client_list="6 11"
-
+attack_style="gradient_matching_TrainME_option_resume"
+regularization_list="normal_train_ME_start120 normal_train_ME_start160"
+# regularization_list="normal_train_ME_start120"
+data_proportion_list="0.2 0.02"
+num_client_list="5 10"
 cutlayer_list=(13 12 11 9)
 train_clas_layer_list=(2 3 4 5)
 for random_seed in $random_seed_list; do
