@@ -15,7 +15,7 @@ random_seed_list="125"
 
 scheme=V2_epoch
 ssim_threshold=0.5
-regularization_strength_list="0.0"
+regularization_strength="0.0"
 folder_name="saves/train_attack"
 
 # source_task_list="svhn mnist facescrub cifar10"
