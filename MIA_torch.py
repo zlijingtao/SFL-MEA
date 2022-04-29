@@ -194,6 +194,9 @@ class MIA:
         '''Train time ME attack'''
         self.trigger_stop = False
 
+
+        self.gan_train_start_epoch = 0
+
         if "gan_train_ME" in self.regularization_option:
             self.Generator_train_option = True
             self.noise_w = 50.0
@@ -276,6 +279,10 @@ class MIA:
             self.nopeek = True
         else:
             self.nopeek = False
+
+
+
+
 
         self.alpha1 = regularization_strength  # set to 0.1 # 1000 in Official NoteBook https://github.com/tremblerz/nopeek/blob/master/noPeekCifar10%20(1)-Copy2.ipynb
 
@@ -802,7 +809,10 @@ class MIA:
             output = output.view(output.size(0), -1)
             output = self.classifier(output)
         
-        criterion = torch.nn.CrossEntropyLoss()
+        if "label_smooth" in self.regularization_option:
+            criterion = torch.nn.CrossEntropyLoss(label_smoothing=self.regularization_strength)
+        else:
+            criterion = torch.nn.CrossEntropyLoss()
 
         f_loss = criterion(output, label_private)
 
@@ -843,6 +853,26 @@ class MIA:
                     gan_loss = - self.alpha2 * mse_term  
 
                 total_loss = total_loss + gan_loss
+
+
+        if "l1" in self.regularization_option:
+            all_params = torch.cat([x.view(-1) for x in self.model.local_list[client_id].parameters()])
+            l1_regularization = self.regularization_strength * torch.norm(all_params, 1)
+            total_loss = total_loss + l1_regularization
+        if "l2" in self.regularization_option:
+            all_params = torch.cat([x.view(-1) for x in self.model.local_list[client_id].parameters()])
+            l2_regularization = self.regularization_strength * torch.norm(all_params, 2)
+            total_loss = total_loss + l2_regularization
+
+        if "use_ce_loss" in self.regularization_option:
+            pass
+        
+        if "gradient_noise_cloud" in self.regularization_option:
+            for i, p in enumerate(self.model.cloud.parameters()):
+                p.register_hook(lambda grad: torch.add(grad, torch.rand_like(grad).cuda()))
+        if "gradient_noise_local" in self.regularization_option:
+            for i, p in enumerate(self.model.local_list[0].parameters()):
+                p.register_hook(lambda grad: torch.add(grad, torch.rand_like(grad).cuda()))
 
         total_loss.backward()
 
