@@ -869,10 +869,10 @@ class MIA:
         
         if "gradient_noise_cloud" in self.regularization_option:
             for i, p in enumerate(self.model.cloud.parameters()):
-                p.register_hook(lambda grad: torch.add(grad, torch.rand_like(grad).cuda()))
+                p.register_hook(lambda grad: torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda()))
         if "gradient_noise_local" in self.regularization_option:
             for i, p in enumerate(self.model.local_list[0].parameters()):
-                p.register_hook(lambda grad: torch.add(grad, torch.rand_like(grad).cuda()))
+                p.register_hook(lambda grad: torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda()))
 
         total_loss.backward()
 
