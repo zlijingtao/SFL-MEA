@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=0
+GPU_id=5
 arch=resnet34
 batch_size=128
 
