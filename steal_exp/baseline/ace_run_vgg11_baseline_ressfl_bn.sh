@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=2
+GPU_id=1
 arch=vgg11_bn
 batch_size=128
 
@@ -15,13 +15,13 @@ random_seed_list="125"
 regularization=gan_adv_step3
 learning_rate=0.05
 local_lr=-1
-regularization_strength_list="0.3 0.5"
+regularization_strength_list="0.0 0.3"
 cutlayer_list="8 9 11"
 num_client=1
 ssim_threshold=0.5
 # train_gan_AE_type_list="conv_normN0C16 res_normN4C64"
 train_gan_AE_type_list="res_normN4C64"
-bc_list="None"
+bc_list="noRELU_C8S1"
 gan_loss_type=SSIM
 folder_name=saves/regu
 for bc in $bc_list; do
