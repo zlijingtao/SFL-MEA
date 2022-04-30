@@ -14,7 +14,7 @@ cutlayer="4"
 num_client="1"
 
 dataset=cifar10
-learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
+learning_rate=0.05 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300
 attack_client=0
