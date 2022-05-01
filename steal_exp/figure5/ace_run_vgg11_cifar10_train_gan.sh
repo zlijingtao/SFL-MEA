@@ -9,7 +9,7 @@ dataset_list="cifar10"
 scheme=V2_epoch
 random_seed_list="125"
 
-regularization_list="gan_train_ME_nopoison_start160 gan_train_ME_nopoison_start120"
+regularization_list="gan_train_ME_nopoison_nz256_start160 gan_train_ME_nopoison_nz256_start120"
 
 learning_rate=0.05
 regularization_strength_list="0.0"
