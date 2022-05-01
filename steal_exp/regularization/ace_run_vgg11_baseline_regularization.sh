@@ -15,8 +15,8 @@ learning_rate=0.05
 cutlayer_list="9 11"
 num_client_list="1"
 folder_name="saves/regu"
-regularization_list=(gradient_noise_cloud topkprune dropout local_dp_laplace nopeek l1 l2 gradient_noise_local)
-regularization_strength_list=(1.0 0.75 0.5 20.0 1.0 1e-3 1e-4 1.0)
+regularization_list=(l1 l1 l1 l1 l2 l2 l2)
+regularization_strength_list=(5e-4 2e-4 1e-4 5e-5 1e-3 5e-4 2e-4)
 for dataset in $dataset_list; do
         for random_seed in $random_seed_list; do
                 for cutlayer in $cutlayer_list; do
