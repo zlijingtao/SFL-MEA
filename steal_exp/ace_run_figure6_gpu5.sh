@@ -13,7 +13,7 @@ cd "$(dirname "$0")"
 # bash figure6/ace_run_steal_attack_TrainME_mobilenetv2_all.sh
 
 bash figure6/ace_run_steal_attack_TrainME_resnet18_cifar10.sh
-bash figure6/ace_run_resnet32_baseline.sh
-bash figure6/ace_run_resnet34_baseline.sh
+# bash figure6/ace_run_resnet32_baseline.sh
+# bash figure6/ace_run_resnet34_baseline.sh
 bash figure6/ace_run_steal_attack_TrainME_resnet32_cifar10.sh
 bash figure6/ace_run_steal_attack_TrainME_resnet34_cifar10.sh
