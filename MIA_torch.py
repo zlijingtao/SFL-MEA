@@ -200,6 +200,13 @@ class MIA:
         if "gan_train_ME" in self.regularization_option:
             self.Generator_train_option = True
             self.noise_w = 50.0
+
+            if "nz256" in self.regularization_option:
+                self.nz = 256
+            elif "nz128" in self.regularization_option:
+                self.nz = 128
+            else:
+                self.nz = 512
             try:
                 self.gan_train_start_epoch = int(self.regularization_option.split("start")[1])
             except:
@@ -445,7 +452,6 @@ class MIA:
 
         if self.Generator_train_option:
             # initialize generator.
-            self.nz = 512
             self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=3, img_size=32)
 
 
@@ -2134,6 +2140,10 @@ class MIA:
             Generator_option = True
             gradient_matching = False
             nz = 512
+            if "nz256" in attack_style:
+                nz = 256
+            elif "nz128" in attack_style:
+                nz = 128
             self.noise_w = 50.0
             if "Generator_option_resume" in attack_style:
                 resume_option = True
@@ -2181,8 +2191,11 @@ class MIA:
                 resume_option = True
             else:
                 resume_option = False
+            
             soft_alpha = 0.9
-            soft_lambda = 0.1 # control the regularization strength
+
+            retain_grad_tensor = "act"
+            soft_lambda = 1 - soft_alpha # control the regularization strength
         else:
             SoftTrain_option = False
 
@@ -2413,21 +2426,25 @@ class MIA:
                         save_grad.append(true_grad.detach().cpu().clone())
                         save_label.append(derived_label.detach().cpu().clone())
             else:
-                
                 if num_query < self.num_class * 100:
                     print("Query budget is too low to run SoftTrainME")
                 
                 for i, (images, labels) in enumerate(attacker_dataloader):
-
+                    self.optimizer_zero_grad()
                     images = images.cuda()
+                    if retain_grad_tensor == "img":
+                        images.requires_grad = True
+                        images.retain_grad()
                     labels = labels.cuda()
-
-                    
                     cos_sim_list = []
 
-                    self.optimizer_zero_grad()
+                    
                     z_private = self.model.local_list[attack_client](images)
-                    z_private.retain_grad()
+                    
+                    
+                    if retain_grad_tensor == "act":
+                        z_private.retain_grad()
+                        
                     output = self.model.cloud(z_private)
 
                     loss = criterion(output, labels)
@@ -2436,23 +2453,35 @@ class MIA:
                     # log_prob = torch.nn.functional.log_softmax(output, dim=1)
                     # loss = torch.mean(torch.sum(-one_hot_target * log_prob, dim=1))
                     loss.backward(retain_graph = True)
-                    z_private_grad = z_private.grad.detach().clone()
+
+                    if retain_grad_tensor == "img":
+                        z_private_grad = images.grad.detach().clone()
+                    elif retain_grad_tensor == "act":
+                        z_private_grad = z_private.grad.detach().clone()
 
                     if i * self.num_class * 100 <= num_query: # in query budget, craft soft label 
                         for c in range(self.num_class):
                             fake_label = c * torch.ones_like(labels).cuda()
                             self.optimizer_zero_grad()
-                            z_private.grad.zero_()
+                            if retain_grad_tensor == "act":
+                                z_private.grad.zero_()
+                            elif retain_grad_tensor == "img":
+                                images.grad.zero_()
                             z_private = self.model.local_list[attack_client](images)
-                            z_private.retain_grad()
 
+                            if retain_grad_tensor == "act":
+                                z_private.retain_grad()
+                            elif retain_grad_tensor == "img":
+                                images.retain_grad()
                             output = self.model.cloud(z_private)
 
                             loss = criterion(output, fake_label)
                             
                             loss.backward(retain_graph = True)
-                            fake_z_private_grad = z_private.grad.detach().clone()
-
+                            if retain_grad_tensor == "act":
+                                fake_z_private_grad = z_private.grad.detach().clone()
+                            elif retain_grad_tensor == "img":
+                                fake_z_private_grad = images.grad.detach().clone()
                             cos_sim_val = similar_func(fake_z_private_grad.view(labels.size(0), -1), z_private_grad.view(labels.size(0), -1))
                             cos_sim_list.append(cos_sim_val.detach().clone()) # 10 item of [128, 1]
                         cos_sim_tensor = torch.stack(cos_sim_list).view(self.num_class, -1).t().cuda()
@@ -2468,10 +2497,12 @@ class MIA:
                     else:  # out of query budget, use hard label
                         derived_label = F.one_hot(labels, num_classes=self.num_class)
 
+                    if retain_grad_tensor == "img":
+                        images.requires_grad = False
                     save_images.append(images.cpu().clone())
                     save_grad.append(z_private_grad.cpu().clone())
                     save_label.append(derived_label.cpu().clone())
-        
+                    
         ''' Knockoffset, option_B has no prediction query (use grad-matching), option_C has predicion query (craft input-label pair)'''
         if GM_option or Copycat_option or Knockoff_option:
             # We fix query batch size to 100 to better control the total query number.
