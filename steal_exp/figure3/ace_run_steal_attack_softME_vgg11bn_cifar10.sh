@@ -20,7 +20,8 @@ attack_epochs=300
 attack_client=0
 num_query_list="1000 10000"
 attack_style_list="SoftTrain_option"
-data_proportion_list="0.02 0.2"
+# data_proportion_list="0.02 0.2"
+data_proportion_list="0.02"
 
 # train_clas_layer_list="2 3 4 5"
 
@@ -49,7 +50,7 @@ data_proportion_list="0.02 0.2"
 
 learning_rate=0.02
 
-train_clas_layer_list="6 7 8"
+train_clas_layer_list="8 7 6"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do

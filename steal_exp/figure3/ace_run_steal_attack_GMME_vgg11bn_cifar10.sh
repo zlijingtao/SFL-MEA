@@ -89,7 +89,6 @@ done
 #                                         for data_proportion in $data_proportion_list; do
 #                                                 for train_clas_layer in $train_clas_layer_list; do
 #                                                 filename=ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_${dataset}_lr_0.05_200epoch
-
 #                                                 CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=$cutlayer --batch_size=${batch_size} \
 #                                                         --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
 #                                                         --dataset=$dataset --scheme=$scheme --test_best  --learning_rate=$learning_rate\
