@@ -2194,6 +2194,9 @@ class MIA:
             
             soft_alpha = 0.9
 
+            if "alpha" in attack_style:
+                soft_alpha = float(attack_style.split("alpha")[-1])
+
             retain_grad_tensor = "act"
             soft_lambda = 1 - soft_alpha # control the regularization strength
         else:
@@ -2685,6 +2688,9 @@ class MIA:
         
         if SoftTrain_option and resume_option: #TODO: test the usefulness of this.
             dl_transforms = None
+
+        # if SoftTrain_option or TrainME_option: #TODO: reverse this.
+        #     dl_transforms = None
         
         min_grad_loss = 9.9
         acc_loss_min_grad_loss = 9.9
@@ -2692,11 +2698,8 @@ class MIA:
         fidelity_max = 0.0
         
         best_tail_state_dict = None
-        best_classifier_state_dict = None
         val_accu, fidel_score = self.steal_test(attack_client=attack_client)
         self.logger.debug("epoch: {}, val_acc: {}, val_fidelity: {}".format(0, val_accu, fidel_score))
-
-
 
         # Train surrogate model
         for epoch in range(1, num_epoch + 1):
@@ -2749,6 +2752,22 @@ class MIA:
                     grad_loss_list.append(total_loss.detach().cpu().item())
                 
             if not (Generator_option or GM_option): # dl contains input and label, very general framework
+                
+                if SoftTrain_option: #perform matching (distable augmentation)
+                    for idx, (index, image, grad, label) in enumerate(dl):
+                        image = image.cuda()
+                        grad = grad.cuda()
+                        label = label.cuda()
+                        self.suro_optimizer.zero_grad()
+                        act = self.surrogate_model.local(image)
+                        output = self.surrogate_model.cloud(act)
+                        _, real_label = label.max(dim = 1)
+                        ce_loss = (1 - soft_lambda) * criterion(output, real_label) + soft_lambda * torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
+                        # ce_loss = torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
+                        total_loss = ce_loss
+                        total_loss.backward()
+                        self.suro_optimizer.step()
+                
                 for idx, (index, image, grad, label) in enumerate(dl):
                     if dl_transforms is not None:
                         image = dl_transforms(image)
@@ -2766,7 +2785,7 @@ class MIA:
                         ce_loss = torch.mean(torch.sum(-label * log_prob, dim=1))
                     elif SoftTrain_option:
                         _, real_label = label.max(dim = 1)
-                        ce_loss = (1 - soft_lambda) * criterion(output, real_label) + soft_lambda * torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
+                        ce_loss = criterion(output, real_label)
                     else:
                         ce_loss = criterion(output, label)
 
@@ -2776,7 +2795,7 @@ class MIA:
 
                     acc_loss_list.append(ce_loss.detach().cpu().item())
 
-                    if SoftTrain_option or Knockoff_option:
+                    if Knockoff_option or SoftTrain_option:
                         _, real_label = label.max(dim=1)
                         acc = accuracy(output.data, real_label)[0]
                     else:
@@ -2784,43 +2803,6 @@ class MIA:
                         
                     acc_list.append(acc.cpu().item())
                 
-                if resume_option and TrainME_option and gradient_matching: #TODO: use dl_asssit (gradient matching) to assit the training
-                    for idx, (index, image, grad, label) in enumerate(dl_assist):
-                        
-                        image = image.cuda()
-                        grad = grad.cuda()
-                        label = label.cuda()
-
-                        self.suro_optimizer.zero_grad()
-                        act = self.surrogate_model.local(image)
-                        output = self.surrogate_model.cloud(act)
-
-                        ce_loss = criterion(output, label)
-
-                        # grad_lambda controls the strength of gradient matching lass
-                        # ce_loss_lower_bound controls when enters the gradient matching phase.
-                        gradient_loss_style = "l2"
-                        grad_lambda = 1.0
-
-                        grad_approx = torch.autograd.grad(ce_loss, act, create_graph = True)[0]
-
-                        # grad_loss = ((grad - grad_approx).norm(dim=1, p =1)).mean() / mean_norm + torch.mean(1 - F.cosine_similarity(grad_approx, grad, dim=1))
-                        if gradient_loss_style == "l2":
-                            grad_loss = ((grad - grad_approx).norm(dim=1, p =2)).mean() / mean_norm
-                        elif gradient_loss_style == "l1":
-                            grad_loss = ((grad - grad_approx).norm(dim=1, p =1)).mean() / mean_norm
-                        elif gradient_loss_style == "cosine":
-                            grad_loss = torch.mean(1 - F.cosine_similarity(grad_approx, grad, dim=1))
-
-
-                        total_loss = grad_loss * grad_lambda
-                        
-                        total_loss.backward()
-                        self.suro_optimizer.step()
-
-                        grad_loss_list.append(grad_loss.detach().cpu().item())
-
-
             if Generator_option: # dynamically generates input and label using the trained Generator, used only in GAN-ME
                 iter_generator_times = 20
                 for i in range(iter_generator_times):
@@ -2855,49 +2837,135 @@ class MIA:
                     acc_list.append(acc.cpu().item())
             
 
-            if gradient_matching:
-                grad_loss_mean = np.mean(grad_loss_list)
-            else:
-                grad_loss_mean = None
-                min_grad_loss = None
+            grad_loss_mean = None
+            min_grad_loss = None
             acc_loss_mean = np.mean(acc_loss_list)
             avg_acc = np.mean(acc_list)
 
             val_accu, fidel_score = self.steal_test(attack_client=attack_client)
 
-            if gradient_matching:
-                if val_accu > val_acc_max:
-                    min_grad_loss = grad_loss_mean
-                    acc_loss_min_grad_loss = acc_loss_mean
-                    val_acc_max = val_accu
-                    acc_max_fidelity = fidel_score
-                    best_client_state_dict = self.surrogate_model.local.state_dict()
-                    best_tail_state_dict = self.surrogate_model.cloud.state_dict()
-                if fidel_score > fidelity_max:
-                    min_grad_loss = grad_loss_mean
-                    acc_loss_min_grad_loss = acc_loss_mean
-                    fidelity_max = fidel_score
-                    fidel_max_acc = val_accu
-                    closest_client_state_dict = self.surrogate_model.local.state_dict()
-                    closest_tail_state_dict = self.surrogate_model.cloud.state_dict()
-            else:
-                if val_accu > val_acc_max:
-                    acc_loss_min_grad_loss = acc_loss_mean
-                    val_acc_max = val_accu
-                    acc_max_fidelity = fidel_score
-                    best_client_state_dict = self.surrogate_model.local.state_dict()
-                    best_tail_state_dict = self.surrogate_model.cloud.state_dict()
-                if fidel_score > fidelity_max:
-                    acc_loss_min_grad_loss = acc_loss_mean
-                    fidelity_max = fidel_score
-                    fidel_max_acc = val_accu
-                    closest_client_state_dict = self.surrogate_model.local.state_dict()
-                    closest_tail_state_dict = self.surrogate_model.cloud.state_dict()
+            if val_accu > val_acc_max:
+                acc_loss_min_grad_loss = acc_loss_mean
+                val_acc_max = val_accu
+                acc_max_fidelity = fidel_score
+                best_client_state_dict = self.surrogate_model.local.state_dict()
+                best_tail_state_dict = self.surrogate_model.cloud.state_dict()
+            if fidel_score > fidelity_max:
+                acc_loss_min_grad_loss = acc_loss_mean
+                fidelity_max = fidel_score
+                fidel_max_acc = val_accu
+                closest_client_state_dict = self.surrogate_model.local.state_dict()
+                closest_tail_state_dict = self.surrogate_model.cloud.state_dict()
             
             self.logger.debug("epoch: {}, train_acc: {}, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(epoch, avg_acc, val_accu, fidel_score, acc_loss_mean, grad_loss_mean))
         
 
-        
+        if gradient_matching:
+
+            # for epoch in range(num_epoch, num_epoch + 100):
+            for epoch in range(0, 100):
+                grad_loss_list = []
+                acc_loss_list = []
+                acc_list = []
+                self.suro_scheduler.step(epoch)
+                if resume_option and TrainME_option:
+                    acc_loss_list.append(0.0)
+                    acc_list.append(0.0)
+                    for idx, (index, image, grad, label) in enumerate(dl_assist):
+                        
+                        image = image.cuda()
+                        grad = grad.cuda()
+                        label = label.cuda()
+
+                        self.suro_optimizer.zero_grad()
+                        act = self.surrogate_model.local(image)
+                        output = self.surrogate_model.cloud(act)
+
+                        ce_loss = criterion(output, label)
+
+                        # grad_lambda controls the strength of gradient matching lass
+                        # ce_loss_lower_bound controls when enters the gradient matching phase.
+                        gradient_loss_style = "l2"
+                        grad_lambda = 1.0
+
+                        grad_approx = torch.autograd.grad(ce_loss, act, create_graph = True)[0]
+
+                        # grad_loss = ((grad - grad_approx).norm(dim=1, p =1)).mean() / mean_norm + torch.mean(1 - F.cosine_similarity(grad_approx, grad, dim=1))
+                        if gradient_loss_style == "l2":
+                            grad_loss = ((grad - grad_approx).norm(dim=1, p =2)).mean() / mean_norm
+                        elif gradient_loss_style == "l1":
+                            grad_loss = ((grad - grad_approx).norm(dim=1, p =1)).mean() / mean_norm
+                        elif gradient_loss_style == "cosine":
+                            grad_loss = torch.mean(1 - F.cosine_similarity(grad_approx, grad, dim=1))
+
+
+                        total_loss = grad_loss * grad_lambda
+                        
+                        total_loss.backward()
+                        self.suro_optimizer.step()
+
+                        grad_loss_list.append(grad_loss.detach().cpu().item())
+                elif TrainME_option:
+
+                    acc_loss_list.append(0.0)
+                    acc_list.append(0.0)
+                    for idx, (index, image, grad, label) in enumerate(dl):
+                        # if dl_transforms is not None:
+                        #     image = dl_transforms(image)
+                        image = image.cuda()
+                        grad = grad.cuda()
+                        label = label.cuda()
+                        self.suro_optimizer.zero_grad()
+                        act = self.surrogate_model.local(image)
+                        act.requires_grad_()
+
+                        output = self.surrogate_model.cloud(act)
+
+                        ce_loss = criterion(output, label)
+
+                        gradient_loss_style = "l2"
+
+                        grad_lambda = 1.0
+
+                        grad_approx = torch.autograd.grad(ce_loss, act, create_graph = True)[0]
+
+                        if gradient_loss_style == "l2":
+                            grad_loss = ((grad - grad_approx).norm(dim=1, p =2)).mean() / mean_norm
+                        elif gradient_loss_style == "l1":
+                            grad_loss = ((grad - grad_approx).norm(dim=1, p =1)).mean() / mean_norm
+                        elif gradient_loss_style == "cosine":
+                            grad_loss = torch.mean(1 - F.cosine_similarity(grad_approx, grad, dim=1))
+
+                        total_loss = grad_loss * grad_lambda
+
+                        
+                        total_loss.backward()
+                        self.suro_optimizer.step()
+
+                        grad_loss_list.append(total_loss.detach().cpu().item())
+
+                grad_loss_mean = np.mean(grad_loss_list)
+                val_accu, fidel_score = self.steal_test(attack_client=attack_client)
+                acc_loss_mean = None
+                avg_acc = None
+                if val_accu > val_acc_max:
+                    min_grad_loss = grad_loss_mean
+                    acc_loss_min_grad_loss = acc_loss_mean
+                    val_acc_max = val_accu
+                    acc_max_fidelity = fidel_score
+                    best_client_state_dict = self.surrogate_model.local.state_dict()
+                    best_tail_state_dict = self.surrogate_model.cloud.state_dict()
+                if fidel_score > fidelity_max:
+                    min_grad_loss = grad_loss_mean
+                    acc_loss_min_grad_loss = acc_loss_mean
+                    fidelity_max = fidel_score
+                    fidel_max_acc = val_accu
+                    closest_client_state_dict = self.surrogate_model.local.state_dict()
+                    closest_tail_state_dict = self.surrogate_model.cloud.state_dict()
+                self.logger.debug("GMepoch: {}, train_acc: {}, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(epoch, avg_acc, val_accu, fidel_score, acc_loss_mean, grad_loss_mean))
+
+
+
 
         if gradient_matching:
             if best_tail_state_dict is not None:
