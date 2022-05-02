@@ -851,7 +851,8 @@ class MIA:
                     mse_loss = torch.nn.MSELoss()
                     mse_term = mse_loss(output_image, x_private)
                     gan_loss = - self.alpha2 * mse_term  
-
+                if "inv" in self.regularization_option:
+                    gan_loss = - gan_loss
                 total_loss = total_loss + gan_loss
 
 
@@ -2514,14 +2515,14 @@ class MIA:
             
                             image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
 
-                            if image_id > max_image_id - 2: # collect only the last two valid data batch. (even this is very bad)
+                            if image_id > max_image_id - 1: # collect only the last two valid data batch. (even this is very bad)
                                 saved_image = torch.load(file)
-                                saved_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
-                                saved_label = label * torch.ones(saved_grad.size(0), ).long()
+                                saved_grads = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
+                                saved_label = label * torch.ones(saved_grads.size(0), ).long()
                                 # saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
 
                                 save_images.append(saved_image.clone())
-                                save_grad.append(saved_grad.clone()) # add a random existing grad.
+                                save_grad.append(saved_grads.clone()) # add a random existing grad.
                                 save_label.append(saved_label.clone())
             else:
                 self.model.local_list[attack_client].eval()
