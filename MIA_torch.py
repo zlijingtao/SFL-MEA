@@ -2685,7 +2685,6 @@ class MIA:
         if SoftTrain_option and resume_option: #TODO: test the usefulness of this.
             dl_transforms = None
         
-
         min_grad_loss = 9.9
         acc_loss_min_grad_loss = 9.9
         val_acc_max = 0.0

@@ -23,7 +23,7 @@ attack_style_list="GM_option_SVHN"
 # attack_style_list="GM_option_CIFAR100 GM_option_SVHN"
 data_proportion_list="1.0"
 
-train_clas_layer_list="2 3 4 5"
+train_clas_layer_list="4 5"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
