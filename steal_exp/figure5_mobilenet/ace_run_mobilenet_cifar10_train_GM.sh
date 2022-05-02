@@ -14,8 +14,10 @@ regularization_list="GM_train_ME_CIFAR100_start120"
 
 learning_rate=0.02
 regularization_strength="1.0"
-cutlayer_list="18 17 16 15"
-num_client_list="6 11"
+# cutlayer_list="18 17 16 15"
+cutlayer_list="18"
+# num_client_list="6 11"
+num_client_list="6"
 folder_name="saves/train_attack"
 # ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_None_both_custom_0.0_200epoch_bottleneck_None
 for dataset in $dataset_list; do
