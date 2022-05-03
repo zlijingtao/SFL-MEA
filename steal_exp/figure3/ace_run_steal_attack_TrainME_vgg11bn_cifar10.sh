@@ -16,7 +16,8 @@ num_client="1"
 dataset=cifar10
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
-attack_epochs=100
+# attack_epochs=300
+attack_epochs=300
 attack_client=0
 num_query_list="1"
 attack_style_list="TrainME_option_grad"
@@ -50,7 +51,12 @@ data_proportion_list="0.02"
 
 learning_rate=0.02
 
+<<<<<<< HEAD
 train_clas_layer_list="8 7 6 5"
+=======
+train_clas_layer_list="6 7 8"
+# train_clas_layer_list="8"
+>>>>>>> 73a92617ec24ffe52d1001eab6593f0dbde34413
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
