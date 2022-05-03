@@ -15,7 +15,7 @@ random_seed="125"
 
 scheme=V2_epoch
 ssim_threshold=0.5
-regularization_strength="1.0"
+regularization_strength="0.0"
 folder_name="saves/train_attack_old"
 
 # source_task_list="svhn mnist facescrub cifar10"
@@ -23,7 +23,7 @@ transfer_source_task=cifar10
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 
-attack_epochs=300
+attack_epochs=200
 attack_client=0
 num_query=10
 attack_style_list="SoftTrain_option_resume"

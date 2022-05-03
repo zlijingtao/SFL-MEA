@@ -2861,8 +2861,10 @@ class MIA:
                     acc = accuracy(output.data, label)[0]
                     acc_list.append(acc.cpu().item())
             
-
-            grad_loss_mean = None
+            if GM_option:
+                grad_loss_mean = np.mean(grad_loss_list)
+            else:
+                grad_loss_mean = None
             min_grad_loss = None
             acc_loss_mean = np.mean(acc_loss_list)
             avg_acc = np.mean(acc_list)
@@ -2885,7 +2887,7 @@ class MIA:
             self.logger.debug("epoch: {}, train_acc: {}, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(epoch, avg_acc, val_accu, fidel_score, acc_loss_mean, grad_loss_mean))
         
 
-        if gradient_matching:
+        if gradient_matching and TrainME_option:
 
             # for epoch in range(num_epoch, num_epoch + 100):
             for epoch in range(0, 100):
