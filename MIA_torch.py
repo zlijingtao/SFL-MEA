@@ -835,6 +835,9 @@ class MIA:
                 else:
                     dist_corr_loss = self.alpha1 * dist_corr(x_private, z_private).sum()
 
+                if "inv" in self.regularization_option:
+                    dist_corr_loss = -dist_corr_loss
+
                 total_loss = total_loss + dist_corr_loss
             if self.gan_regularizer and not self.gan_noise:
                 self.local_AE_list[client_id].eval()
@@ -3160,7 +3163,7 @@ class MIA:
             
             if pred_option:
                 self.logger.debug("Best perform model, val_acc: {}, fidel_score: {}".format(max_acc, max_fidelity))
-            self.logger.debug(f'End of Training: {i}\t CE_Loss: {ce_losses.avg:.10f} diversity_Loss: {g_losses.avg:.10f} bc_losses (G): {bc_losses_gan.avg: .10f}  bc_losses (D)): {bc_losses.avg: .10f}')
+            self.logger.debug(f'End of Training: \t CE_Loss: {ce_losses.avg:.10f} diversity_Loss: {g_losses.avg:.10f} bc_losses (G): {bc_losses_gan.avg: .10f}  bc_losses (D)): {bc_losses.avg: .10f}')
 
             self.generator.cuda()
             self.generator.eval()
