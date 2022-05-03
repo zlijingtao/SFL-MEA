@@ -16,6 +16,7 @@ num_client="1"
 dataset=cifar10
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
+# attack_epochs=300
 attack_epochs=300
 attack_client=0
 num_query_list="1"
@@ -50,6 +51,7 @@ data_proportion_list="0.2 0.02"
 learning_rate=0.02
 
 train_clas_layer_list="6 7 8"
+# train_clas_layer_list="8"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
