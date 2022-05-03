@@ -2259,7 +2259,13 @@ class MIA:
                 raise("Unknown Dataset!")
 
         attacker_dataloader = attacker_loader_list[attack_client]
+        
 
+        atk_transforms = torch.nn.Sequential(
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15)
+        )
         # prepare model, please make sure model.cloud and classifier are loaded from checkpoint.
         self.model.local_list[attack_client].cuda()
         self.model.local_list[attack_client].eval()
@@ -2433,7 +2439,10 @@ class MIA:
                     print("Query budget is too low to run SoftTrainME")
                 
                 for i, (images, labels) in enumerate(attacker_dataloader):
+                    
                     self.optimizer_zero_grad()
+                    if "aug" in attack_style:
+                        images = atk_transforms(images)
                     images = images.cuda()
                     if retain_grad_tensor == "img":
                         images.requires_grad = True
@@ -2564,6 +2573,8 @@ class MIA:
                 for i, (inputs, target) in enumerate(knockoff_loader):
                     if i * self.num_class * 100 >= num_query: # limit grad query budget
                         break
+                    if "aug" in attack_style:
+                        inputs = atk_transforms(inputs)
                     inputs = inputs.cuda()
                     for j in range(self.num_class):
                         label = j * torch.ones_like(target).cuda()
