@@ -21,6 +21,7 @@ attack_client=0
 num_query_list="10000 1000"
 attack_style_list="GM_option_MNIST"
 # attack_style_list="GM_option_CIFAR100 GM_option_SVHN"
+attack_style_list="GM_option_CIFAR100"
 data_proportion_list="1.0"
 
 train_clas_layer_list="2 3 4 5"
@@ -48,7 +49,7 @@ for random_seed in $random_seed_list; do
         done
 done
 
-learning_rate=0.05
+learning_rate=0.02
 
 train_clas_layer_list="6 7 8"
 

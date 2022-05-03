@@ -5,6 +5,7 @@ GPU_id=0
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
+# random_seed_list="126 127"
 random_seed_list="125"
 regularization=None
 scheme=V2_epoch
@@ -14,7 +15,7 @@ cutlayer_list="4"
 num_client="1"
 
 dataset=cifar100
-learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
+learning_rate=0.05 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300
 attack_client=0
