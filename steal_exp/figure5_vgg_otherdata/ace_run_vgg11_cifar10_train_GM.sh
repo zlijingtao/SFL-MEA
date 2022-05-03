@@ -5,14 +5,16 @@ GPU_id=0
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
-dataset_list="cifar10"
+dataset_list="cifar100 svhn mnist fmnist"
 scheme=V2_epoch
 random_seed_list="125"
-regularization_list="soft_train_ME_start120"
+
+regularization_list="GM_train_ME_CIFAR100_start120"
+
 learning_rate=0.05
-regularization_strength=0.0
+regularization_strength=1.0
 cutlayer_list="4"
-num_client_list="5 10"
+num_client_list="6 11"
 folder_name="saves/train_attack_old"
 # ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_None_both_custom_0.0_200epoch_bottleneck_None
 for dataset in $dataset_list; do

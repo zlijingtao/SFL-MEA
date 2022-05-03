@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=5
+GPU_id=0
 arch=vgg11_bn
 batch_size=128
 
@@ -26,8 +26,8 @@ learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 attack_epochs=300
 attack_client=0
 num_query=10
-# attack_style_list="GM_option_resume_last10 GM_option_resume_last5 GM_option_resume_last2"
-attack_style_list="GM_option_resume_last1"
+attack_style_list="GM_option_resume_last5 GM_option_resume_last2 GM_option_resume_last1"
+# attack_style_list="GM_option_resume_last1"
 regularization_list="GM_train_ME_CIFAR100_start120"
 data_proportion_list="0.1"
 num_client_list="6 11"

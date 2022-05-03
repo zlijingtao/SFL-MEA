@@ -2178,6 +2178,8 @@ class MIA:
             
             if "last" in attack_style:
                 last_n_batch = int(attack_style.split("last")[-1])
+            else:
+                last_n_batch = 5
         else:
             GM_option = False
 
@@ -2199,6 +2201,10 @@ class MIA:
             else:
                 resume_option = False
             
+            if "last" in attack_style:
+                last_n_batch = int(attack_style.split("last")[-1])
+            else:
+                last_n_batch = 5
             soft_alpha = 0.9
 
             if "alpha" in attack_style:
@@ -2420,34 +2426,44 @@ class MIA:
                 else:
                     print("No saved data is presented!")
                     exit()
+                  
+                max_image_id = 0
+                for file in glob.glob(saved_crafted_image_path + "*"):
+                    if "image" in file and "grad_image" not in file:
+                        image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                        if image_id > max_image_id:
+                            max_image_id = image_id
+          
                 for file in glob.glob(saved_crafted_image_path + "*"):
                     if "image" in file and "grad_image" not in file:
                         
                         saved_image = torch.load(file)
         
                         image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
-                        true_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label0.pt").cuda()
-                        true_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt").cuda()
-                        cos_sim_list = []
 
-                        for c in range(self.num_class):
-                            fake_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{c}.pt").cuda()
-                            cos_sim_val = similar_func(fake_grad.view(true_label.size(0), -1), true_grad.view(true_label.size(0), -1))
-                            cos_sim_list.append(cos_sim_val.detach().clone()) # 10 item of [128, 1]
+                        if image_id > max_image_id - last_n_batch: # collect only the last two valid data batch. (even this is very bad)
+                            true_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label0.pt").cuda()
+                            true_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt").cuda()
+                            cos_sim_list = []
 
-                        cos_sim_tensor = torch.stack(cos_sim_list).view(self.num_class, -1).t().cuda() # [128, 10]
-                        cos_sim_tensor += 1
-                        cos_sim_sum = (cos_sim_tensor).sum(1) - 1
-                        derived_label = (1 - soft_alpha) * cos_sim_tensor / cos_sim_sum.view(-1, 1) # [128, 10]
+                            for c in range(self.num_class):
+                                fake_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{c}.pt").cuda()
+                                cos_sim_val = similar_func(fake_grad.view(true_label.size(0), -1), true_grad.view(true_label.size(0), -1))
+                                cos_sim_list.append(cos_sim_val.detach().clone()) # 10 item of [128, 1]
 
-                        
-                        labels_as_idx = true_label.detach().view(-1, 1)
-                        replace_val = soft_alpha * torch.ones(labels_as_idx.size(), dtype=torch.long).cuda()
-                        derived_label.scatter_(1, labels_as_idx, replace_val)
+                            cos_sim_tensor = torch.stack(cos_sim_list).view(self.num_class, -1).t().cuda() # [128, 10]
+                            cos_sim_tensor += 1
+                            cos_sim_sum = (cos_sim_tensor).sum(1) - 1
+                            derived_label = (1 - soft_alpha) * cos_sim_tensor / cos_sim_sum.view(-1, 1) # [128, 10]
 
-                        save_images.append(saved_image.clone())
-                        save_grad.append(true_grad.detach().cpu().clone())
-                        save_label.append(derived_label.detach().cpu().clone())
+                            
+                            labels_as_idx = true_label.detach().view(-1, 1)
+                            replace_val = soft_alpha * torch.ones(labels_as_idx.size(), dtype=torch.long).cuda()
+                            derived_label.scatter_(1, labels_as_idx, replace_val)
+
+                            save_images.append(saved_image.clone())
+                            save_grad.append(true_grad.detach().cpu().clone())
+                            save_label.append(derived_label.detach().cpu().clone())
             else:
                 if num_query < self.num_class * 100:
                     print("Query budget is too low to run SoftTrainME")

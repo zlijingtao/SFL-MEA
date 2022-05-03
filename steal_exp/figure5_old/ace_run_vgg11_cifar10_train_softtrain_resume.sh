@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=1
+GPU_id=0
 arch=vgg11_bn
 batch_size=128
 
@@ -27,9 +27,9 @@ attack_epochs=200
 attack_client=0
 num_query=10
 attack_style_list="SoftTrain_option_resume"
-regularization_list="soft_train_ME_start160"
+regularization_list="soft_train_ME_start120"
 data_proportion_list="0.0"
-num_client_list="6 11"
+num_client_list="5 10"
 cutlayer_list=(4 4 4 4 4 4 4)
 train_clas_layer_list=(2 3 4 5 6 7 8)
 for attack_style in $attack_style_list; do
