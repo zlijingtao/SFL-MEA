@@ -24,11 +24,12 @@ parser.add_argument('--num_client', default=1, type=int, help='number of client'
 parser.add_argument('--num_epochs', default=200, type=int, help='number of epochs')
 parser.add_argument('--learning_rate', default=0.05, type=float, help='Learning Rate for server-side model')
 parser.add_argument('--test_best', action='store_true', default=False, help='if True, test the best epoch')
+
 parser.add_argument('--dataset', default="cifar10", type=str, help='number of classes for the testing dataset')
 parser.add_argument('--random_seed', default=123, type=int, help='random_seed for the testing dataset')
 parser.add_argument('--scheme', default="V2_epoch", type=str, help='the name of the scheme, either V3 or others')
 parser.add_argument('--bottleneck_option', default="None", type=str, help='set bottleneck option')
-
+parser.add_argument('--adversairal_attack', action='store_true', default=False, help='if True, test transfer adversarial attack')
 # test setting
 parser.add_argument('--regularization', default="None", type=str, help='apply regularization in multi-client training.')
 parser.add_argument('--regularization_strength', default=0.0, type=float, help='regularization_strength of regularization in multi-client training.')
@@ -86,7 +87,8 @@ for date_0 in date_list:
 
 
     mi.logger.debug(str(args))
-    mi.steal_attack(num_query = args.num_query, num_epoch = args.attack_epochs, attack_client=args.attack_client, attack_style = args.attack_style, data_proportion = args.data_proportion, noniid_ratio = args.noniid_ratio, train_clas_layer = args.train_clas_layer, surrogate_arch = args.surrogate_arch)
+    mi.steal_attack(num_query = args.num_query, num_epoch = args.attack_epochs, attack_client=args.attack_client, attack_style = args.attack_style, data_proportion = args.data_proportion,
+                     noniid_ratio = args.noniid_ratio, train_clas_layer = args.train_clas_layer, surrogate_arch = args.surrogate_arch, adversairal_attack_option = args.adversairal_attack)
     
 
 # %%

@@ -1,6 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-bash figure6/ace_run_vgg11_baseline_otherdata.sh
+# bash figure6/ace_run_vgg11_baseline_otherdata.sh
 bash figure6/ace_run_steal_attack_TrainME_vgg11bn_mnist.sh
 bash figure6/ace_run_steal_attack_TrainME_vgg11bn_fmnist.sh
 bash figure6/ace_run_steal_attack_TrainME_vgg11bn_svhn.sh

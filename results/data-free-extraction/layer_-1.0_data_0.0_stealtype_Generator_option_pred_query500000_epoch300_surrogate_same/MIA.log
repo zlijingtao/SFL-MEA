@@ -1,0 +1,172 @@
+2022-04-26 23:02:14,904 DEBUG Namespace(arch='vgg11_bn', attack_client=0, attack_epochs=300, attack_style='Generator_option_pred', average_time=1, batch_size=128, bottleneck_option='None', cutlayer=4, data_proportion=0.0, dataset='cifar10', filename='ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_200epoch', folder='saves/baseline', learning_rate=0.02, noniid_ratio=1.0, num_client=1, num_epochs='best', num_query=500000, random_seed=123, regularization='None', regularization_strength=0.0, scheme='V2_epoch', surrogate_arch='same', test_best=True, train_clas_layer=-1.0)
+2022-04-26 23:02:18,482 DEBUG Test (client-0):	Loss 0.6165 (0.3623)	Prec@1 81.250 (91.890)
+2022-04-26 23:02:18,482 DEBUG  * Prec@1 91.890
+2022-04-26 23:02:18,612 DEBUG surrogate parameter has 38 trainable parameters!
+2022-04-26 23:02:20,319 DEBUG Step: 10, val_acc: 9.79, val_fidelity: 9.63
+2022-04-26 23:02:20,418 DEBUG Train step: 10	 CE_Loss: 2.5379645824 diversity_Loss: 42.6163291931 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:22,152 DEBUG Step: 20, val_acc: 11.64, val_fidelity: 11.62
+2022-04-26 23:02:22,248 DEBUG Train step: 20	 CE_Loss: 2.7368328571 diversity_Loss: 45.2968750000 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:23,985 DEBUG Step: 30, val_acc: 12.37, val_fidelity: 12.21
+2022-04-26 23:02:24,081 DEBUG Train step: 30	 CE_Loss: 1.2833893299 diversity_Loss: 46.2221298218 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:25,794 DEBUG Step: 40, val_acc: 10.75, val_fidelity: 10.62
+2022-04-26 23:02:25,889 DEBUG Train step: 40	 CE_Loss: 0.9790167212 diversity_Loss: 47.4266052246 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:27,603 DEBUG Step: 50, val_acc: 15.42, val_fidelity: 15.71
+2022-04-26 23:02:27,699 DEBUG Train step: 50	 CE_Loss: 0.5114940405 diversity_Loss: 46.9131774902 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:29,395 DEBUG Step: 60, val_acc: 13.03, val_fidelity: 13.0
+2022-04-26 23:02:29,493 DEBUG Train step: 60	 CE_Loss: 0.3443757296 diversity_Loss: 46.9637641907 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:31,194 DEBUG Step: 70, val_acc: 11.21, val_fidelity: 11.36
+2022-04-26 23:02:31,291 DEBUG Train step: 70	 CE_Loss: 0.4994055033 diversity_Loss: 47.3995666504 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:32,991 DEBUG Step: 80, val_acc: 15.54, val_fidelity: 15.71
+2022-04-26 23:02:33,087 DEBUG Train step: 80	 CE_Loss: 0.4579551220 diversity_Loss: 47.2908477783 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:34,763 DEBUG Step: 90, val_acc: 16.41, val_fidelity: 16.72
+2022-04-26 23:02:34,858 DEBUG Train step: 90	 CE_Loss: 0.1311305612 diversity_Loss: 49.3355140686 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:36,538 DEBUG Step: 100, val_acc: 17.89, val_fidelity: 18.41
+2022-04-26 23:02:36,634 DEBUG Train step: 100	 CE_Loss: 0.3299936354 diversity_Loss: 47.1696777344 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:38,309 DEBUG Step: 110, val_acc: 16.39, val_fidelity: 16.63
+2022-04-26 23:02:38,405 DEBUG Train step: 110	 CE_Loss: 0.0988102183 diversity_Loss: 48.6614303589 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:40,084 DEBUG Step: 120, val_acc: 18.71, val_fidelity: 18.9
+2022-04-26 23:02:40,179 DEBUG Train step: 120	 CE_Loss: 0.2809460759 diversity_Loss: 49.3916168213 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:41,859 DEBUG Step: 130, val_acc: 18.46, val_fidelity: 18.63
+2022-04-26 23:02:41,955 DEBUG Train step: 130	 CE_Loss: 0.2697016001 diversity_Loss: 49.8693122864 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:43,620 DEBUG Step: 140, val_acc: 20.79, val_fidelity: 20.99
+2022-04-26 23:02:43,715 DEBUG Train step: 140	 CE_Loss: 0.1220672578 diversity_Loss: 49.6815071106 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:45,401 DEBUG Step: 150, val_acc: 20.55, val_fidelity: 20.89
+2022-04-26 23:02:45,497 DEBUG Train step: 150	 CE_Loss: 0.3911091089 diversity_Loss: 48.7486228943 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:47,180 DEBUG Step: 160, val_acc: 19.04, val_fidelity: 19.46
+2022-04-26 23:02:47,276 DEBUG Train step: 160	 CE_Loss: 0.2423220575 diversity_Loss: 50.2201614380 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:48,953 DEBUG Step: 170, val_acc: 21.91, val_fidelity: 22.51
+2022-04-26 23:02:49,049 DEBUG Train step: 170	 CE_Loss: 0.0369892344 diversity_Loss: 49.7071533203 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:50,726 DEBUG Step: 180, val_acc: 19.61, val_fidelity: 19.96
+2022-04-26 23:02:50,823 DEBUG Train step: 180	 CE_Loss: 0.2724613249 diversity_Loss: 49.9748115540 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:52,497 DEBUG Step: 190, val_acc: 22.02, val_fidelity: 22.37
+2022-04-26 23:02:52,592 DEBUG Train step: 190	 CE_Loss: 0.1446323991 diversity_Loss: 50.3136215210 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:54,274 DEBUG Step: 200, val_acc: 21.29, val_fidelity: 21.44
+2022-04-26 23:02:54,371 DEBUG Train step: 200	 CE_Loss: 0.3094594479 diversity_Loss: 49.7921333313 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:56,048 DEBUG Step: 210, val_acc: 23.57, val_fidelity: 23.96
+2022-04-26 23:02:56,143 DEBUG Train step: 210	 CE_Loss: 0.2198806405 diversity_Loss: 48.8265113831 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:57,817 DEBUG Step: 220, val_acc: 21.65, val_fidelity: 21.83
+2022-04-26 23:02:57,913 DEBUG Train step: 220	 CE_Loss: 0.0869636163 diversity_Loss: 49.1497497559 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:02:59,583 DEBUG Step: 230, val_acc: 22.09, val_fidelity: 22.56
+2022-04-26 23:02:59,679 DEBUG Train step: 230	 CE_Loss: 0.3522287309 diversity_Loss: 50.0628700256 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:01,366 DEBUG Step: 240, val_acc: 22.79, val_fidelity: 23.3
+2022-04-26 23:03:01,462 DEBUG Train step: 240	 CE_Loss: 0.3119343221 diversity_Loss: 51.2207984924 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:03,138 DEBUG Step: 250, val_acc: 21.64, val_fidelity: 21.89
+2022-04-26 23:03:03,234 DEBUG Train step: 250	 CE_Loss: 0.3588545322 diversity_Loss: 50.9191322327 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:04,921 DEBUG Step: 260, val_acc: 21.97, val_fidelity: 22.21
+2022-04-26 23:03:05,016 DEBUG Train step: 260	 CE_Loss: 0.1597035378 diversity_Loss: 49.2831840515 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:06,703 DEBUG Step: 270, val_acc: 24.5, val_fidelity: 24.95
+2022-04-26 23:03:06,799 DEBUG Train step: 270	 CE_Loss: 0.1839224696 diversity_Loss: 50.2708969116 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:08,475 DEBUG Step: 280, val_acc: 24.78, val_fidelity: 25.08
+2022-04-26 23:03:08,571 DEBUG Train step: 280	 CE_Loss: 0.1307132691 diversity_Loss: 51.1025962830 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:10,245 DEBUG Step: 290, val_acc: 24.88, val_fidelity: 25.25
+2022-04-26 23:03:10,342 DEBUG Train step: 290	 CE_Loss: 0.2530795038 diversity_Loss: 49.4658126831 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:12,034 DEBUG Step: 300, val_acc: 25.62, val_fidelity: 25.8
+2022-04-26 23:03:12,130 DEBUG Train step: 300	 CE_Loss: 0.1335391849 diversity_Loss: 48.8259773254 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:13,795 DEBUG Step: 310, val_acc: 24.46, val_fidelity: 24.97
+2022-04-26 23:03:13,891 DEBUG Train step: 310	 CE_Loss: 0.3254863024 diversity_Loss: 50.8771476746 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:15,567 DEBUG Step: 320, val_acc: 25.2, val_fidelity: 25.76
+2022-04-26 23:03:15,663 DEBUG Train step: 320	 CE_Loss: 0.1485149115 diversity_Loss: 50.4360313416 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:17,330 DEBUG Step: 330, val_acc: 24.84, val_fidelity: 25.28
+2022-04-26 23:03:17,426 DEBUG Train step: 330	 CE_Loss: 0.3160001636 diversity_Loss: 50.5467834473 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:19,100 DEBUG Step: 340, val_acc: 27.3, val_fidelity: 27.77
+2022-04-26 23:03:19,196 DEBUG Train step: 340	 CE_Loss: 0.2867233157 diversity_Loss: 50.2150001526 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:20,879 DEBUG Step: 350, val_acc: 25.37, val_fidelity: 25.85
+2022-04-26 23:03:20,976 DEBUG Train step: 350	 CE_Loss: 0.2420742661 diversity_Loss: 49.9376373291 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:22,647 DEBUG Step: 360, val_acc: 24.45, val_fidelity: 25.04
+2022-04-26 23:03:22,743 DEBUG Train step: 360	 CE_Loss: 0.1079718992 diversity_Loss: 50.1250991821 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:24,420 DEBUG Step: 370, val_acc: 26.15, val_fidelity: 26.57
+2022-04-26 23:03:24,516 DEBUG Train step: 370	 CE_Loss: 0.0926489234 diversity_Loss: 48.7401351929 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:26,187 DEBUG Step: 380, val_acc: 25.93, val_fidelity: 26.43
+2022-04-26 23:03:26,283 DEBUG Train step: 380	 CE_Loss: 0.2536638379 diversity_Loss: 49.4382705688 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:27,967 DEBUG Step: 390, val_acc: 26.17, val_fidelity: 26.56
+2022-04-26 23:03:28,063 DEBUG Train step: 390	 CE_Loss: 0.1801356077 diversity_Loss: 50.3655662537 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:29,738 DEBUG Step: 400, val_acc: 28.45, val_fidelity: 28.72
+2022-04-26 23:03:29,834 DEBUG Train step: 400	 CE_Loss: 0.1382007450 diversity_Loss: 50.1335258484 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:31,521 DEBUG Step: 410, val_acc: 26.79, val_fidelity: 27.45
+2022-04-26 23:03:31,618 DEBUG Train step: 410	 CE_Loss: 0.1618413180 diversity_Loss: 50.4706306458 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:33,291 DEBUG Step: 420, val_acc: 27.84, val_fidelity: 28.6
+2022-04-26 23:03:33,386 DEBUG Train step: 420	 CE_Loss: 0.1208915114 diversity_Loss: 49.8818588257 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:35,069 DEBUG Step: 430, val_acc: 26.86, val_fidelity: 27.2
+2022-04-26 23:03:35,164 DEBUG Train step: 430	 CE_Loss: 0.1470244527 diversity_Loss: 46.7959136963 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:36,840 DEBUG Step: 440, val_acc: 27.67, val_fidelity: 28.26
+2022-04-26 23:03:36,936 DEBUG Train step: 440	 CE_Loss: 0.1172322631 diversity_Loss: 49.9973297119 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:38,606 DEBUG Step: 450, val_acc: 25.09, val_fidelity: 25.45
+2022-04-26 23:03:38,701 DEBUG Train step: 450	 CE_Loss: 0.1134761125 diversity_Loss: 50.9789161682 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:40,388 DEBUG Step: 460, val_acc: 28.59, val_fidelity: 28.89
+2022-04-26 23:03:40,484 DEBUG Train step: 460	 CE_Loss: 0.1374607533 diversity_Loss: 50.9980621338 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:42,161 DEBUG Step: 470, val_acc: 27.27, val_fidelity: 27.59
+2022-04-26 23:03:42,257 DEBUG Train step: 470	 CE_Loss: 0.1129424945 diversity_Loss: 50.6666183472 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:43,936 DEBUG Step: 480, val_acc: 28.11, val_fidelity: 28.57
+2022-04-26 23:03:44,032 DEBUG Train step: 480	 CE_Loss: 0.2020272464 diversity_Loss: 50.5793647766 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:45,712 DEBUG Step: 490, val_acc: 28.51, val_fidelity: 28.99
+2022-04-26 23:03:45,809 DEBUG Train step: 490	 CE_Loss: 0.3870486319 diversity_Loss: 49.9538993835 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:47,494 DEBUG Step: 500, val_acc: 29.25, val_fidelity: 29.55
+2022-04-26 23:03:47,590 DEBUG Train step: 500	 CE_Loss: 0.3703252077 diversity_Loss: 49.5822639465 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:49,277 DEBUG Step: 510, val_acc: 29.16, val_fidelity: 29.79
+2022-04-26 23:03:49,374 DEBUG Train step: 510	 CE_Loss: 0.2074086219 diversity_Loss: 50.2673072815 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:51,047 DEBUG Step: 520, val_acc: 26.3, val_fidelity: 26.73
+2022-04-26 23:03:51,143 DEBUG Train step: 520	 CE_Loss: 0.1109132171 diversity_Loss: 51.2059822083 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:52,818 DEBUG Step: 530, val_acc: 28.39, val_fidelity: 28.9
+2022-04-26 23:03:52,915 DEBUG Train step: 530	 CE_Loss: 0.2972161174 diversity_Loss: 49.2843627930 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:54,597 DEBUG Step: 540, val_acc: 28.98, val_fidelity: 29.6
+2022-04-26 23:03:54,694 DEBUG Train step: 540	 CE_Loss: 0.3533366024 diversity_Loss: 49.8763275146 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:56,370 DEBUG Step: 550, val_acc: 28.04, val_fidelity: 28.6
+2022-04-26 23:03:56,466 DEBUG Train step: 550	 CE_Loss: 0.1389380395 diversity_Loss: 51.6618728638 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:58,154 DEBUG Step: 560, val_acc: 28.33, val_fidelity: 28.88
+2022-04-26 23:03:58,250 DEBUG Train step: 560	 CE_Loss: 0.0958412811 diversity_Loss: 50.3994941711 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:03:59,934 DEBUG Step: 570, val_acc: 29.02, val_fidelity: 29.52
+2022-04-26 23:04:00,030 DEBUG Train step: 570	 CE_Loss: 0.1571166366 diversity_Loss: 49.4245529175 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:01,718 DEBUG Step: 580, val_acc: 30.07, val_fidelity: 30.41
+2022-04-26 23:04:01,814 DEBUG Train step: 580	 CE_Loss: 0.2622319162 diversity_Loss: 50.7598152161 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:03,497 DEBUG Step: 590, val_acc: 28.69, val_fidelity: 29.19
+2022-04-26 23:04:03,592 DEBUG Train step: 590	 CE_Loss: 0.1577157527 diversity_Loss: 50.1100196838 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:05,267 DEBUG Step: 600, val_acc: 28.43, val_fidelity: 28.9
+2022-04-26 23:04:05,362 DEBUG Train step: 600	 CE_Loss: 0.1935334802 diversity_Loss: 49.8488731384 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:07,052 DEBUG Step: 610, val_acc: 29.51, val_fidelity: 30.09
+2022-04-26 23:04:07,148 DEBUG Train step: 610	 CE_Loss: 0.0658354312 diversity_Loss: 50.8758544922 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:08,837 DEBUG Step: 620, val_acc: 29.25, val_fidelity: 29.68
+2022-04-26 23:04:08,934 DEBUG Train step: 620	 CE_Loss: 0.1319067925 diversity_Loss: 48.8594398499 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:10,607 DEBUG Step: 630, val_acc: 28.8, val_fidelity: 29.23
+2022-04-26 23:04:10,705 DEBUG Train step: 630	 CE_Loss: 0.2957801819 diversity_Loss: 50.3444061279 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:12,418 DEBUG Step: 640, val_acc: 29.78, val_fidelity: 30.2
+2022-04-26 23:04:12,514 DEBUG Train step: 640	 CE_Loss: 0.1492098719 diversity_Loss: 49.6225700378 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:14,197 DEBUG Step: 650, val_acc: 30.11, val_fidelity: 30.58
+2022-04-26 23:04:14,293 DEBUG Train step: 650	 CE_Loss: 0.2593307197 diversity_Loss: 50.7526321411 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:15,991 DEBUG Step: 660, val_acc: 31.31, val_fidelity: 31.74
+2022-04-26 23:04:16,086 DEBUG Train step: 660	 CE_Loss: 0.2953937948 diversity_Loss: 49.7280464172 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:17,766 DEBUG Step: 670, val_acc: 29.67, val_fidelity: 30.3
+2022-04-26 23:04:17,862 DEBUG Train step: 670	 CE_Loss: 0.1878027022 diversity_Loss: 49.3279266357 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:19,536 DEBUG Step: 680, val_acc: 31.62, val_fidelity: 32.29
+2022-04-26 23:04:19,632 DEBUG Train step: 680	 CE_Loss: 0.0838223174 diversity_Loss: 50.4067420959 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:21,308 DEBUG Step: 690, val_acc: 30.99, val_fidelity: 31.26
+2022-04-26 23:04:21,404 DEBUG Train step: 690	 CE_Loss: 0.1888676286 diversity_Loss: 50.0410308838 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:23,092 DEBUG Step: 700, val_acc: 32.4, val_fidelity: 32.93
+2022-04-26 23:04:23,187 DEBUG Train step: 700	 CE_Loss: 0.0930099115 diversity_Loss: 49.9863281250 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:24,866 DEBUG Step: 710, val_acc: 32.15, val_fidelity: 32.56
+2022-04-26 23:04:24,962 DEBUG Train step: 710	 CE_Loss: 0.1355916262 diversity_Loss: 50.7006645203 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:26,641 DEBUG Step: 720, val_acc: 30.96, val_fidelity: 31.21
+2022-04-26 23:04:26,736 DEBUG Train step: 720	 CE_Loss: 0.0861948505 diversity_Loss: 50.3889961243 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:28,409 DEBUG Step: 730, val_acc: 31.96, val_fidelity: 32.45
+2022-04-26 23:04:28,506 DEBUG Train step: 730	 CE_Loss: 0.1806079149 diversity_Loss: 49.4856033325 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:30,185 DEBUG Step: 740, val_acc: 32.34, val_fidelity: 32.68
+2022-04-26 23:04:30,282 DEBUG Train step: 740	 CE_Loss: 0.0982053503 diversity_Loss: 49.7352867126 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:31,961 DEBUG Step: 750, val_acc: 28.91, val_fidelity: 29.25
+2022-04-26 23:04:32,057 DEBUG Train step: 750	 CE_Loss: 0.1416792572 diversity_Loss: 50.4674186707 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:33,730 DEBUG Step: 760, val_acc: 31.29, val_fidelity: 31.66
+2022-04-26 23:04:33,827 DEBUG Train step: 760	 CE_Loss: 0.1842045039 diversity_Loss: 49.9477005005 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:35,518 DEBUG Step: 770, val_acc: 32.08, val_fidelity: 32.6
+2022-04-26 23:04:35,614 DEBUG Train step: 770	 CE_Loss: 0.1652286351 diversity_Loss: 50.1367759705 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:37,292 DEBUG Step: 780, val_acc: 33.18, val_fidelity: 33.74
+2022-04-26 23:04:37,387 DEBUG Train step: 780	 CE_Loss: 0.1017038226 diversity_Loss: 50.7131385803 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:39,070 DEBUG Step: 790, val_acc: 30.1, val_fidelity: 30.63
+2022-04-26 23:04:39,165 DEBUG Train step: 790	 CE_Loss: 0.1394588947 diversity_Loss: 51.1331901550 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:40,839 DEBUG Step: 800, val_acc: 32.48, val_fidelity: 33.15
+2022-04-26 23:04:40,935 DEBUG Train step: 800	 CE_Loss: 0.2354063541 diversity_Loss: 50.0530357361 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:42,611 DEBUG Step: 810, val_acc: 32.32, val_fidelity: 32.86
+2022-04-26 23:04:42,706 DEBUG Train step: 810	 CE_Loss: 0.3551965058 diversity_Loss: 50.2978134155 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:44,375 DEBUG Step: 820, val_acc: 31.6, val_fidelity: 31.91
+2022-04-26 23:04:44,471 DEBUG Train step: 820	 CE_Loss: 0.1150159612 diversity_Loss: 49.6345291138 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:46,149 DEBUG Step: 830, val_acc: 32.29, val_fidelity: 32.93
+2022-04-26 23:04:46,246 DEBUG Train step: 830	 CE_Loss: 0.1866919696 diversity_Loss: 48.8974227905 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000
+2022-04-26 23:04:46,553 DEBUG Best perform model, val_acc: 33.18, fidel_score: 33.74
+2022-04-26 23:04:46,553 DEBUG End of Training: 833	 CE_Loss: 0.2184050120 diversity_Loss: 49.7947311401 bc_losses (G):  0.0000000000  bc_losses (D)):  0.0000000000

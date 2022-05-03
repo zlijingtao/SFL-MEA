@@ -8,4 +8,5 @@ cd "$(dirname "$0")"
 bash figure5_mobilenet/ace_run_mobilenet_cifar10_train_GM.sh
 bash figure5_mobilenet/ace_run_mobilenet_cifar10_train_GM_resume.sh
 bash figure5_mobilenet/ace_run_mobilenet_cifar10_train_soft.sh
+
 bash figure5_mobilenet/ace_run_mobilenet_cifar10_train_soft_resume.sh
