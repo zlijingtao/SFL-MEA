@@ -16,7 +16,7 @@ random_seed="125"
 scheme=V2_epoch
 ssim_threshold=0.5
 regularization_strength="1.0"
-folder_name="saves/train_attack"
+folder_name="saves/train_attack_old"
 
 # source_task_list="svhn mnist facescrub cifar10"
 transfer_source_task=cifar10
@@ -26,12 +26,12 @@ learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 attack_epochs=300
 attack_client=0
 num_query=10
-attack_style_list="GM_option_resume_last1 GM_option_resume_last2 GM_option_resume_last5 GM_option_resume_last10"
+attack_style_list="GM_option_resume_last10 GM_option_resume_last5 GM_option_resume_last2"
 regularization_list="GM_train_ME_CIFAR100_start120"
 data_proportion_list="0.1"
 num_client_list="6 11"
-cutlayer_list=(13 12 11 9)
-train_clas_layer_list=(2 3 4 5)
+cutlayer_list=(4 4 4 4 4 4 4)
+train_clas_layer_list=(2 3 4 5 6 7 8)
 for attack_style in $attack_style_list; do
         for regularization in $regularization_list; do
                 for num_client in $num_client_list; do

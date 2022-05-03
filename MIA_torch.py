@@ -2171,6 +2171,9 @@ class MIA:
                 resume_option = True
             else:
                 resume_option = False
+            
+            if "last" in attack_style:
+                last_n_batch = int(attack_style.split("last")[-1])
         else:
             GM_option = False
 
@@ -2229,6 +2232,13 @@ class MIA:
         else:
             self.suro_optimizer = torch.optim.Adam(surrogate_params, lr=0.0001, weight_decay=5e-4)
         
+
+        if GM_option and resume_option: #TODO cancel this
+            self.surrogate_model.resplit(9)
+            self.model.resplit(9)
+        if SoftTrain_option and resume_option: #TODO cancel this
+            self.surrogate_model.resplit(9)
+            self.model.resplit(9)
 
         if "Generator_option_pred" in attack_style:
             milestones = sorted([int(step * (num_query // 200)) for step in [0.2, 0.5, 0.8]])
@@ -2546,7 +2556,7 @@ class MIA:
             
                             image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
 
-                            if image_id > max_image_id - 1: # collect only the last two valid data batch. (even this is very bad)
+                            if image_id > max_image_id - last_n_batch: # collect only the last two valid data batch. (even this is very bad)
                                 saved_image = torch.load(file)
                                 saved_grads = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
                                 saved_label = label * torch.ones(saved_grads.size(0), ).long()

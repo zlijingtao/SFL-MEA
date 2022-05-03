@@ -10,19 +10,19 @@ regularization=None
 scheme=V2_epoch
 regularization_strength_list="0.3"
 folder_name="saves/regu"
-cutlayer_list="8"
+cutlayer_list="9"
 num_client="1"
 
 dataset=cifar10
-learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
+learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300
 attack_client=0
 num_query_list="1"
-attack_style_list="TrainME_option"
-data_proportion_list="0.2 0.02"
+attack_style_list="TrainME_option_inv"
+data_proportion_list="0.02 0.2"
 
-train_clas_layer_list="6"
+train_clas_layer_list="5"
 bottleneck_option="noRELU_C8S1"
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
