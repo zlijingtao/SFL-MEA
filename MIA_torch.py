@@ -2158,7 +2158,7 @@ class MIA:
                 nz = 128
 
             if "noisew" in attack_style:
-                self.noise_w = attack_style.split("noisew")[1]
+                self.noise_w = float(attack_style.split("noisew")[1])
             else:
                 self.noise_w = 50.0
             
