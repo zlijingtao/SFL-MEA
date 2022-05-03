@@ -199,7 +199,7 @@ class MIA:
 
         if "gan_train_ME" in self.regularization_option:
             self.Generator_train_option = True
-            self.noise_w = 50.0
+            
 
             if "nz256" in self.regularization_option:
                 self.nz = 256
@@ -207,6 +207,14 @@ class MIA:
                 self.nz = 128
             else:
                 self.nz = 512
+            
+            
+            try:
+            
+                self.noise_w = float(self.regularization_option.split("start")[0].split("noisew"[1]))
+            except:
+                self.logger.debug("extraing nosie_w setting from arg, failed, set nosie_w to 50.0")
+                self.noise_w = 50
             try:
                 self.gan_train_start_epoch = int(self.regularization_option.split("start")[1])
             except:
@@ -2148,7 +2156,12 @@ class MIA:
                 nz = 256
             elif "nz128" in attack_style:
                 nz = 128
-            self.noise_w = 50.0
+
+            if "noisew" in attack_style:
+                self.noise_w = attack_style.split("noisew")[1]
+            else:
+                self.noise_w = 50.0
+            
             if "Generator_option_resume" in attack_style:
                 resume_option = True
             else:
