@@ -30,7 +30,8 @@ attack_style_list="GM_option_resume_last5 GM_option_resume_last2 GM_option_resum
 # attack_style_list="GM_option_resume_last1"
 regularization_list="GM_train_ME_CIFAR100_start120"
 data_proportion_list="0.1"
-num_client_list="6 11"
+# num_client_list="6 11"
+num_client_list="11"
 cutlayer_list=(4 4 4 4 4 4 4)
 train_clas_layer_list=(2 3 4 5 6 7 8)
 for attack_style in $attack_style_list; do

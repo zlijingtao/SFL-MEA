@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=0
+GPU_id=5
 arch=vgg11_bn
 batch_size=128
 
@@ -27,7 +27,31 @@ attack_epochs=200
 attack_client=0
 num_query=10
 attack_style_list="SoftTrain_option_resume"
+# attack_style_list="SoftTrain_option_resume_last2 SoftTrain_option_resume_last5"
 regularization_list="soft_train_ME_start120"
+data_proportion_list="0.0"
+num_client_list="10"
+cutlayer_list=(4 4 4 4 4 4 4)
+train_clas_layer_list=(2 3 4 5 6 7 8)
+for attack_style in $attack_style_list; do
+        for regularization in $regularization_list; do
+                for num_client in $num_client_list; do
+                        for data_proportion in $data_proportion_list; do
+                                for index in ${!cutlayer_list[*]}; do 
+                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer_list[$index]}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.05_${regularization}_${regularization_strength}_200epoch
+                                CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=${cutlayer_list[$index]} --batch_size=${batch_size} \
+                                        --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
+                                        --dataset=$dataset --scheme=$scheme  --learning_rate=$learning_rate\
+                                        --attack_epochs=$attack_epochs \
+                                        --attack_client=$attack_client  --num_query=$num_query  --regularization=$regularization  --regularization_strength=${regularization_strength} \
+                                        --attack_style=$attack_style  --data_proportion=${data_proportion} --train_clas_layer=${train_clas_layer_list[$index]}
+                                done
+                        done
+                done
+        done
+done
+
+regularization_list="soft_train_ME_start160"
 data_proportion_list="0.0"
 num_client_list="5 10"
 cutlayer_list=(4 4 4 4 4 4 4)
