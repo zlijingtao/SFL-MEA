@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=5
+GPU_id=4
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
@@ -9,7 +9,7 @@ dataset_list="cifar10"
 scheme=V2_epoch
 random_seed_list="125"
 
-regularization_list="gan_train_ME_nopoison_nz512_noisew0.0start160 gan_train_ME_nopoison_nz512_noisew0.0start120"
+regularization_list="gan_train_ME_nopoison_nz512_noisew1.0start160 gan_train_ME_nopoison_nz512_noisew1.0start120"
 
 learning_rate=0.05
 regularization_strength_list="0.0"
