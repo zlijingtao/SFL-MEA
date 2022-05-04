@@ -208,10 +208,9 @@ class MIA:
             else:
                 self.nz = 512
             
-            
             try:
             
-                self.noise_w = float(self.regularization_option.split("start")[0].split("noisew"[1]))
+                self.noise_w = float(self.regularization_option.split("start")[0].split("noisew")[1])
             except:
                 self.logger.debug("extraing nosie_w setting from arg, failed, set nosie_w to 50.0")
                 self.noise_w = 50
@@ -2192,7 +2191,7 @@ class MIA:
             if "last" in attack_style:
                 last_n_batch = int(attack_style.split("last")[-1])
             else:
-                last_n_batch = 5
+                last_n_batch = 99
         else:
             GM_option = False
 
@@ -2217,7 +2216,7 @@ class MIA:
             if "last" in attack_style:
                 last_n_batch = int(attack_style.split("last")[-1])
             else:
-                last_n_batch = 5
+                last_n_batch = 99
             soft_alpha = 0.9
 
             if "alpha" in attack_style:
