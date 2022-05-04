@@ -30,7 +30,7 @@ for random_seed in $random_seed_list; do
                                 for data_proportion in $data_proportion_list; do
                                         for index in ${!regularization_list[*]}; do 
                                                 for train_clas_layer in $train_clas_layer_list; do
-                                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.05_${regularization_list[$index]}_${regularization_strength_list[$index]}_${num_epochs}epoch
+                                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.02_${regularization_list[$index]}_${regularization_strength_list[$index]}_${num_epochs}epoch
 
                                                 CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=$cutlayer --batch_size=${batch_size} \
                                                         --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
@@ -55,7 +55,7 @@ for random_seed in $random_seed_list; do
                                 for data_proportion in $data_proportion_list; do
                                         for index in ${!regularization_list[*]}; do 
                                                 for train_clas_layer in $train_clas_layer_list; do
-                                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.05_${regularization_list[$index]}_${regularization_strength_list[$index]}_${num_epochs}epoch
+                                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.02_${regularization_list[$index]}_${regularization_strength_list[$index]}_${num_epochs}epoch
 
                                                 CUDA_VISIBLE_DEVICES=${GPU_id} python main_model_steal.py   --arch=${arch} --cutlayer=$cutlayer --batch_size=${batch_size} \
                                                         --folder ${folder_name} --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
