@@ -15,8 +15,10 @@ learning_rate=0.02
 cutlayer_list="9 11"
 num_client_list="1"
 folder_name="saves/regu"
-regularization_list=(nopeek_inv nopeek_inv nopeek_inv nopeek_inv)
-regularization_strength_list=(0.5 1.0 2.0 5.0)
+# regularization_list=(nopeek_inv nopeek_inv nopeek_inv nopeek_inv)
+# regularization_strength_list=(0.5 1.0 2.0 5.0)
+regularization_list=(nopeek_inv nopeek_inv nopeek_inv)
+regularization_strength_list=(10.0 20.0 50.0)
 for dataset in $dataset_list; do
         for random_seed in $random_seed_list; do
                 for cutlayer in $cutlayer_list; do

@@ -19,8 +19,10 @@ attack_client=0
 num_query_list="1"
 attack_style_list="TrainME_option"
 data_proportion_list="0.02 0.2"
-regularization_list=(nopeek_inv nopeek_inv nopeek_inv nopeek_inv)
-regularization_strength_list=(0.5 1.0 2.0 5.0)
+# regularization_list=(nopeek_inv nopeek_inv nopeek_inv nopeek_inv)
+# regularization_strength_list=(0.5 1.0 2.0 5.0)
+regularization_list=(nopeek_inv nopeek_inv nopeek_inv)
+regularization_strength_list=(10.0 20.0 50.0)
 cutlayer_list="9 11"
 train_clas_layer_list="5"
 for random_seed in $random_seed_list; do
