@@ -2259,11 +2259,25 @@ class MIA:
         
 
         if GM_option and resume_option: #TODO cancel this
-            self.surrogate_model.resplit(9)
-            self.model.resplit(9)
+            if self.arch == "vgg11_bn":
+                self.surrogate_model.resplit(9)
+                self.model.resplit(9)
+            elif self.arch == "resnet20":
+                self.surrogate_model.resplit(7)
+                self.model.resplit(7)
+            elif self.arch == "mobilenetv2":
+                self.surrogate_model.resplit(13)
+                self.model.resplit(13)
         if SoftTrain_option and resume_option: #TODO cancel this
-            self.surrogate_model.resplit(9)
-            self.model.resplit(9)
+            if self.arch == "vgg11_bn":
+                self.surrogate_model.resplit(9)
+                self.model.resplit(9)
+            elif self.arch == "resnet20":
+                self.surrogate_model.resplit(7)
+                self.model.resplit(7)
+            elif self.arch == "mobilenetv2":
+                self.surrogate_model.resplit(13)
+                self.model.resplit(13)
 
         if "Generator_option_pred" in attack_style:
             milestones = sorted([int(step * (num_query // 200)) for step in [0.2, 0.5, 0.8]])

@@ -2,7 +2,8 @@
 cd "$(dirname "$0")"
 cd ../../
 GPU_id=0
-arch_list="resnet20 mobilenetv2"
+# arch_list="resnet20 mobilenetv2"
+arch_list="mobilenetv2 resnet20"
 batch_size=128
 
 num_client=2
