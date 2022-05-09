@@ -18,11 +18,12 @@ learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=200
 attack_client=0
-num_query_list="10000 1000"
-attack_style_list="SoftTrain_option_alpha0.9"
+# num_query_list="10000 1000"
+num_query_list="100000 10000 1000"
+attack_style_list="SoftTrain_option_aug_alpha0.9"
 # attack_style_list="SoftTrain_option SoftTrain_option_alpha1.0"
 # data_proportion_list="0.02 0.2"
-data_proportion_list="0.2"
+data_proportion_list="0.02 0.2"
 
 train_clas_layer_list="2 3 4 5"
 

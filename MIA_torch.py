@@ -2480,40 +2480,43 @@ class MIA:
                 if num_query < self.num_class * 100:
                     print("Query budget is too low to run SoftTrainME")
                 
-                for i, (images, labels) in enumerate(attacker_dataloader):
-                    
-                    self.optimizer_zero_grad()
-                    if "aug" in attack_style:
-                        images = atk_transforms(images)
-                    images = images.cuda()
-                    if retain_grad_tensor == "img":
-                        images.requires_grad = True
-                        images.retain_grad()
-                    labels = labels.cuda()
-                    cos_sim_list = []
-
-                    
-                    z_private = self.model.local_list[attack_client](images)
-                    
-                    
-                    if retain_grad_tensor == "act":
-                        z_private.retain_grad()
+                cumulated_query = 0
+                while True:
+                    for i, (images, labels) in enumerate(attacker_dataloader):
                         
-                    output = self.model.cloud(z_private)
+                        self.optimizer_zero_grad()
+                        if "aug" in attack_style:
+                            images = atk_transforms(images)
+                        images = images.cuda()
+                        if retain_grad_tensor == "img":
+                            images.requires_grad = True
+                            images.retain_grad()
+                        labels = labels.cuda()
+                        cos_sim_list = []
 
-                    loss = criterion(output, labels)
+                        
+                        z_private = self.model.local_list[attack_client](images)
+                        
+                        
+                        if retain_grad_tensor == "act":
+                            z_private.retain_grad()
+                            
+                        output = self.model.cloud(z_private)
 
-                    # one_hot_target = F.one_hot(labels, num_classes=self.num_class)
-                    # log_prob = torch.nn.functional.log_softmax(output, dim=1)
-                    # loss = torch.mean(torch.sum(-one_hot_target * log_prob, dim=1))
-                    loss.backward(retain_graph = True)
+                        loss = criterion(output, labels)
 
-                    if retain_grad_tensor == "img":
-                        z_private_grad = images.grad.detach().clone()
-                    elif retain_grad_tensor == "act":
-                        z_private_grad = z_private.grad.detach().clone()
+                        # one_hot_target = F.one_hot(labels, num_classes=self.num_class)
+                        # log_prob = torch.nn.functional.log_softmax(output, dim=1)
+                        # loss = torch.mean(torch.sum(-one_hot_target * log_prob, dim=1))
+                        loss.backward(retain_graph = True)
 
-                    if i * self.num_class * 100 <= num_query: # in query budget, craft soft label 
+                        if retain_grad_tensor == "img":
+                            z_private_grad = images.grad.detach().clone()
+                        elif retain_grad_tensor == "act":
+                            z_private_grad = z_private.grad.detach().clone()
+                        cumulated_query += self.num_class * 100
+                        if cumulated_query > num_query: # in query budget, craft soft label 
+                            break
                         for c in range(self.num_class):
                             fake_label = c * torch.ones_like(labels).cuda()
                             self.optimizer_zero_grad()
@@ -2548,14 +2551,14 @@ class MIA:
                         replace_val = soft_alpha * torch.ones(labels_as_idx.size(), dtype=torch.long).cuda()
                         derived_label.scatter_(1, labels_as_idx, replace_val)
 
-                    else:  # out of query budget, use hard label
-                        derived_label = F.one_hot(labels, num_classes=self.num_class)
+                        # else:  # out of query budget, use hard label
+                        #     derived_label = F.one_hot(labels, num_classes=self.num_class)
 
-                    if retain_grad_tensor == "img":
-                        images.requires_grad = False
-                    save_images.append(images.cpu().clone())
-                    save_grad.append(z_private_grad.cpu().clone())
-                    save_label.append(derived_label.cpu().clone())
+                        if retain_grad_tensor == "img":
+                            images.requires_grad = False
+                        save_images.append(images.cpu().clone())
+                        save_grad.append(z_private_grad.cpu().clone())
+                        save_label.append(derived_label.cpu().clone())
                     
         ''' Knockoffset, option_B has no prediction query (use grad-matching), option_C has predicion query (craft input-label pair)'''
         if GM_option or Copycat_option or Knockoff_option:
