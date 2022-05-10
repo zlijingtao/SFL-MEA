@@ -26,9 +26,10 @@ import os
 # search_path = "./mobilenetv2_ideal"
 # search_path = "./resnet20-ideal"
 search_path = "./resnet32-ideal"
+filt_name = "stealtype"
 for target_layer in range(2, 9):
     for subdir, dirs, files in os.walk(search_path):
-        if "stealtype" in subdir and "layer_-1" not in subdir:
+        if filt_name in subdir and "layer_-1" not in subdir:
             # print(subdir)
             layer = int(float(subdir.split('layer_')[1].split('_data')[0]))
             exp_name = subdir.split('stealtype_')[1].split('_epoch300_surrogate')[0]
