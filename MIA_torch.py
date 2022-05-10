@@ -2292,7 +2292,7 @@ class MIA:
             if self.dataset == "cifar100":
                 attacker_loader_list, _, _ = get_cifar100_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion), noniid_ratio = noniid_ratio)
             elif self.dataset == "cifar10":
-                attacker_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion), noniid_ratio = noniid_ratio)
+                attacker_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=0, shuffle=True, num_client=int(1/data_proportion), noniid_ratio = noniid_ratio)
             elif self.dataset == "imagenet":
                 attacker_loader_list = get_imagenet_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion), noniid_ratio = noniid_ratio)
             elif self.dataset == "svhn":
@@ -2306,7 +2306,7 @@ class MIA:
 
         attacker_dataloader = attacker_loader_list[attack_client]
         
-
+        # print(attacker_dataloader)
         atk_transforms = torch.nn.Sequential(
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
@@ -2493,11 +2493,11 @@ class MIA:
             else:
                 if num_query < self.num_class * 100:
                     print("Query budget is too low to run SoftTrainME")
-                
                 cumulated_query = 0
                 while True:
+                    if cumulated_query > num_query: # in query budget, craft soft label 
+                        break
                     for i, (images, labels) in enumerate(attacker_dataloader):
-                        
                         self.optimizer_zero_grad()
                         if "aug" in attack_style:
                             images = atk_transforms(images)
@@ -2573,7 +2573,6 @@ class MIA:
                         save_images.append(images.cpu().clone())
                         save_grad.append(z_private_grad.cpu().clone())
                         save_label.append(derived_label.cpu().clone())
-                    
         ''' Knockoffset, option_B has no prediction query (use grad-matching), option_C has predicion query (craft input-label pair)'''
         if GM_option or Copycat_option or Knockoff_option:
             # We fix query batch size to 100 to better control the total query number.
