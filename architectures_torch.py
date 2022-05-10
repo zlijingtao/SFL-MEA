@@ -2104,3 +2104,9 @@ SETUPS += [(functools.partial(resnet, level=l), functools.partial(pilot, level=l
 
 l = 3
 SETUPS += [(functools.partial(resnet, level=l), functools.partial(pilot, level=l), classifier_binary, functools.partial(discriminator, level=l), functools.partial(resnet_tail, level=l))]
+
+
+
+if __name__ == "__main__":
+    model1 = GeneratorC(nz = 512, ngf=128, nc=3)
+    print(model1)
