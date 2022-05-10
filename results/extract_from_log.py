@@ -22,10 +22,14 @@ import os
 # search_path = "./ideal_extraction_cifar10_correct"
 # search_path = "./craft_ideal_100K"
 # search_path = "./softtrain_prac_start120_5client"
-search_path = "./soft_ideal_100K"
-for target_layer in range(2, 9):
+# search_path = "./soft_ideal_100K"
+search_path = "./arch_diff"
+
+# filt_name = "stealtype"
+filt_name = "thinner"
+for target_layer in range(2, 6):
     for subdir, dirs, files in os.walk(search_path):
-        if "stealtype" in subdir and "layer_-1" not in subdir:
+        if filt_name in subdir and "layer_-1" not in subdir:
             # print(subdir)
             layer = int(float(subdir.split('layer_')[1].split('_data')[0]))
             exp_name = subdir.split('stealtype_')[1].split('_epoch300_surrogate')[0]
