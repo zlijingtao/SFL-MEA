@@ -16,7 +16,7 @@ regularization_strength_list="0.0"
 folder_name="saves/train_attack"
 transfer_source_task=cifar10
 dataset=cifar10
-learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
+learning_rate=0.002 # 0.00005 for 7 & 8, 0.01 data proportion
 
 attack_epochs=300
 attack_client=0
