@@ -9,14 +9,14 @@ num_client=2
 num_epochs=200
 dataset_list="cifar10"
 scheme=V2_epoch
-random_seed_list="125"
+random_seed_list="123"
 #Extra argement (store_true): --collude_use_public, --initialize_different  --collude_not_regularize  --collude_not_regularize --num_client_regularize ${num_client_regularize}
 learning_rate=0.02
 cutlayer_list="9 11"
 num_client_list="1"
-folder_name="saves/regu"
-regularization_list=(l1 l1 l1 l1)
-regularization_strength_list=(5e-4 2e-4 1e-4 5e-5)
+folder_name="saves/regu1"
+regularization_list=(l1 l1 l1 l1 l1)
+regularization_strength_list=(0.0 5e-4 2e-4 1e-4 5e-5)
 # regularization_list=(l2 l2 l2)
 # regularization_strength_list=(5e-1 2e-1 1e-1)
 for dataset in $dataset_list; do

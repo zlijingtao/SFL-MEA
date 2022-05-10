@@ -20,9 +20,11 @@ attack_epochs=300
 attack_client=0
 num_query_list="1"
 attack_style_list="TrainME_option"
-data_proportion_list="0.2 0.02"
+# data_proportion_list="0.2 0.02"
+data_proportion_list="0.02"
 surrogate_arch_list="shorter longer thinner wider"
-train_clas_layer_list="2 3 4 5"
+# train_clas_layer_list="2 3 4 5"
+train_clas_layer_list="5"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do

@@ -8,19 +8,19 @@ batch_size=128
 num_epochs=200
 dataset=cifar10
 scheme=V2_epoch
-random_seed_list="125"
+random_seed_list="123"
 #Extra argement (store_true): --collude_use_public, --initialize_different  --collude_not_regularize  --collude_not_regularize --num_client_regularize ${num_client_regularize}
 learning_rate=0.005
 
 num_client=1
-folder_name="saves/regu"
+folder_name="saves/regu1"
 attack_epochs=300
 attack_client=0
 num_query_list="1"
 attack_style_list="TrainME_option"
 data_proportion_list="0.02"
 regularization=l1
-regularization_strength_list="5e-4 2e-4 1e-4 5e-5"
+regularization_strength_list="0.0 5e-4 2e-4 1e-4 5e-5"
 cutlayer_list="9"
 train_clas_layer_list="5"
 for random_seed in $random_seed_list; do
@@ -30,7 +30,7 @@ for random_seed in $random_seed_list; do
                                 for data_proportion in $data_proportion_list; do
                                         for regularization_strength in $regularization_strength_list; do 
                                                 for train_clas_layer in $train_clas_layer_list; do
-                                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.05_${regularization}_${regularization_strength}_${num_epochs}epoch
+                                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.02_${regularization}_${regularization_strength}_${num_epochs}epoch
 
                                                 target_client=0
                                                 attack_scheme=MIA
@@ -66,7 +66,7 @@ for random_seed in $random_seed_list; do
                                 for data_proportion in $data_proportion_list; do
                                         for regularization_strength in $regularization_strength_list; do 
                                                 for train_clas_layer in $train_clas_layer_list; do
-                                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.05_${regularization}_${regularization_strength}_${num_epochs}epoch
+                                                filename=ace_${scheme}_${arch}_cutlayer_${cutlayer}_client_${num_client}_seed${random_seed}_dataset_${dataset}_lr_0.02_${regularization}_${regularization_strength}_${num_epochs}epoch
 
                                                 target_client=0
                                                 attack_scheme=MIA

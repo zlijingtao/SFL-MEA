@@ -16,13 +16,15 @@ num_client="1"
 dataset=cifar10
 learning_rate=0.005 # 0.00005 for 7 & 8, 0.01 data proportion
 
-attack_epochs=300
+attack_epochs=200
 attack_client=0
 num_query_list="10000"
 attack_style_list="SoftTrain_option"
-data_proportion_list="0.2 0.02"
+# data_proportion_list="0.2 0.02"
+data_proportion_list="0.02"
 surrogate_arch_list="shorter longer thinner wider"
-train_clas_layer_list="2 3 4 5"
+# train_clas_layer_list="2 3 4 5"
+train_clas_layer_list="5"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
