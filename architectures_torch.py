@@ -2107,6 +2107,6 @@ SETUPS += [(functools.partial(resnet, level=l), functools.partial(pilot, level=l
 
 
 
-if __name__ == "__main__":
-    model1 = GeneratorC(nz = 512, ngf=128, nc=3)
-    print(model1)
+# if __name__ == "__main__":
+#     model1 = GeneratorC(nz = 512, ngf=128, nc=3)
+#     print(model1)
