@@ -47,7 +47,7 @@ for random_seed in $random_seed_list; do
         done
 done
 
-learning_rate=0.05
+learning_rate=0.02
 
 train_clas_layer_list="6 7 8"
 

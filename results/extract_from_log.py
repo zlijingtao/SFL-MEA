@@ -22,7 +22,8 @@ import os
 # search_path = "./ideal_extraction_cifar10_correct"
 # search_path = "./craft_ideal_100K"
 # search_path = "./softtrain_prac_start120_5client"
-search_path = "./soft_ideal_100K"
+# search_path = "./soft_ideal_100K"
+search_path = "./vgg11_cifar100"
 for target_layer in range(2, 9):
     for subdir, dirs, files in os.walk(search_path):
         if "stealtype" in subdir and "layer_-1" not in subdir:

@@ -2610,22 +2610,26 @@ class MIA:
                         image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
                         if image_id > max_image_id:
                             max_image_id = image_id
-                for label in range(self.num_class): # put same label together
-                    for file in glob.glob(saved_crafted_image_path + "*"):
-                        if "image" in file and "grad_image" not in file:
-                            
-            
+                print(f"max_image is {max_image_id}")
+                
+                for file in glob.glob(saved_crafted_image_path + "*"):
+                    if "image" in file and "grad_image" not in file:
+                        
+                        for label in range(self.num_class): # put same label together
                             image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
 
                             if image_id > max_image_id - last_n_batch: # collect only the last two valid data batch. (even this is very bad)
-                                saved_image = torch.load(file)
-                                saved_grads = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
-                                saved_label = label * torch.ones(saved_grads.size(0), ).long()
-                                # saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+                                try:
+                                    saved_image = torch.load(file)
+                                    saved_grads = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
+                                    saved_label = label * torch.ones(saved_grads.size(0), ).long()
+                                    # saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
 
-                                save_images.append(saved_image.clone())
-                                save_grad.append(saved_grads.clone()) # add a random existing grad.
-                                save_label.append(saved_label.clone())
+                                    save_images.append(saved_image.clone())
+                                    save_grad.append(saved_grads.clone()) # add a random existing grad.
+                                    save_label.append(saved_label.clone())
+                                except:
+                                    break
             else:
                 self.model.local_list[attack_client].eval()
                 self.model.cloud.eval()
