@@ -22,15 +22,15 @@ transfer_source_task=cifar10
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 
-attack_epochs=300
+attack_epochs=200
 attack_client=0
 num_query=10
 attack_style="Craft_option_resume"
-regularization_list="craft_train_ME_start120 craft_train_ME_start160"
-regularization_strength_list="20 50"
+regularization_list="craft_train_ME_start160"
+regularization_strength_list="20"
 data_proportion_list="0.0"
 train_clas_layer_list="2 3 4 5 6 7 8"
-num_client_list="11"
+num_client_list="6 11"
 cutlayer="4"
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do

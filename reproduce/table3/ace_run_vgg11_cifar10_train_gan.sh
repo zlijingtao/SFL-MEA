@@ -9,12 +9,12 @@ dataset_list="cifar10"
 scheme=V2_epoch
 random_seed_list="125"
 
-regularization_list="gan_train_ME_nopoison_start160 gan_train_ME_nopoison_start120"
+regularization_list="gan_train_ME_nopoison_start160"
 
 learning_rate=0.05
 regularization_strength_list="0.0"
 cutlayer="4"
-num_client_list="11"
+num_client_list="6 11"
 folder_name="saves/train_attack"
 # ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_None_both_custom_0.0_200epoch_bottleneck_None
 for dataset in $dataset_list; do

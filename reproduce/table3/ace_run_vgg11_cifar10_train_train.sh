@@ -12,7 +12,7 @@ regularization_list="None"
 learning_rate=0.05
 regularization_strength=0.0
 cutlayer_list="4"
-num_client_list="10"
+num_client_list="5 10"
 folder_name="saves/train_attack"
 # ace_V2_epoch_vgg11_bn_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_None_both_custom_0.0_200epoch_bottleneck_None
 for dataset in $dataset_list; do

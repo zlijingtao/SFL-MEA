@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 from architectures_torch import MobView
-
+from thop import profile
 def init_weights(m):
     if type(m) == nn.Linear:
         torch.nn.init.xavier_uniform_(m.weight, gain=1.0)
@@ -211,14 +211,21 @@ class ResNet(nn.Module):
             
             self.cloud = nn.Sequential(*cloud_list)
             self.local_list[i] = nn.Sequential(*local_list)
-
+    def get_MAC_param(self, batch_size = 1):
+        with torch.no_grad():
+            noise_input = torch.randn([batch_size, 3, 32, 32])
+            client_macs, client_params = profile(self.local, inputs=(noise_input, ))
+        with torch.no_grad():
+            noise_smash = torch.randn(self.get_smashed_data_size(batch_size))
+            server_macs, server_params = profile(self.cloud, inputs=(noise_smash, ))
+        return client_macs, client_params, server_macs, server_params
 
     def get_current_client(self):
         return self.current_client
 
-    def get_smashed_data_size(self):
+    def get_smashed_data_size(self, batch_size = 1):
         with torch.no_grad():
-            noise_input = torch.randn([1, 3, 224, 224])
+            noise_input = torch.randn([batch_size, 3, 32, 32])
             try:
                 device = next(self.local.parameters()).device
                 noise_input = noise_input.to(device)
@@ -363,6 +370,172 @@ def ResNet101(cutting_layer, logger, num_client = 1, num_class = 10, initialize_
 
 def ResNet152(cutting_layer, logger, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
     return ResNet(make_layers(Bottleneck, [3, 8, 36, 3], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), logger, expansion= 4, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
+
+if __name__ == "__main__":
+    cut_layer = 2
+    batch_size = 1
+    measure_option = "client" # total/Client
+    SSL_option = "MoCo" #BYOL/MoCo
+
+    model = ResNet18(cut_layer, None, bottleneck_option="None")
+    client_macs, client_params, server_macs, server_params = model.get_MAC_param(batch_size)
+    print(f"client_macs {client_macs}, client_params {client_params}, server_macs {server_macs}, server_params {server_params}")
+
+    if measure_option == "client":
+
+        model.local.cuda()
+        noise_input = torch.ones([batch_size, 3, 32, 32])
+        noise_label = torch.ones(model.get_smashed_data_size(batch_size))
+        criterion = nn.MSELoss()
+        noise_input = noise_input.cuda()
+        noise_label = noise_label.cuda()
+        # params = list(model.cloud.parameters()) + list(model.local.parameters())
+        params = list(model.local.parameters())
+        optimizer = torch.optim.SGD(params, lr=0.02, momentum=0.9, weight_decay=5e-4)
+        #GPU warmup
+        for _ in range(100):
+            optimizer.zero_grad()
+            output = model.local(noise_input)
+            f_loss = criterion(output, noise_label)
+            print("torch.cuda.memory_allocated: %fMB"%(torch.cuda.memory_allocated(0)/1024/1024))
+            f_loss.backward()
+            optimizer.step()
+        lapse_gpu_server = 0
+        import time
+        start_time = time.time()
+        
+        for _ in range(500):
+            optimizer.zero_grad()
+            output = model.local(noise_input)
+            f_loss = criterion(output, noise_label)
+            f_loss.backward()
+            optimizer.step()
+        lapse_gpu_server += (time.time() - start_time)
+        lapse_gpu_server = lapse_gpu_server / 500.
+        print(f"Average training time per round: {lapse_gpu_server}")
+
+
+    #BYOL-predictor:
+    classifier_list = [nn.Linear(512,4096),
+                nn.BatchNorm1d(4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, 2048)]
+    if batch_size == 1:
+        classifier_list = [nn.Linear(512,4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, 2048)]
+    classifier = nn.Sequential(*classifier_list)
+    with torch.no_grad():
+        noise_input = torch.randn([batch_size, 512])
+        classifier_macs, classifier_params = profile(model.classifier, inputs=(noise_input, ))
+    print(f"classifier_macs {classifier_macs}, classifier_params {classifier_params}")
+
+    if SSL_option == "BYOL":
+        predictor_list = [nn.Linear(2048,4096),
+                nn.BatchNorm1d(4096),
+                nn.ReLU(True),
+                nn.Dropout(),
+                nn.Linear(4096, 2048)]
+        predictor = nn.Sequential(*predictor_list)
+        
+
+    if measure_option == "total" and  SSL_option == "BYOL":
+        
+        classifier.cuda()
+        predictor.cuda()
+        model.local.cuda()
+        model.cloud.cuda()
+        noise_input = torch.randn([batch_size, 3, 32, 32])
+        noise_label = torch.randint(0, 10, [batch_size, ])
+        criterion = nn.CrossEntropyLoss()
+        noise_input = noise_input.cuda()
+        noise_label = noise_label.cuda()
+        params = list(model.cloud.parameters()) + list(model.local.parameters()) + list(classifier.parameters())
+        optimizer = torch.optim.SGD(params, lr=0.02, momentum=0.9, weight_decay=5e-4)
+        #GPU warmup
+        for _ in range(100):
+            optimizer.zero_grad()
+            output = model.local(noise_input)
+            output = model.cloud(output)
+            output = F.avg_pool2d(output, 4)
+            output = output.view(output.size(0), -1)
+            output = classifier(output)
+            output = predictor(output)
+            f_loss = criterion(output, noise_label)
+            print("torch.cuda.memory_allocated: %fMB"%(torch.cuda.memory_allocated(0)/1024/1024))
+            f_loss.backward()
+            optimizer.step()
+
+        lapse_gpu_server = 0
+        import time
+        start_time = time.time()
+        
+        for _ in range(500):
+            optimizer.zero_grad()
+            output = model.local(noise_input)
+            output = model.cloud(output)
+            output = F.avg_pool2d(output, 4)
+            output = output.view(output.size(0), -1)
+            output = classifier(output)
+            output = predictor(output)
+            f_loss = criterion(output, noise_label)
+            f_loss.backward()
+            optimizer.step()
+        lapse_gpu_server += (time.time() - start_time)
+        lapse_gpu_server = lapse_gpu_server / 500.
+        print(f"Average training time per round: {lapse_gpu_server}")
+    elif measure_option == "total" and  SSL_option == "MoCo":
+        classifier.cuda()
+        model.local.cuda()
+        model.cloud.cuda()
+        noise_input = torch.randn([batch_size, 3, 32, 32])
+        noise_label = torch.randint(0, 10, [batch_size, ])
+        criterion = nn.CrossEntropyLoss()
+        noise_input = noise_input.cuda()
+        noise_label = noise_label.cuda()
+        params = list(model.cloud.parameters()) + list(model.local.parameters()) + list(classifier.parameters())
+        optimizer = torch.optim.SGD(params, lr=0.02, momentum=0.9, weight_decay=5e-4)
+        #GPU warmup
+        for _ in range(100):
+            optimizer.zero_grad()
+            output = model.local(noise_input)
+            output = model.cloud(output)
+            output = F.avg_pool2d(output, 4)
+            output = output.view(output.size(0), -1)
+            output = classifier(output)
+            f_loss = criterion(output, noise_label)
+            print("torch.cuda.memory_allocated: %fMB"%(torch.cuda.memory_allocated(0)/1024/1024))
+            f_loss.backward()
+            optimizer.step()
+
+        lapse_gpu_server = 0
+        import time
+        start_time = time.time()
+        
+        for _ in range(500):
+            optimizer.zero_grad()
+            output = model.local(noise_input)
+            output = model.cloud(output)
+            output = F.avg_pool2d(output, 4)
+            output = output.view(output.size(0), -1)
+            output = classifier(output)
+            f_loss = criterion(output, noise_label)
+            f_loss.backward()
+            optimizer.step()
+        lapse_gpu_server += (time.time() - start_time)
+        lapse_gpu_server = lapse_gpu_server / 500.
+        print(f"Average training time per round: {lapse_gpu_server}")
+
+
+
+
+
+
+
+
+    # print(f"client_macs {client_macs}, client_params {client_params}, server_macs {server_macs}, server_params {server_params}")
 
 
 # def test():

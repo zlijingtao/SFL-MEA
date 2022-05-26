@@ -19,13 +19,13 @@ transfer_source_task=cifar10
 dataset_list="cifar10"
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 
-attack_epochs=200
+attack_epochs=300
 attack_client=0
 num_query=10
 attack_style_list="TrainME_option"
 regularization_list="None"
-data_proportion_list="0.0"
-num_client_list="10"
+data_proportion_list="0.2"
+num_client_list="5 10"
 cutlayer_list=(4 4 4 4 4 4 4)
 train_clas_layer_list=(2 3 4 5 6 7 8)
 for attack_style in $attack_style_list; do

@@ -625,7 +625,7 @@ def vgg19_bn(cutting_layer, logger, num_client = 1, num_class = 10, initialize_d
     return VGG(make_layers(cutting_layer,cfg['E'], batch_norm=True, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), logger, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
 
 
-# if __name__ == "__main__":
-#     model = vgg11_bn(7, None, bottleneck_option="None")
-#     client_macs, client_params, server_macs, server_params = model.get_MAC_param()
-#     print(f"client_macs {client_macs}, client_params {client_params}, server_macs {server_macs}, server_params {server_params}")
+if __name__ == "__main__":
+    model = vgg11_bn(5, None, bottleneck_option="None")
+    client_macs, client_params, server_macs, server_params = model.get_MAC_param()
+    print(f"client_macs {client_macs}, client_params {client_params}, server_macs {server_macs}, server_params {server_params}")

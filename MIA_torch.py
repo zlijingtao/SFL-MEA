@@ -1560,6 +1560,9 @@ class MIA:
             for client_id in range(self.actual_num_users):
                 saved_iterator_list.append(iter(self.client_dataloader[client_id]))
 
+            Grad_staleness_visual = True # TODO: set to false.
+            if Grad_staleness_visual:
+                self.soft_image_id = 0
 
             for epoch in range(1, self.n_epochs+1):
                 if self.pre_train_ganadv and self.gan_regularizer:
@@ -1586,16 +1589,23 @@ class MIA:
                         pass
                     else:
                         client_iterator_list.append(saved_iterator_list[idxs_users[client_id]])
-            
+
+
                 
+                if Grad_staleness_visual:
+                    
+                    self.soft_train_count = -1
+                    self.soft_image_id += 1
+                    images = torch.load("./saved_tensors/test_cifar10_image.pt").cuda()
+                    labels = torch.load("./saved_tensors/test_cifar10_label.pt").cuda()
+                    self.gradcollect_train_target_step(images, labels, 0)
+                    self.optimizer_zero_grad()
                 ## Secondary Loop
                 for batch in range(self.num_batches):
-
+                    if self.scheme == "V1_epoch" or self.scheme == "V3_epoch":
+                        self.optimizer_zero_grad()
                     # shuffle_client_list = range(self.num_client)
                     for client_id in range(self.num_client):
-                        if self.scheme == "V1_epoch" or self.scheme == "V3_epoch":
-                            self.optimizer_zero_grad()
-
                         # Get data
                         if (self.Generator_train_option or self.Craft_train_option) and idxs_users[client_id] == self.actual_num_users - 1:   # Data free no data.
                             

@@ -16,13 +16,13 @@ num_client="1"
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 
-attack_epochs=300
+attack_epochs=200
 attack_client=0
 num_query_list="100000"
 attack_style_list="GM_option_CIFAR100"
 data_proportion_list="1.0"
 
-train_clas_layer_list="2 3 4 5"
+train_clas_layer_list="2 3 4 5 6 7 8"
 
 for random_seed in $random_seed_list; do
         for regularization_strength in $regularization_strength_list; do
