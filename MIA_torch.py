@@ -39,6 +39,7 @@ def init_weights(m):
         torch.nn.init.xavier_uniform_(m.weight, gain=1.0)
         if m.bias is not None:
             m.bias.data.zero_()
+            
 def denormalize(x, dataset): # normalize a zero mean, std = 1 to range [0, 1]
     
     if dataset == "mnist" or dataset == "fmnist":
