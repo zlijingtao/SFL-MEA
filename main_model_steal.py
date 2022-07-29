@@ -7,7 +7,7 @@ import MIA_torch
 from datasets_torch import *
 from utils import setup_logger
 import argparse
-
+import time
 import torch
 
 
@@ -87,8 +87,10 @@ for date_0 in date_list:
 
 
     mi.logger.debug(str(args))
+    start_time = time.time()
     mi.steal_attack(num_query = args.num_query, num_epoch = args.attack_epochs, attack_client=args.attack_client, attack_style = args.attack_style, data_proportion = args.data_proportion,
                      noniid_ratio = args.noniid_ratio, train_clas_layer = args.train_clas_layer, surrogate_arch = args.surrogate_arch, adversairal_attack_option = args.adversairal_attack)
-    
+    time_cost = time.time() - start_time
+    mi.logger.debug(f"Time cost for {args.attack_style} stealing attack, {args.attack_epochs} epoch, is {time_cost}s")
 
 # %%

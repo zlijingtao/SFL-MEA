@@ -2,7 +2,9 @@
 cd "$(dirname "$0")"
 cd ../../
 GPU_id=0
-arch_list="vgg11_bn resnet18"
+# arch_list="vgg11_bn resnet18"
+# arch_list="resnet20 mobilenet_v2"
+arch_list="mobilenetv2"
 batch_size=128
 num_epochs=200
 random_seed_list="125"
