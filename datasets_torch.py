@@ -11,6 +11,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from torch.utils.data import TensorDataset, sampler, DataLoader
+from FEMNIST_pytorch.femnist import FEMNIST
 import urllib
 import tarfile
 import os
@@ -202,6 +203,36 @@ def load_mnist():
     xpub = TensorDataset(x_test, y_test)
     return xpriv, xpub
 
+def load_femnist():
+    xpriv = FEMNIST(root='./data', train=True, download=True)
+
+    xpub = FEMNIST(root='./data', train=False)
+
+    x_train = np.array(xpriv.data)
+    y_train = np.array(xpriv.targets)
+    x_test = np.array(xpub.data)
+    y_test = np.array(xpub.targets)
+    
+    x_train = x_train[:, None, :, :]
+    x_test = x_test[:, None, :, :]
+    x_train = np.tile(x_train, (1,3,1,1))
+    x_test = np.tile(x_test, (1,3,1,1))
+
+    x_train = torch.Tensor(x_train)
+    y_train = torch.Tensor(y_train).type(torch.LongTensor)
+    x_test = torch.Tensor(x_test)
+    y_test = torch.Tensor(y_test).type(torch.LongTensor)
+    x_train = F.interpolate(x_train, (32, 32))
+    x_test = F.interpolate(x_test, (32, 32))
+    x_train  = x_train / (255/2) - 1
+    x_test  = x_test / (255/2) - 1
+    x_train = torch.clip(x_train, -1., 1.)
+    x_test = torch.clip(x_test, -1., 1.)
+    # Need a different way to denormalize
+    xpriv = TensorDataset(x_train, y_train)
+    xpub = TensorDataset(x_test, y_test)
+    return xpriv, xpub
+
 def load_mnist_membership():
     xpriv = datasets.MNIST(root='./data', train=True, download=True)
 
@@ -250,6 +281,35 @@ def load_mnist_membership():
     xnomem_test = TensorDataset(x_nomem_test, y_nomem_test)
     return xpriv, xpub, xmem, xnomem, xmem_test, xnomem_test
 
+
+def get_femnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = False):
+    """ return training dataloader
+    Args:
+        mean: mean of cifar10 training dataset
+        std: std of cifar10 training dataset
+        path: path to cifar10 training python dataset
+        batch_size: dataloader batchsize
+        num_workers: dataloader num_works
+        shuffle: whether to shuffle
+    Returns: train_data_loader:torch dataloader object
+    """
+    mnist_training, mnist_testing = load_femnist()
+    
+    if num_client == 1:
+        mnist_training_loader = [torch.utils.data.DataLoader(mnist_training,  batch_size=batch_size, shuffle=shuffle,
+                num_workers=num_workers)]
+    elif num_client > 1:
+        mnist_training_loader = []
+        for i in range(num_client):
+            mnist_training_subset = torch.utils.data.Subset(mnist_training, list(range(i * (len(mnist_training)//num_client), (i+1) * (len(mnist_training)//num_client))))
+            subset_training_loader = DataLoader(
+                mnist_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
+            mnist_training_loader.append(subset_training_loader)
+    
+    mnist_testing_loader = torch.utils.data.DataLoader(mnist_testing,  batch_size=batch_size, shuffle=False,
+                num_workers=num_workers)
+
+    return mnist_training_loader, mnist_testing_loader
 
 def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = False):
     """ return training dataloader

@@ -24,9 +24,10 @@ import torchvision
 from torchvision.utils import save_image
 from datetime import datetime
 import os, copy
+import time
 from shutil import rmtree
 from datasets_torch import get_cifar100_trainloader, get_cifar100_testloader, get_cifar10_trainloader, \
-    get_cifar10_testloader, get_imagenet_trainloader, get_imagenet_testloader, get_mnist_bothloader, get_facescrub_bothloader, get_SVHN_trainloader, get_SVHN_testloader, get_fmnist_bothloader, get_tinyimagenet_bothloader
+    get_cifar10_testloader, get_imagenet_trainloader, get_imagenet_testloader, get_mnist_bothloader, get_facescrub_bothloader, get_SVHN_trainloader, get_SVHN_testloader, get_fmnist_bothloader, get_femnist_bothloader, get_tinyimagenet_bothloader
 from tqdm import tqdm
 import glob
 DENORMALIZE_OPTION=True
@@ -447,6 +448,15 @@ class MIA:
                                                                                 num_client=actual_num_users,
                                                                                 collude_use_public=self.collude_use_public)
             self.orig_class = 10
+        elif self.dataset == "femnist":
+            self.client_dataloader, self.pub_dataloader = get_femnist_bothloader(batch_size=self.batch_size, 
+                                                                                num_workers=4,
+                                                                                shuffle=True,
+                                                                                num_client=actual_num_users,
+                                                                                collude_use_public=self.collude_use_public)
+            self.orig_class = 62
+            print(len(self.client_dataloader[0]))
+            print(len(self.pub_dataloader))
         else:
             raise ("Dataset {} is not supported!".format(self.dataset))
         self.num_class = self.orig_class
@@ -2017,6 +2027,8 @@ class MIA:
                 _, val_single_loader = get_mnist_bothloader(batch_size=1, num_workers=4, shuffle=False)
             elif self.dataset == "fmnist":
                 _, val_single_loader = get_fmnist_bothloader(batch_size=1, num_workers=4, shuffle=False)
+            elif self.dataset == "femnist":
+                _, val_single_loader = get_femnist_bothloader(batch_size=1, num_workers=4, shuffle=False)
             elif self.dataset == "facescrub":
                 _, val_single_loader = get_facescrub_bothloader(batch_size=1, num_workers=4, shuffle=False)
             elif self.dataset == "tinyimagenet":
@@ -2101,7 +2113,7 @@ class MIA:
                 exit()
         self.surrogate_model.resplit(train_clas_layer)
         
-
+        start_time = time.time()
         # length_clas = self.surrogate_model.length_clas
         # length_tail = self.surrogate_model.length_tail
         # print("Tail model has {} cuttable & non-trivial layer".format(length_tail))
@@ -2312,6 +2324,8 @@ class MIA:
                 attacker_loader_list, _= get_mnist_bothloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
             elif self.dataset == "fmnist":
                 attacker_loader_list, _= get_fmnist_bothloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
+            elif self.dataset == "femnist":
+                attacker_loader_list, _= get_femnist_bothloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/data_proportion))
             else:
                 raise("Unknown Dataset!")
 
@@ -2776,6 +2790,12 @@ class MIA:
         # if SoftTrain_option or TrainME_option: #TODO: reverse this.
         #     dl_transforms = None
         
+        time_cost = time.time() - start_time
+
+        self.logger.debug(f"Time cost on preparing the attack: {time_cost}")
+
+        start_time = time.time()
+
         min_grad_loss = 9.9
         acc_loss_min_grad_loss = 9.9
         val_acc_max = 0.0
@@ -3050,7 +3070,9 @@ class MIA:
                     closest_tail_state_dict = self.surrogate_model.cloud.state_dict()
                 self.logger.debug("GMepoch: {}, train_acc: {}, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(epoch, avg_acc, val_accu, fidel_score, acc_loss_mean, grad_loss_mean))
 
+        time_cost = time.time() - start_time
 
+        self.logger.debug(f"Time cost on training surrogate model: {time_cost}")
 
 
         if gradient_matching:
@@ -3731,6 +3753,8 @@ class MIA:
             _, val_single_loader = get_mnist_bothloader(batch_size=1, num_workers=4, shuffle=False)
         elif self.dataset == "fmnist":
             _, val_single_loader = get_fmnist_bothloader(batch_size=1, num_workers=4, shuffle=False)
+        elif self.dataset == "femnist":
+            _, val_single_loader = get_femnist_bothloader(batch_size=1, num_workers=4, shuffle=False)
         elif self.dataset == "facescrub":
             _, val_single_loader = get_facescrub_bothloader(batch_size=1, num_workers=4, shuffle=False)
         elif self.dataset == "tinyimagenet":
