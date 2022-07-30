@@ -1,9 +1,9 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 cd ../../
-GPU_id=6
+GPU_id=0
 arch=vgg11_bn
-batch_size=128
+batch_size=64
 num_epochs=200
 dataset_list="femnist"
 scheme=V2_epoch
