@@ -14,7 +14,7 @@ cutlayer_list="4"
 num_client="1"
 
 dataset=cifar10
-learning_rate=0.005
+learning_rate=0.02
 
 
 attack_epochs=200

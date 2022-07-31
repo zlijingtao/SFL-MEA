@@ -43,7 +43,7 @@ def init_weights(m):
             
 def denormalize(x, dataset): # normalize a zero mean, std = 1 to range [0, 1]
     
-    if dataset == "mnist" or dataset == "fmnist":
+    if dataset == "mnist" or dataset == "fmnist" or dataset == "femnist":
         return torch.clamp((x + 1)/2, 0, 1)
     elif dataset == "cifar10":
         std = [0.247, 0.243, 0.261]
