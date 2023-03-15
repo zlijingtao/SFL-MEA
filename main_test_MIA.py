@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
-import MIA_torch
+import SFL
 from datasets_torch import *
 from utils import setup_logger
 import argparse
@@ -74,7 +74,7 @@ for date_0 in date_list:
     if args.test_best:
         args.num_epochs = "best"
     save_dir_name = "./{}/{}".format(args.folder, date_0)
-    mi = MIA_torch.MIA(args.arch, cutting_layer, batch_size, n_epochs = args.num_epochs, scheme = args.scheme, 
+    mi = SFL.MIA(args.arch, cutting_layer, batch_size, n_epochs = args.num_epochs, scheme = args.scheme, 
                         num_client = num_client, dataset=args.dataset, save_dir= save_dir_name, 
                         gan_AE_type = args.gan_AE_type, regularization_option=args.regularization, regularization_strength = args.regularization_strength, 
                         random_seed = args.random_seed, bottleneck_option = args.bottleneck_option,
