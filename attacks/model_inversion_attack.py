@@ -1,4 +1,8 @@
+import os
+import torch
+import torch.nn.functional as F
 
+DENORMALIZE_OPTION = True
 
 def gen_ir(self, val_single_loader, local_model, img_folder="./tmp", intermed_reps_folder="./tmp", all_label=True,
             select_label=0, attack_from_later_layer=-1, attack_option = "MIA"):

@@ -63,22 +63,12 @@ class VGG(nn.Module):
                 if initialize_different:
                     self.local_list[i].apply(init_weights)
                     
-            # for name, params in self.local_list[-1].named_parameters():
-            #     print(name, 'of client', i, params.data[1][1])
-            #     break
         self.local = self.local_list[0]
         self.cloud = feature[1]
 
-
-
-
         self.logger = logger
         self.initialize = True
-        self.privacy_score_accu = 0.0
-        self.privacy_score = 0.0
 
-        
-        
         classifier_list = [nn.Dropout(),
             nn.Linear(512, 512),
             nn.ReLU(True),
@@ -382,8 +372,6 @@ class VGG_vib(nn.Module):
         self.cloud = feature[1]
         self.logger = logger
         self.initialize = True
-        self.privacy_score_accu = 0.0
-        self.privacy_score = 0.0
         classifier_list = [nn.Dropout(),
             nn.Linear(512, 512),
             nn.ReLU(True),
