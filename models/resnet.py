@@ -115,7 +115,7 @@ class ResNet(nn.Module):
     '''
     ResNet model 
     '''
-    def __init__(self, feature, logger, expansion = 1, num_client = 1, num_class = 10, initialize_different = False):
+    def __init__(self, feature, expansion = 1, num_client = 1, num_class = 10, initialize_different = False):
         super(ResNet, self).__init__()
         self.current_client = 0
         self.num_client = num_client
@@ -138,10 +138,12 @@ class ResNet(nn.Module):
         self.local = self.local_list[0]
         self.cloud = feature[1]
         self.image_size = feature[2]
-        self.logger = logger
         self.classifier = nn.Linear(512*expansion, num_class)
         self.cloud_classifier_merge = False
         self.original_num_cloud = self.get_num_of_cloud_layer()
+
+        self.first_cloud_layer = list(self.cloud.children())[0]
+        self.last_local_layer = list(self.local.children())[-1]
 
         print("local:")
         print(self.local)
@@ -149,7 +151,7 @@ class ResNet(nn.Module):
         print(self.cloud)
         print("classifier:")
         print(self.classifier)
-         # Initialize weights
+        # Initialize weights
         for m in self.cloud:
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
@@ -249,11 +251,15 @@ class ResNet(nn.Module):
         return smashed_data.size()
     
     def forward(self, x):
-        self.local_output = self.local(x)
-        x = self.cloud(self.local_output)
-        x = F.avg_pool2d(x, 4)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        if self.cloud_classifier_merge:
+            x = self.local(x)
+            x = self.cloud(x)
+        else:
+            x = self.local(x)
+            x = self.cloud(x)
+            x = F.avg_pool2d(x, 4)
+            x = x.view(x.size(0), -1)
+            x = self.classifier(x)
         return x
 
 def make_layers(block, layer_list, cutting_layer, adds_bottleneck = False, bottleneck_option = "C8S1"):
@@ -366,24 +372,24 @@ def make_layers(block, layer_list, cutting_layer, adds_bottleneck = False, bottl
     image_size = (input_nc, current_image_dim, current_image_dim)
     return local, cloud, image_size
 
-def ResNet18(cutting_layer, logger, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
-    return ResNet(make_layers(BasicBlock, [2, 2, 2, 2], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), logger, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
+def ResNet18(cutting_layer, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
+    return ResNet(make_layers(BasicBlock, [2, 2, 2, 2], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), num_client = num_client, num_class = num_class, initialize_different = initialize_different)
 
 
-def ResNet34(cutting_layer, logger, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
-    return ResNet(make_layers(BasicBlock, [3, 4, 6, 3], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), logger, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
+def ResNet34(cutting_layer, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
+    return ResNet(make_layers(BasicBlock, [3, 4, 6, 3], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), num_client = num_client, num_class = num_class, initialize_different = initialize_different)
 
 
-def ResNet50(cutting_layer, logger, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
-    return ResNet(make_layers(Bottleneck, [3, 4, 6, 3], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), logger, expansion= 4, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
+def ResNet50(cutting_layer, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
+    return ResNet(make_layers(Bottleneck, [3, 4, 6, 3], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), expansion= 4, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
 
 
-def ResNet101(cutting_layer, logger, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
-    return ResNet(make_layers(Bottleneck, [3, 4, 23, 3], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), logger, expansion= 4, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
+def ResNet101(cutting_layer, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
+    return ResNet(make_layers(Bottleneck, [3, 4, 23, 3], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), expansion= 4, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
 
 
-def ResNet152(cutting_layer, logger, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
-    return ResNet(make_layers(Bottleneck, [3, 8, 36, 3], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), logger, expansion= 4, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
+def ResNet152(cutting_layer, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
+    return ResNet(make_layers(Bottleneck, [3, 8, 36, 3], cutting_layer, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), expansion= 4, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
 
 if __name__ == "__main__":
     cut_layer = 2

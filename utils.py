@@ -12,6 +12,21 @@ import matplotlib.pyplot as plt
 import copy
 
 
+def cutting_train_clas_layer_mapping(arch_name, cutlayer):
+    # read cuttinglayer_train_clas_layer_mapping.txt
+    if "vgg11" in arch_name:
+        mapping = {4: 9, 5: 8, 7:7, 8:6, 9:5, 11:4, 12:3, 13:2, 14:1}
+        if cutlayer not in mapping.keys():
+            raise(f"cutlayer-{cutlayer} is not a valid one in {arch_name}")
+        train_clas_layer = mapping[cutlayer]
+    elif arch_name == "resnet20":
+        train_clas_layer = 11 - cutlayer
+    elif arch_name == "resnet18":
+        train_clas_layer = 10 - cutlayer
+    elif arch_name == "mobilenetv2":
+        train_clas_layer = 20 - cutlayer
+    return int(train_clas_layer)
+
 def freeze_model_bn(model):
     for module in model.modules():
         # print(module)
@@ -80,7 +95,10 @@ def spurious_loss(act, lambda_coeff, l_norm = 2):
         var1 = 400 / (torch.max(act) - torch.min(act)).pow(l_norm).sum()
     return lambda_coeff*(var1)
 
-
+def add_two_order_dict(order_dict1, order_dict2):
+    for key in order_dict1.keys():
+        order_dict1[key] += order_dict2[key]
+    return order_dict1
 
 def average_weights(w):
     """
@@ -89,8 +107,15 @@ def average_weights(w):
     w_avg = copy.deepcopy(w[0].state_dict())
     for key in w_avg.keys():
         for i in range(1, len(w)):
-            w_avg[key] += w[i].state_dict()[key]
-        w_avg[key] = torch.true_divide(w_avg[key], len(w))
+            if isinstance(w_avg[key], OrderedDict):
+                w_avg[key] = add_two_order_dict(w_avg[key], w[i].state_dict()[key])
+            else:
+                w_avg[key] += w[i].state_dict()[key] # problem, these two are ordered dict
+        if isinstance(w_avg[key], OrderedDict):
+            for k in w_avg[key].keys():
+                w_avg[key][k] = torch.true_divide(w_avg[key][k], len(w))
+        else:
+            w_avg[key] = torch.true_divide(w_avg[key], len(w))
     return w_avg
 
 def zeroing_grad(model):

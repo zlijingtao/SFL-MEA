@@ -7,43 +7,13 @@ import models.architectures_torch as architectures
 from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, TV, l2loss, zeroing_grad
 from utils import freeze_model_bn, average_weights
 import logging
-from models import get_model
 import torchvision
 from torchvision.utils import save_image
 from datetime import datetime
 import os, copy
 from shutil import rmtree
-from datasets import get_dataset
+from datasets import get_dataset, denormalize, get_image_shape
 from models import get_model
-
-def denormalize(x, dataset): # normalize a zero mean, std = 1 to range [0, 1]
-    
-    if dataset == "mnist" or dataset == "fmnist" or dataset == "femnist":
-        return torch.clamp((x + 1)/2, 0, 1)
-    elif dataset == "cifar10":
-        std = [0.247, 0.243, 0.261]
-        mean = [0.4914, 0.4822, 0.4465]
-    elif dataset == "cifar100":
-        std = [0.2673342858792401, 0.2564384629170883, 0.27615047132568404]
-        mean = [0.5070751592371323, 0.48654887331495095, 0.4409178433670343]
-    elif dataset == "imagenet":
-        std = [0.229, 0.224, 0.225]
-        mean = [0.485, 0.456, 0.406]
-    elif dataset == "facescrub":
-        std = (0.2058, 0.2275, 0.2098)
-        mean = (0.5708, 0.5905, 0.4272)
-    elif dataset == "tinyimagenet":
-        mean = (0.5141, 0.5775, 0.3985)
-        std = (0.2927, 0.2570, 0.1434)
-    elif dataset == "svhn":
-        std = (0.1189, 0.1377, 0.1784)
-        mean = (0.3522, 0.4004, 0.4463)
-    # 3, H, W, B
-    tensor = x.clone().permute(1, 2, 3, 0)
-    for t, m, s in zip(range(tensor.size(0)), mean, std):
-        tensor[t] = tensor[t].mul_(s).add_(m)
-    # B, 3, H, W
-    return torch.clamp(tensor, 0, 1).permute(3, 0, 1, 2)
 
 def save_images(input_imgs, output_imgs, epoch, path, offset=0, batch_size=64):
     """
@@ -68,7 +38,7 @@ class Trainer:
     def __init__(self, arch, cutting_layer, batch_size, n_epochs, scheme="V2", num_client=2, dataset="cifar10",
                  logger=None, save_dir=None, regularization_option="None", regularization_strength=0,
                  collude_use_public=False, learning_rate=0.1, random_seed=123, load_from_checkpoint = False,
-                 attack_confidence_score = False,
+                 attack_confidence_score = False, num_freeze_layer = 0,
                  finetune_freeze_bn = False, load_from_checkpoint_server = False, source_task = "cifar100", client_sample_ratio = 1.0,
                  save_activation_tensor = False, noniid = 1.0):
         torch.manual_seed(random_seed)
@@ -91,7 +61,7 @@ class Trainer:
         self.save_activation_tensor = save_activation_tensor
 
         # setup logger
-        model_log_file = self.save_dir + '/MIA.log'
+        model_log_file = self.save_dir + '/train.log'
         if logger is not None:
             self.logger = logger
         else:
@@ -101,6 +71,7 @@ class Trainer:
         self.scheme = scheme
         self.num_client = num_client # max num of active clients at each round
         self.dataset = dataset
+        self.image_shape = get_image_shape(self.dataset)
         self.call_resume = False
         self.load_from_checkpoint = load_from_checkpoint
         self.load_from_checkpoint_server = load_from_checkpoint_server
@@ -114,55 +85,11 @@ class Trainer:
 
         # If strength is 0.0, then there is no regularization applied, train normally.
         self.regularization_strength = regularization_strength
-        
-        '''Train time Model Extraction attack'''
-        # we let client collect gradient during SFL training, which is used later for MEA
-        # Use a trigger to decide when to start collect gradient
-        self.trigger_stop = False # Use 
-
-
-        self.grad_collect_start_epoch = 0
-        try:
-            self.grad_collect_start_epoch = int(self.regularization_option.split("start")[1])
-        except:
-            self.logger.debug("extraing start epoch setting from arg, failed, set start_epoch to 160")
-            self.grad_collect_start_epoch = 160
-        
-        if "gan_train_ME" in self.regularization_option:
-            self.noise_w = 50
-            self.nz = 512
-            self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=3, img_size=32)
-            self.logger.debug(f"Perform gan_train_ME, start at {self.grad_collect_start_epoch} epoch")
-            
-        
-        if "craft_train_ME" in self.regularization_option:
-            self.craft_image_id = 0
-            self.craft_step_count = 0
-            self.num_craft_step = max(int(self.regularization_strength), 1)
-            self.logger.debug(f"Perform craft_train_ME, num_step to craft each image is {self.num_craft_step}, start at {self.grad_collect_start_epoch} epoch")
-
-        
-        if "GM_train_ME" in self.regularization_option:
-            self.query_image_id = 0
-            self.rotate_label = 0
-            self.GM_data_proportion = self.regularization_strength # use reguarlization_strength to set data_proportion
-            self.logger.debug(f"Perform GM_train_ME, GM data proportion is {self.GM_data_proportion}, start at {self.grad_collect_start_epoch} epoch")
-
-        if "normal_train_ME" in self.regularization_option:
-            self.query_image_id = 0
-            self.rotate_label = 0
-            self.logger.debug(f"Perform Normal_train_ME, start collecting gradient at {self.grad_collect_start_epoch} epoch")
-        
-        if "soft_train_ME" in self.regularization_option:
-            self.query_image_id = 0
-            self.rotate_label = 0
-            self.logger.debug(f"Perform soft_train_ME, start at {self.grad_collect_start_epoch} epoch")
 
         # dividing datasets to actual number of clients, self.num_clients is num of active clients at each round (assume client sampling).
         # number of client < actual number of clients
-        multiplier = 1/self.client_sample_ratio #100
-        
-        self.actual_num_users = int(multiplier * self.num_client)
+
+        self.actual_num_users = int(self.num_client/self.client_sample_ratio)
 
         if "gan_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option: 
             #data-free GAN-attack
@@ -179,11 +106,9 @@ class Trainer:
         self.num_batches = len(self.client_dataloader[0])
         print("Total number of batches per epoch for each client is ", self.num_batches)
 
-
-        self.model = get_model(self.arch, self.cutting_layer, self.logger, self.num_client, self.num_class)
+        self.model = get_model(self.arch, self.cutting_layer, self.num_client, self.num_class, num_freeze_layer)
         self.model.merge_classifier_cloud()
         self.model.cloud.cuda()
-
         self.params = list(self.model.cloud.parameters())
         
         self.local_params = []
@@ -201,14 +126,14 @@ class Trainer:
         
         milestones = [60, 120, 160]
         if self.client_sample_ratio < 1.0:
-            multiplier = 1/self.client_sample_ratio
             for i in range(len(milestones)):
-                milestones[i] = int(milestones[i] * multiplier)
+                milestones[i] = int(milestones[i] /self.client_sample_ratio)
         
         self.local_optimizer_list = []
         self.train_local_scheduler_list = []
         self.warmup_local_scheduler_list = []
         for i in range(len(self.local_params)):
+            print(len(self.local_params[i]))
             self.local_optimizer_list.append(torch.optim.SGD(list(self.local_params[i]), lr=self.lr, momentum=0.9, weight_decay=5e-4))
             self.train_local_scheduler_list.append(torch.optim.lr_scheduler.MultiStepLR(self.local_optimizer_list[i], milestones=milestones,
                                                                     gamma=0.2))  # learning rate decay
@@ -253,12 +178,22 @@ class Trainer:
         if self.load_from_checkpoint and self.finetune_freeze_bn:
             freeze_model_bn(self.model.local_list[client_id])
         
-        # Final Prediction Logits (complete forward pass)
-        z_private = self.model.local_list[client_id](x_private)
-        if save_grad:
-            z_private.retain_grad()
 
-        output = self.model.cloud(z_private)
+        # define the hook function 
+        # def get_activation_gradient(grads, name):
+        #     def hook(model, input, output):
+        #         grads[name] = output.grad
+        #     return hook
+        # grads = {}
+        # self.model.first_cloud_layer.register_backward_hook(get_activation_gradient(grads, 'first_cloud_layer'))
+        
+        if save_grad:
+        # Final Prediction Logits (complete forward pass)
+            z_private = self.model.local_list[client_id](x_private)
+            z_private.retain_grad()
+            output = self.model.cloud(z_private)
+        else:
+            output = self.model(x_private)
         
         if "label_smooth" in self.regularization_option:
             criterion = torch.nn.CrossEntropyLoss(label_smoothing=self.regularization_strength)
@@ -288,21 +223,25 @@ class Trainer:
 
 
         total_loss.backward()
-        
+
         if save_grad:
+
+            # print(z_private.grad.detach())
+            # print(grads["first_cloud_layer"])
+            # print(torch.equal(grads["first_cloud_layer"], z_private.grad.detach()))
+
             if not ("normal_train" in self.regularization_option):
                 zeroing_grad(self.model.local_list[client_id])
 
             # collect gradient
-            if not os.path.isdir(self.save_dir + "saved_grads"):
-                os.makedirs(self.save_dir + "saved_grads")
-            torch.save(z_private.grad.detach().cpu(), self.save_dir + f"saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
+            if not os.path.isdir(self.save_dir + "/saved_grads"):
+                os.makedirs(self.save_dir + "/saved_grads")
+            torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
 
             # collect image/label
             if self.rotate_label == 0:
-                torch.save(x_private.detach().cpu(), self.save_dir + f"saved_grads/image_{self.query_image_id}.pt")
-                torch.save(label_private.detach().cpu(), self.save_dir + f"saved_grads/label_{self.query_image_id}.pt")
-        
+                torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
+                torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
@@ -322,7 +261,7 @@ class Trainer:
             os.makedirs(image_save_path)
 
         if self.craft_step_count == 0 and self.craft_image_id == 0:
-            image_shape = [self.batch_size, 3, 32, 32]
+            image_shape = [self.batch_size, self.image_shape[0], self.image_shape[1], self.image_shape[2]]
             label_shape = [self.batch_size, ]
             fake_image = torch.rand(image_shape, requires_grad=True, device="cuda")
             fake_label = torch.randint(low=0, high = self.num_class, size = label_shape, device="cuda")
@@ -337,7 +276,7 @@ class Trainer:
             # reset counters
             self.craft_step_count = 0
             self.craft_image_id += 1
-            image_shape = [self.batch_size, 3, 32, 32]
+            image_shape = [self.batch_size, self.image_shape[0], self.image_shape[1], self.image_shape[2]]
             label_shape = [self.batch_size, ]
             fake_image = torch.rand(image_shape, requires_grad=True, device="cuda")
             fake_label = torch.randint(low=0, high = self.num_class, size = label_shape, device="cuda")
@@ -415,12 +354,13 @@ class Trainer:
         # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
         g_noise_out_dist = torch.mean(torch.abs(x_private[:B, :] - x_private[B:, :]))
         g_noise_z_dist = torch.mean(torch.abs(z[:B, :] - z[B:, :]).view(B,-1),dim=1)
-        g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * self.noise_w
+        noise_w = 50
+        g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
 
+        # z_private = self.model.local_list[client_id](x_private)
 
-        z_private = self.model.local_list[client_id](x_private)
-
-        output = self.model.cloud(z_private)
+        # output = self.model.cloud(z_private)
+        output = self.model(x_private)
         
         criterion = torch.nn.CrossEntropyLoss()
 
@@ -430,13 +370,7 @@ class Trainer:
 
         total_loss.backward()
 
-        if "nopoison" in self.regularization_option:
-            zeroing_grad(self.model.local_list[client_id])
-        elif "poison" in self.regularization_option:
-            pass
-        else: # zeroing grad by default
-            zeroing_grad(self.model.local_list[client_id])
-        
+        zeroing_grad(self.model.local_list[client_id])
 
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
@@ -458,14 +392,22 @@ class Trainer:
         self.model.cloud.eval()
         criterion = nn.CrossEntropyLoss()
 
+        if self.arch == "ViT":
+            dl_transforms = torch.nn.Sequential(
+                transforms.Resize(224),
+                transforms.CenterCrop(224))
+
         for i, (input, target) in enumerate(val_loader):
+            if self.arch == "ViT":
+                input = dl_transforms(input)
             input = input.cuda()
             target = target.cuda()
             # compute output
             with torch.no_grad():
 
-                output = self.model.local_list[client_id](input)
-                output = self.model.cloud(output)
+                # output = self.model.local_list[client_id](input)
+                # output = self.model.cloud(output)
+                output = self.model(input)
                 loss = criterion(output, target)
 
             output = output.float()
@@ -514,8 +456,44 @@ class Trainer:
     "Training"
     def train(self, verbose=False): # Train SFL
         
-        self.logger.debug("Model's smashed-data size is {}".format(str(self.model.get_smashed_data_size())))
+
+        '''Train time Model Extraction attack'''
+        # we let client collect gradient during SFL training, which is used later for MEA
+        # Use a trigger to decide when to start collect gradient
+
+        self.grad_collect_start_epoch = 0
+        try:
+            self.grad_collect_start_epoch = int(self.regularization_option.split("start")[1])
+        except:
+            self.logger.debug("extraing start epoch setting from arg, failed, set start_epoch to 160")
+            self.grad_collect_start_epoch = 160
         
+        if "gan_train_ME" in self.regularization_option:
+            self.nz = 512
+            self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
+            extra_txt = f"gan_train_ME latent vector size is {self.nz}"
+        elif "craft_train_ME" in self.regularization_option:
+            self.craft_image_id = 0
+            self.craft_step_count = 0
+            self.num_craft_step = max(int(self.regularization_strength), 20)
+            extra_txt = f"Graft_train_ME num_step per images is {self.num_craft_step}"
+        elif "GM_train_ME" in self.regularization_option:
+            self.query_image_id = 0
+            self.rotate_label = 0
+            self.GM_data_proportion = self.regularization_strength # use reguarlization_strength to set data_proportion
+            extra_txt = f"GM_train_ME data proportion is {self.GM_data_proportion}"
+        elif "soft_train_ME" in self.regularization_option:
+            self.query_image_id = 0
+            self.rotate_label = 0
+            extra_txt = f"soft_train_ME data proportion is {1./self.actual_num_users}"
+        else:
+            extra_txt = "(Not a train_ME run)"
+
+
+        num_query = (self.n_epochs - self.grad_collect_start_epoch) * self.num_batches * self.batch_size
+
+        self.logger.debug(f"Perform {self.regularization_option}, total query: {num_query}, starting at {self.grad_collect_start_epoch} epoch, {extra_txt}")
+
         best_avg_accu = 0.0
         
         if not self.call_resume:
@@ -535,29 +513,24 @@ class Trainer:
                 self.model.cloud.cuda()
                 self.model.cloud.load_state_dict(checkpoint)
 
-            self.logger.debug("Real Train Phase: done by all clients, for total {} epochs".format(self.n_epochs))
+            self.logger.debug("Train for total {} epochs in {} style".format(self.n_epochs, self.scheme))
 
             # epoch_save_list = [1, 2 ,5 ,10 ,20 ,50 ,100]
             epoch_save_list = [50, 100, 150, 200]
-            
-            m = max(int(self.client_sample_ratio * self.num_client), 1)
 
             #Main Training
-            self.logger.debug("Train in {} style".format(self.scheme))
             
+            dl_transforms = torch.nn.Sequential(
+                transforms.RandomCrop(self.image_shape[-1], padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation(15))
 
-            if "imagenet" not in self.dataset:
+            if self.arch == "ViT":
                 dl_transforms = torch.nn.Sequential(
-                    transforms.RandomCrop(32, padding=4),
+                    transforms.RandomResizedCrop(224),
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomRotation(15)
-                )
-            else:
-                dl_transforms = torch.nn.Sequential(
-                    transforms.RandomCrop(224, padding=4),
-                    transforms.RandomHorizontalFlip(),
-                    transforms.RandomRotation(15)
-                )
+    )
 
             if "GM_train_ME" in self.regularization_option:
                 if self.GM_data_proportion == 0.0:
@@ -565,24 +538,20 @@ class Trainer:
                     exit()
                 else:
                     if "CIFAR100" in self.regularization_option:
-                        # knockoff_loader_list, _, _ = get_cifar100_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/self.GM_data_proportion))
                         knockoff_loader_list, _, _ = get_dataset("cifar100", batch_size=100, actual_num_users=int(1/self.GM_data_proportion))
                     elif "CIFAR10" in self.regularization_option:
-                        # knockoff_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/self.GM_data_proportion))
                         knockoff_loader_list, _, _ = get_dataset("cifar10", batch_size=100, actual_num_users=int(1/self.GM_data_proportion))
                     elif "SVHN" in self.regularization_option:
-                        # knockoff_loader_list, _, _ = get_SVHN_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/self.GM_data_proportion))
                         knockoff_loader_list, _, _ = get_dataset("svhn", batch_size=100, actual_num_users=int(1/self.GM_data_proportion))
                     else: # default use cifar10
                         knockoff_loader_list, _, _ = get_dataset("cifar10", batch_size=100, actual_num_users=int(1/self.GM_data_proportion))
-                        # knockoff_loader_list, _, _ = get_cifar10_trainloader(batch_size=100, num_workers=4, shuffle=True, num_client=int(1/self.GM_data_proportion))
-                        
+
                     knockoff_loader = knockoff_loader_list[0]
                     self.client_dataloader.append(knockoff_loader)
 
             # save iterator process of actual number of clients
             saved_iterator_list = []
-            for client_id in range(self.actual_num_users):
+            for client_id in range(len(self.client_dataloader)):
                 saved_iterator_list.append(iter(self.client_dataloader[client_id]))
 
             Grad_staleness_visual = False # TODO: set to false.
@@ -652,12 +621,12 @@ class Trainer:
                                     train_loss, f_loss = self.craft_train_target_step(client_id)
                                 elif "gan_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.gan_train_target_step(client_id, self.batch_size, epoch, batch)
-                                elif "GM_train_ME" in self.regularization_option or "normal_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option:
+                                elif "GM_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id, save_grad = True, skip_regularization=True) # adv clients won't comply to the defense
                             else:
                                 if "gan_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option:
                                     pass # do nothing is prior to the starting epoch   
-                                elif "normal_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option: # adv clients won't comply to the defense
+                                elif "soft_train_ME" in self.regularization_option: # adv clients won't comply to the defense
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id, skip_regularization=True)
                                 else:
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id)
@@ -675,7 +644,7 @@ class Trainer:
                                     epoch, self.n_epochs, batch, self.num_batches, client_id, train_loss, f_loss))
                         
                         # increment rotate_label
-                        if ("soft_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option or "normal_train_ME" in self.regularization_option) and epoch > self.grad_collect_start_epoch and idxs_users[client_id] == self.actual_num_users - 1:  # SoftTrain, rotate labels
+                        if ("soft_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option) and epoch > self.grad_collect_start_epoch and idxs_users[client_id] == self.actual_num_users - 1:  # SoftTrain, rotate labels
                             self.rotate_label += 1
                     if self.scheme == "V1":
                         self.optimizer_step()
@@ -771,19 +740,6 @@ class Trainer:
             
             return self.old_images, self.old_labels
 
-        elif "normal_train_ME" in self.regularization_option and epoch > self.grad_collect_start_epoch:  # NormalTrain, attack mode
-            try:
-                images, labels = next(client_iterator_list[client_id])
-                if images.size(0) != self.batch_size:
-                    client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
-                    images, labels = next(client_iterator_list[client_id])
-            except StopIteration:
-                client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
-                images, labels = next(client_iterator_list[client_id])
-
-            if dl_transforms is not None:
-                images = dl_transforms(images)
-            self.query_image_id += 1
         else: # before grad_collect_start_epoch, submit benigh images if possible
             
             if "GM_train_ME" in self.regularization_option:

@@ -7,18 +7,8 @@ __pycache__
 *.zip
 *.jpg
 saves/*
+!saves/baseline/vgg11-cifar10/checkpoint_client_best.tar
+!saves/baseline/vgg11-cifar10/checkpoint_cloud_best.tar
 old_saves/*
-!saves/baseline/
-saves/baseline/*.log
-saves/baseline/**/tensorboard
-saves/baseline/**/*.log
-!saves/baseline/**/checkpoint_cloud_best.tar
-!saves/baseline/**/checkpoint_client_best.tar
 tiny-imagenet-200/
 mobilenetv2_pytorch_standalone/pretrained/
-# saves/baseline/ace_V2_epoch_resnet32_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_200epoch/checkpoint_classifier_best.tar
-# saves/baseline/ace_V2_epoch_resnet32_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_200epoch/checkpoint_cloud_best.tar
-# saves/baseline/ace_V2_epoch_resnet32_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_200epoch/checkpoint_f_best.tar
-# saves/baseline/ace_V2_epoch_resnet34_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_200epoch/checkpoint_classifier_best.tar
-# saves/baseline/ace_V2_epoch_resnet34_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_200epoch/checkpoint_cloud_best.tar
-# saves/baseline/ace_V2_epoch_resnet34_cutlayer_4_client_1_seed125_dataset_cifar10_lr_0.05_200epoch/checkpoint_f_best.tar

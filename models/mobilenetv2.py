@@ -106,7 +106,14 @@ class MobileNet(nn.Module):
         print(self.cloud)
         print("classifier:")
         print(self.classifier)
-
+        self.first_cloud_layer = list(self.cloud.children())[0]
+        self.last_local_layer = list(self.local.children())[-1]
+        for m in self.cloud:
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
     def switch_model(self, client_id):
         self.current_client = client_id
         self.local = self.local_list[client_id]

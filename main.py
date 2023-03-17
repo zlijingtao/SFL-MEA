@@ -19,13 +19,13 @@ parser = argparse.ArgumentParser(description='SFL Training')
 parser.add_argument('--arch', default="vgg11_bn", type=str, help='please type save_file name for the testing purpose')
 parser.add_argument('--cutlayer', default=4, type=int, help='number of layers in local')
 parser.add_argument('--batch_size', default=128, type=int, help='training batch size')
-parser.add_argument('--filename', default="baseline", type=str, help='please type save_file name for the testing purpose')
-parser.add_argument('--folder', default="saves", type=str, help='please type folder name for the testing purpose')
+parser.add_argument('--filename', default="vgg11-cifar10", type=str, help='please type save_file name for the testing purpose')
+parser.add_argument('--folder', default="saves/baseline", type=str, help='please type folder name for the testing purpose')
 parser.add_argument('--num_client', default=2, type=int, help='number of client')
 parser.add_argument('--num_epochs', default=200, type=int, help='number of epochs')
 parser.add_argument('--learning_rate', default=0.05, type=float, help='Learning Rate')
 parser.add_argument('--client_sample_ratio', default=1.0, type=float, help='client_sample_ratio')
-parser.add_argument('--noniid', default=1.0, type=float, help='noniid_ratio, if = 0.1, meaning 1 out of 10 class per client')
+parser.add_argument('--noniid_ratio', default=1.0, type=float, help='noniid_ratio, if = 0.1, meaning 1 out of 10 class per client')
 parser.add_argument('--dataset', default="cifar10", type=str, help='number of classes for the testing dataset')
 parser.add_argument('--scheme', default="V2", type=str, help='the name of the scheme, either V3 or others')
 
@@ -58,7 +58,7 @@ mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epoch
                  regularization_option=args.regularization, regularization_strength = args.regularization_strength,
                  collude_use_public=args.collude_use_public, learning_rate = args.learning_rate,
                  load_from_checkpoint = args.load_from_checkpoint, finetune_freeze_bn = args.finetune_freeze_bn, client_sample_ratio = args.client_sample_ratio,
-                 source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid)
+                 source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid_ratio)
 mi.logger.debug(str(args))
 
 mi.train(verbose=True)

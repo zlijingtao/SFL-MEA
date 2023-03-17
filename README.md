@@ -12,17 +12,21 @@ conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
 
 thop (pip install)
 
+transformers (pip install)
+
 ## Code:
 
-* *MIA_torch.py*: It implements the all utility functions of split learning and running model extraction attacks during SFL
+* *SFL.py*: It implements the all utility functions of split learning and model extraction attacks during SFL (collection step)
+  
+* *attacks/model_extraction_attack.py*: It implements the model extraction attacks (final step).
 
-* *MIA_torch.py - self.steal_attack*: It implements all model extraction attacks as post analysis on a trained SFL model.
+* *main.py*: Entry code to train a vanilla model.
 
-* *main_MIA.py*: Entry code to train a defensive model/vanilla model.
+* *main_vit.py*: Entry code to finetune a ViT model.
 
-* *main_test_MIA.py*: Entry code to resume a trained model.
-
-* *main_model_steal.py*: Entry code to do post-analysis of all model extraction attacks.
+* *main_steal_offline.py*: Entry code to do post-analysis of all model extraction attacks.
+* 
+* *main_steal_online.py*: Entry code to do post-analysis of all model extraction attacks.
 
 ## Proof Of Concepts:
 
