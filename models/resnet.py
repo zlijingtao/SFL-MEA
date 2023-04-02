@@ -142,8 +142,8 @@ class ResNet(nn.Module):
         self.cloud_classifier_merge = False
         self.original_num_cloud = self.get_num_of_cloud_layer()
 
-        self.first_cloud_layer = list(self.cloud.children())[0]
-        self.last_local_layer = list(self.local.children())[-1]
+        # self.first_cloud_layer = list(self.cloud.children())[0]
+        # self.last_local_layer = list(self.local_list[0].children())[-1]
 
         print("local:")
         print(self.local)
@@ -194,26 +194,38 @@ class ResNet(nn.Module):
                 if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
                     num_of_cloud_layer += 1
         return num_of_cloud_layer
-
+    
+    def get_num_of_local_layer(self):
+        num_of_local_layer = 0
+        list_of_layers = list(self.local_list[0].children())
+        for i, module in enumerate(list_of_layers):
+            if "Conv2d" in str(module) or "Linear" in str(module):
+                num_of_local_layer += 1
+        return num_of_local_layer
+    
     def recover(self):
         if self.cloud_classifier_merge:
             self.resplit(self.original_num_cloud)
             self.unmerge_classifier_cloud()
             
 
-    def resplit(self, num_of_cloud_layer):
+    def resplit(self, num_of_layer, count_from_right = True):
         if not self.cloud_classifier_merge:
             self.merge_classifier_cloud()
-            
+        
+        list_of_layers = list(self.local_list[0].children())
+        list_of_layers.extend(list(self.cloud.children()))
+
         for i in range(self.num_client):
-            list_of_layers = list(self.local_list[i].children())
-            list_of_layers.extend(list(self.cloud.children()))
             total_layer = 0
             for _, module in enumerate(list_of_layers):
                 if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
                     total_layer += 1
             # print("total layer is: ", total_layer)
-            num_of_local_layer = (total_layer - num_of_cloud_layer)
+            if count_from_right:
+                num_of_local_layer = (total_layer - num_of_layer)
+            else:
+                num_of_local_layer = num_of_layer
             local_list = []
             local_count = 0
             cloud_list = []
@@ -243,19 +255,19 @@ class ResNet(nn.Module):
         with torch.no_grad():
             noise_input = torch.randn([batch_size, 3, 32, 32])
             try:
-                device = next(self.local.parameters()).device
+                device = next(self.local_list[0].parameters()).device
                 noise_input = noise_input.to(device)
             except:
                 pass
-            smashed_data = self.local(noise_input)
+            smashed_data = self.local_list[0](noise_input)
         return smashed_data.size()
     
     def forward(self, x):
         if self.cloud_classifier_merge:
-            x = self.local(x)
+            x = self.local_list[0](x)
             x = self.cloud(x)
         else:
-            x = self.local(x)
+            x = self.local_list[0](x)
             x = self.cloud(x)
             x = F.avg_pool2d(x, 4)
             x = x.view(x.size(0), -1)

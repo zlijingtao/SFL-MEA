@@ -8,31 +8,12 @@ from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, TV, l2loss, ze
 from utils import freeze_model_bn, average_weights
 import logging
 import torchvision
-from torchvision.utils import save_image
 from datetime import datetime
 import os, copy
 from shutil import rmtree
 from datasets import get_dataset, denormalize, get_image_shape
 from models import get_model
-
-def save_images(input_imgs, output_imgs, epoch, path, offset=0, batch_size=64):
-    """
-    """
-    input_prefix = "inp_"
-    output_prefix = "out_"
-    out_folder = "{}/{}".format(path, epoch)
-    out_folder = os.path.abspath(out_folder)
-    if not os.path.isdir(out_folder):
-        os.makedirs(out_folder)
-    for img_idx in range(output_imgs.shape[0]):
-        inp_img_path = "{}/{}{}.jpg".format(out_folder, input_prefix, offset * batch_size + img_idx)
-        out_img_path = "{}/{}{}.jpg".format(out_folder, output_prefix, offset * batch_size + img_idx)
-
-        if input_imgs is not None:
-            save_image(input_imgs[img_idx], inp_img_path)
-        if output_imgs is not None:
-            save_image(output_imgs[img_idx], out_img_path)
-
+import wandb
 
 class Trainer:
     def __init__(self, arch, cutting_layer, batch_size, n_epochs, scheme="V2", num_client=2, dataset="cifar10",
@@ -133,7 +114,6 @@ class Trainer:
         self.train_local_scheduler_list = []
         self.warmup_local_scheduler_list = []
         for i in range(len(self.local_params)):
-            print(len(self.local_params[i]))
             self.local_optimizer_list.append(torch.optim.SGD(list(self.local_params[i]), lr=self.lr, momentum=0.9, weight_decay=5e-4))
             self.train_local_scheduler_list.append(torch.optim.lr_scheduler.MultiStepLR(self.local_optimizer_list[i], milestones=milestones,
                                                                     gamma=0.2))  # learning rate decay
@@ -237,7 +217,8 @@ class Trainer:
             if not os.path.isdir(self.save_dir + "/saved_grads"):
                 os.makedirs(self.save_dir + "/saved_grads")
             torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
-
+            if "GM_train_ME" in self.regularization_option:
+                torch.save(z_private.detach().cpu(), self.save_dir + f"/saved_grads/act_{self.query_image_id}_label{self.rotate_label}.pt")
             # collect image/label
             if self.rotate_label == 0:
                 torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
@@ -429,6 +410,17 @@ class Trainer:
         else:
             model_path_name = model_path_f
         
+        f = open(self.save_dir + "train.log", "r")
+        log_file_txt = f.read(500)
+        print("=====Check Original Training LOG=====")
+        print(log_file_txt)
+
+        original_cut_layer = int(log_file_txt.split("cutlayer=")[-1].split(",")[0])
+
+        if original_cut_layer != self.cutting_layer:
+            print("WARNING: set cutting layer is not the same as in the training setting, proceed with caution.")
+            self.model.resplit(original_cut_layer, count_from_right=False)
+
         for i in range(self.num_client):
             print("load client {}'s local".format(i))
             checkpoint_i = torch.load(model_path_name)
@@ -440,6 +432,11 @@ class Trainer:
         checkpoint = torch.load(self.save_dir + "checkpoint_cloud_{}.tar".format(self.n_epochs))
         self.model.cloud.cuda()
         self.model.cloud.load_state_dict(checkpoint, strict = False)
+        
+        if original_cut_layer != self.cutting_layer:
+            self.model.resplit(self.cutting_layer, count_from_right=False)
+
+        self.validate_target()
 
     def sync_client(self, idxs_users = None):
         
@@ -456,6 +453,32 @@ class Trainer:
     "Training"
     def train(self, verbose=False): # Train SFL
         
+        # start a new wandb run to track this script
+        if "train_ME" in self.regularization_option:
+            wandb_name = "online"
+        else:
+            wandb_name = "standard"
+        
+        
+        wandb.init(
+            # set the wandb project where this run will be logged
+            project=f"{wandb_name}-SFL-Train",
+            
+            # track hyperparameters and run metadata
+            config={
+            "learning_rate": self.lr,
+            "architecture": self.arch,
+            "dataset": self.dataset,
+            "noniid_ratio": self.noniid_ratio,
+            "epochs": self.n_epochs,
+            "batch_size": self.batch_size,
+            "scheme": self.scheme,
+            "num_client": self.num_client,
+            "cutting_layer": self.cutting_layer,
+            "regularization_option": self.regularization_option,
+            "regularization_strength": self.regularization_strength,
+            }
+        )
 
         '''Train time Model Extraction attack'''
         # we let client collect gradient during SFL training, which is used later for MEA
@@ -465,8 +488,8 @@ class Trainer:
         try:
             self.grad_collect_start_epoch = int(self.regularization_option.split("start")[1])
         except:
-            self.logger.debug("extraing start epoch setting from arg, failed, set start_epoch to 160")
-            self.grad_collect_start_epoch = 160
+            self.logger.debug("extraing start epoch setting from arg, failed, set start_epoch to 0")
+            self.grad_collect_start_epoch = 0
         
         if "gan_train_ME" in self.regularization_option:
             self.nz = 512
@@ -607,6 +630,7 @@ class Trainer:
                                 images = dl_transforms(images)
                         else: # if the client is the attacker client:
                             images, labels = self.get_data_MEA_client(client_iterator_list, idxs_users, client_id, epoch, dl_transforms)
+                            # print(labels)
                             # images, labels = self.get_data_MEA_client(client_iterator_list, idxs_users, client_id, epoch)
                         
                         if self.scheme == "V2":
@@ -633,7 +657,7 @@ class Trainer:
                         else:
                             # Train step (client/server)
                             train_loss, f_loss = self.train_target_step(images, labels, client_id)
-                        
+
                         if self.scheme == "V2":
                             self.optimizer_step()
                         
@@ -642,7 +666,7 @@ class Trainer:
                             self.logger.debug(
                                 "log--[{}/{}][{}/{}][client-{}] train loss: {:1.4f} cross-entropy loss: {:1.4f}".format(
                                     epoch, self.n_epochs, batch, self.num_batches, client_id, train_loss, f_loss))
-                        
+                            wandb.log({f"client{client_id}-train-loss": train_loss})
                         # increment rotate_label
                         if ("soft_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option) and epoch > self.grad_collect_start_epoch and idxs_users[client_id] == self.actual_num_users - 1:  # SoftTrain, rotate labels
                             self.rotate_label += 1
@@ -659,7 +683,7 @@ class Trainer:
                 # Validate and get average accu among clients
                 avg_accu = 0
                 avg_accu, loss = self.validate_target(client_id=0)
-
+                wandb.log({f"val_acc": avg_accu, "val_loss": loss})
                 # Save the best model
                 if avg_accu > best_avg_accu:
                     self.save_model(epoch, is_best=True)
@@ -668,6 +692,7 @@ class Trainer:
                 # Save Model regularly
                 if epoch % 50 == 0 or epoch == self.n_epochs or epoch in epoch_save_list:  # save model
                     self.save_model(epoch)
+                    
                     if "gan_train_ME" in self.regularization_option:
                         torch.save(self.generator.state_dict(), self.save_dir + 'checkpoint_generator_{}.tar'.format(epoch))
         
@@ -693,11 +718,14 @@ class Trainer:
 
         if not self.call_resume:
             self.logger.debug("Best Average Validation Accuracy is {}".format(best_avg_accu))
+            wandb.run.summary["Best-Val-Accuracy"] = best_avg_accu
         else:
             LOG = None
             avg_accu = 0
             avg_accu, _ = self.validate_target(client_id=0)
             self.logger.debug("Best Average Validation Accuracy is {}".format(avg_accu))
+            wandb.run.summary["Best-Val-Accuracy"] = avg_accu
+        wandb.finish()
         return LOG
 
     def save_model(self, epoch, is_best=False):
@@ -706,6 +734,7 @@ class Trainer:
         torch.save(self.model.local_list[0].state_dict(), self.save_dir + 'checkpoint_client_{}.tar'.format(epoch))
         torch.save(self.model.cloud.state_dict(), self.save_dir + 'checkpoint_cloud_{}.tar'.format(epoch))
 
+    
 
     def get_data_MEA_client(self, client_iterator_list, idxs_users, client_id, epoch, dl_transforms):
 
@@ -734,7 +763,12 @@ class Trainer:
                     client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
                     self.old_images, self.old_labels = next(client_iterator_list[client_id])
                     self.old_images = dl_transforms(self.old_images)
-                self.old_labels = torch.ones_like(self.old_labels) * int(self.rotate_label)
+                
+                if "GM_train_ME" in self.regularization_option:
+                    self.old_labels = (torch.randint_like(self.old_labels, low = 0, high = 10) + int(self.rotate_label)) % self.num_class
+                elif "soft_train_ME" in self.regularization_option:
+                    self.old_labels = (self.old_labels + int(self.rotate_label)) % self.num_class # rotating around orginal true label
+            
             else: # rotate labels
                 self.old_labels = (self.old_labels + 1) % self.num_class # add 1 to label
             

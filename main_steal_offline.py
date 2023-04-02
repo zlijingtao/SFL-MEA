@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser(description='SFL Training')
 # training setting ()
 parser.add_argument('--arch', default="vgg11_bn", type=str, help='please type save_file name for the testing purpose')
 parser.add_argument('--cutlayer', default=4, type=int, help='number of layers in local')
+parser.add_argument('--num_freeze_layer', default=4, type=int, help='number of layers to freeze completely')
 parser.add_argument('--batch_size', default=128, type=int, help='training batch size')
 parser.add_argument('--filename', default="vgg11-cifar10", type=str, help='please type save_file name for the testing purpose')
 parser.add_argument('--folder', default="saves/baseline", type=str, help='please type folder name for the testing purpose')
@@ -72,11 +73,11 @@ mi = SFL.Trainer(args.arch, args.cutlayer, args.batch_size, n_epochs = args.num_
                  num_client = args.num_client, dataset=args.dataset, save_dir=save_dir_name,
                  regularization_option=args.regularization, regularization_strength = args.regularization_strength,
                  collude_use_public=args.collude_use_public, learning_rate = args.learning_rate,
-                 load_from_checkpoint = args.load_from_checkpoint, finetune_freeze_bn = args.finetune_freeze_bn, client_sample_ratio = args.client_sample_ratio,
+                 load_from_checkpoint = args.load_from_checkpoint, num_freeze_layer = args.num_freeze_layer, finetune_freeze_bn = args.finetune_freeze_bn, client_sample_ratio = args.client_sample_ratio,
                  source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid)
 mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, args.num_epochs))
 
-steal_attack(mi.logger, save_dir_name, args.arch, args.cutlayer, mi.num_class, mi.model, args.dataset, mi.pub_dataloader,
+steal_attack(save_dir_name, args.arch, args.cutlayer, mi.num_class, mi.model, args.dataset, mi.pub_dataloader,
              args.aux_dataset, args.batch_size, args.learning_rate, args.num_query, args.attack_epochs,
              args.attack_client, args.attack_style, args.data_proportion, args.noniid_ratio, 
              args.train_clas_layer, args.surrogate_arch, args.adversairal_attack)

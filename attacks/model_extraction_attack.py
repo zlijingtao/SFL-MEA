@@ -12,7 +12,7 @@ import time
 from shutil import rmtree
 from datasets import get_dataset, denormalize, get_image_shape
 import glob
-
+import wandb
 def init_weights(m):
     if type(m) == nn.Linear:
         torch.nn.init.xavier_uniform_(m.weight, gain=1.0)
@@ -146,7 +146,7 @@ def train_generator(logger, save_dir, target_model, generator, target_dataset_na
                 os.mkdir(train_output_path + "/{}".format(num_steps))
             torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(num_steps,"final_label{}".format(i)))
 
-def steal_test(target_model, surrogate_model, val_loader):
+def steal_test(arch, target_model, surrogate_model, val_loader):
     """
     Run evaluation
     """
@@ -154,10 +154,13 @@ def steal_test(target_model, surrogate_model, val_loader):
     fidel_score = AverageMeter()
     top1 = AverageMeter()
 
-    if not target_model.cloud_classifier_merge:
-        target_model.merge_classifier_cloud()
-    if not surrogate_model.cloud_classifier_merge:
-        surrogate_model.merge_classifier_cloud()
+    if arch == "ViT":
+        dl_transforms = torch.nn.Sequential(
+            transforms.Resize(224),
+            transforms.CenterCrop(224))
+    else:
+        dl_transforms = None
+
     target_model.local_list[0].cuda()
     target_model.local_list[0].eval()
     target_model.cloud.cuda()
@@ -168,16 +171,15 @@ def steal_test(target_model, surrogate_model, val_loader):
     surrogate_model.cloud.eval()
     
     for i, (input, target) in enumerate(val_loader):
+        if dl_transforms is not None:
+            input = dl_transforms(input)
         input = input.cuda()
         target = target.cuda()
         # compute output
         with torch.no_grad():
 
-            output = surrogate_model.local(input)
-            output_target = target_model.local_list[0](input)
-
-            output = surrogate_model.cloud(output)
-            output_target = target_model.cloud(output_target)
+            output = surrogate_model(input)
+            output_target = target_model(input)
 
         output = output.float()
         output_target = output_target.float()
@@ -191,314 +193,318 @@ def steal_test(target_model, surrogate_model, val_loader):
     return top1.avg, fidel_score.avg
 
 
-def adversarial_attack(logger, target_dataset_name, target_model, surrogate_model, num_class, attack_option, attack_client = 0, e = None):
+def adversarial_attack(logger, target_dataset_name, target_model, surrogate_model, num_class):
     total_succ = 0
     image_shape = get_image_shape(target_dataset_name)
     surrogate_model.local.eval()
     surrogate_model.cloud.eval()
     criterion = nn.CrossEntropyLoss()
-    if attack_option == "PGD_target":
+    
+    '''We run three attacks and select the average'''
+    
+    '''PGD_target'''
+    e = 0.002
+    for temporal in range(num_class):
+        org_target = temporal
+        attack_target = (org_target + 5)%9
+        # history_list.append(org_target)
+        logger.debug(f"###Round {temporal} src_label: {org_target} target_label: {attack_target}")
         
-        iter_max = 10
-        if e is None:
-            e = 0.05
-        for temporal in range(iter_max):
-            org_target = temporal
-            attack_target = (org_target + 5)%9
-            # history_list.append(org_target)
-            logger.debug(f"###Round {temporal} src_label: {org_target} target_label: {attack_target}")
-            
-            
-            succ = 0
-            image_arr = torch.load('saved_tensors/data100/class_'+ str(org_target) +'.pth.tar')
-            
-            fake_label = torch.LongTensor(1)
-            fake_label[0] = attack_target
-            fake_label = torch.autograd.Variable(fake_label.cuda(), requires_grad=False)
-            org_label = torch.zeros(image_arr.shape[0])
-            attack_label = torch.zeros(image_arr.shape[0])
-            succ_label = torch.zeros(image_arr.shape[0])
-            succ_iter = torch.zeros(image_arr.shape[0])
+        
+        succ = 0
+        image_arr = torch.load('saved_tensors/data100/class_'+ str(org_target) +'.pth.tar')
+        
+        fake_label = torch.LongTensor(1)
+        fake_label[0] = attack_target
+        fake_label = torch.autograd.Variable(fake_label.cuda(), requires_grad=False)
+        org_label = torch.zeros(image_arr.shape[0])
+        attack_label = torch.zeros(image_arr.shape[0])
+        succ_label = torch.zeros(image_arr.shape[0])
+        succ_iter = torch.zeros(image_arr.shape[0])
 
-            diff_succ = 0.0
-            diff_all  = 0.0
+        diff_succ = 0.0
+        diff_all  = 0.0
 
-            for i in range(image_arr.shape[0]):
-                org_image = torch.FloatTensor(1, image_shape[0], image_shape[1], image_shape[2])
-                org_image[0] = image_arr[i]
-                org_image = torch.autograd.Variable(org_image.cuda(), requires_grad=True)
+        for i in range(image_arr.shape[0]):
+            org_image = torch.FloatTensor(1, image_shape[0], image_shape[1], image_shape[2])
+            org_image[0] = image_arr[i]
+            org_image = torch.autograd.Variable(org_image.cuda(), requires_grad=True)
 
-                act = target_model.local_list[attack_client](org_image)
-                output = target_model.cloud(act)
-                # print(output)
-                _, org_pred = output.topk(1, 1, True, True)
-                org_pred = org_pred.data[0, 0]
-                fake_image = org_image.clone()
-                #modify the original image
-                max_val = torch.max(org_image).item()
-                min_val = torch.min(org_image).item()
-                for iter in range(50):
-                    # calculate gradient
-                    grad = torch.zeros(1, image_shape[0], image_shape[1], image_shape[2]).cuda()
-                    fake_image = torch.autograd.Variable(fake_image.cuda(), requires_grad=True)
-                    if fake_image.grad is not None:
-                        fake_image.grad.zero_()
-                    act = surrogate_model.local(fake_image)
-                    output = surrogate_model.cloud(act)
-                    loss = criterion(output, fake_label)
-                    loss.backward()
-                    #print(loss)
-                    grad += torch.sign(fake_image.grad)
+            # act = target_model.local_list[attack_client](org_image)
+            # output = target_model.cloud(act)
+            output = target_model(org_image)
+            # print(output)
+            _, org_pred = output.topk(1, 1, True, True)
+            org_pred = org_pred.data[0, 0]
+            fake_image = org_image.clone()
+            #modify the original image
+            max_val = torch.max(org_image).item()
+            min_val = torch.min(org_image).item()
+            for iter in range(50):
+                # calculate gradient
+                grad = torch.zeros(1, image_shape[0], image_shape[1], image_shape[2]).cuda()
+                fake_image = torch.autograd.Variable(fake_image.cuda(), requires_grad=True)
+                if fake_image.grad is not None:
+                    fake_image.grad.zero_()
+                # act = surrogate_model.local(fake_image)
+                # output = surrogate_model.cloud(act)
+                output = surrogate_model(fake_image)
+                loss = criterion(output, fake_label)
+                loss.backward()
+                #print(loss)
+                grad += torch.sign(fake_image.grad)
 
-                    fake_image = fake_image - grad * e
-                    fake_image[fake_image > max_val] = max_val
-                    fake_image[fake_image < min_val] = min_val
-                    act = target_model.local_list[attack_client](fake_image)
-                    output = target_model.cloud(act)
-                    _, fake_pred = output.topk(1, 1, True, True)
-                    fake_pred = fake_pred[0, 0]
+                fake_image = fake_image - grad * e
+                fake_image[fake_image > max_val] = max_val
+                fake_image[fake_image < min_val] = min_val
+                # act = target_model.local_list[attack_client](fake_image)
+                # output = target_model.cloud(act)
+                output = target_model(fake_image)
+                _, fake_pred = output.topk(1, 1, True, True)
+                fake_pred = fake_pred[0, 0]
+                
+                if fake_label.item() == fake_pred.item() or iter == 49:
                     
-                    if fake_label.item() == fake_pred.item() or iter == 49:
-                        
-                        attack_pred_list = []
-                        act = surrogate_model.local(fake_image)
-                        output = surrogate_model.cloud(act)
-                        _, attack_pred = output.topk(1, 1, True, True)
-                        attack_pred_list.append(attack_pred.data[0, 0].item())
+                    attack_pred_list = []
+                    # act = surrogate_model.local(fake_image)
+                    # output = surrogate_model.cloud(act)
+                    output = surrogate_model(fake_image)
+                    _, attack_pred = output.topk(1, 1, True, True)
+                    attack_pred_list.append(attack_pred.data[0, 0].item())
 
-                        org_label[i] = org_pred.item()
-                        attack_label[i] = fake_pred.item()
-                        succ_iter[i] = iter + 1
-                        
-                        diff = torch.sum((org_image - fake_image) ** 2).item()
-                        diff_all += diff
+                    org_label[i] = org_pred.item()
+                    attack_label[i] = fake_pred.item()
+                    succ_iter[i] = iter + 1
+                    
+                    diff = torch.sum((org_image - fake_image) ** 2).item()
+                    diff_all += diff
 
-                        if fake_label.item() == fake_pred:
-                            diff_succ += diff
-                            succ += 1
-                            succ_label[i] = 1
-                        break
+                    if fake_label.item() == fake_pred:
+                        diff_succ += diff
+                        succ += 1
+                        succ_label[i] = 1
+                    break
 
 
-            diff_all /= (1.0 * image_arr.shape[0])
-            if succ > 0:
-                diff_succ /= (1.0 * succ)
+        diff_all /= (1.0 * image_arr.shape[0])
+        if succ > 0:
+            diff_succ /= (1.0 * succ)
+        
+        str_log = 'src: ' + str(org_target) + '\ttar: ' + str(attack_target)+ '\ttotal: ' + str(i + 1) + '\tsuccess: ' + str(succ) + '\tavg iter: ' + str(torch.mean(succ_iter).item()) + '\tdiff_suc: ' + str(diff_succ) + '\tdif_total: ' + str(diff_all) 
+        logger.debug(str_log)
+        total_succ += succ
+    asr_0 = total_succ/image_arr.shape[0]/num_class
+    logger.debug(f"PGD_target attack ASR: {asr_0}.")
+    
+
+    total_succ = 0
+    '''FGSM attack'''
+    e = 0.1
+    for temporal in range(num_class):
+        org_target = temporal
+        image_arr = torch.load('saved_tensors/data100/class_'+ str(org_target) +'.pth.tar')
+        succ = 0
+        diff_succ = 0.0
+        diff_all  = 0.0
+        fake_label = torch.LongTensor(1)
+        fake_label[0] = org_target
+        fake_label = torch.autograd.Variable(fake_label.cuda(), requires_grad=False)
+        org_label = torch.zeros(image_arr.shape[0])
+        attack_label = torch.zeros(image_arr.shape[0])
+        succ_label = torch.zeros(image_arr.shape[0])
+        succ_iter = torch.zeros(image_arr.shape[0])
+        for i in range(image_arr.shape[0]):
+            #for i in range(2):
+            org_image = torch.FloatTensor(1, image_shape[0], image_shape[1], image_shape[2])
+            org_image[0] = image_arr[i]
+            org_image = torch.autograd.Variable(org_image.cuda(), requires_grad=True)
+
+            # act = target_model.local_list[attack_client](org_image)
+            # output = target_model.cloud(act)
+            output = target_model(org_image)
+            _, org_pred = output.topk(1, 1, True, True)
+            org_pred = org_pred.data[0, 0]
+
+            _, org_pred = output.topk(1, 1, True, True)
+            org_pred = org_pred.data[0, 0]
             
-            str_log = 'src: ' + str(org_target) + '\ttar: ' + str(attack_target)+ '\ttotal: ' + str(i + 1) + '\tsuccess: ' + str(succ) + '\tavg iter: ' + str(torch.mean(succ_iter).item()) + '\tdiff_suc: ' + str(diff_succ) + '\tdif_total: ' + str(diff_all) 
-            logger.debug(str_log)
-            total_succ += succ
-        logger.debug(f"Total succeed times {total_succ}.")
-    elif attack_option == "FGSM":
-        if e is None:
-            e = 0.1
-        iter_max = 10
-        for temporal in range(iter_max):
-            org_target = temporal
-            image_arr = torch.load('saved_tensors/data100/class_'+ str(org_target) +'.pth.tar')
-            succ = 0
-            diff_succ = 0.0
-            diff_all  = 0.0
-            fake_label = torch.LongTensor(1)
-            fake_label[0] = org_target
-            fake_label = torch.autograd.Variable(fake_label.cuda(), requires_grad=False)
-            org_label = torch.zeros(image_arr.shape[0])
-            attack_label = torch.zeros(image_arr.shape[0])
-            succ_label = torch.zeros(image_arr.shape[0])
-            succ_iter = torch.zeros(image_arr.shape[0])
-            for i in range(image_arr.shape[0]):
-                #for i in range(2):
-                org_image = torch.FloatTensor(1, image_shape[0], image_shape[1], image_shape[2])
-                org_image[0] = image_arr[i]
-                org_image = torch.autograd.Variable(org_image.cuda(), requires_grad=True)
+            fake_image = org_image.clone()
 
-                act = target_model.local_list[attack_client](org_image)
-                output = target_model.cloud(act)
-                _, org_pred = output.topk(1, 1, True, True)
-                org_pred = org_pred.data[0, 0]
+            #modify the original image
+            max_val = torch.max(org_image).item()
+            min_val = torch.min(org_image).item()
+            
+            # calculate gradient
+            grad = torch.zeros(1, image_shape[0], image_shape[1], image_shape[2]).cuda()
+            fake_image = torch.autograd.Variable(fake_image.cuda(), requires_grad=True)
 
-                _, org_pred = output.topk(1, 1, True, True)
-                org_pred = org_pred.data[0, 0]
-                
-                fake_image = org_image.clone()
+            if fake_image.grad is not None:
+                fake_image.grad.zero_()
+            # act = surrogate_model.local(fake_image)
+            # output = surrogate_model.cloud(act)
+            output = surrogate_model(fake_image)
+            loss = criterion(output, fake_label)
+            loss.backward()
+            grad -= torch.sign(fake_image.grad)
 
-                #modify the original image
-                max_val = torch.max(org_image).item()
-                min_val = torch.min(org_image).item()
-                
+            fake_image = fake_image - grad * e # e is epsilon in FGSM:  https://arxiv.org/pdf/1706.06083.pdf
+            fake_image[fake_image > max_val] = max_val
+            fake_image[fake_image < min_val] = min_val
+            # act = target_model.local_list[attack_client](fake_image)
+            # output = target_model.cloud(act)
+            output = target_model(fake_image)
+
+            _, fake_pred = output.topk(1, 1, True, True)
+            fake_pred = fake_pred.data[0, 0]
+
+            attack_pred_list = []
+            # act = surrogate_model.local(fake_image)
+            # output = surrogate_model.cloud(act)
+            output = surrogate_model(fake_image)
+            _, attack_pred = output.topk(1, 1, True, True)
+            attack_pred_list.append(attack_pred.data[0, 0].item())
+
+            if (i + 1) % 20 == 0:
+                print(str(i) + '\torg prediction: ' + str(org_pred.item()) + '\tfake prediction: ' + str(fake_pred.item()) +
+                    '\tattack_pred: ' + str(attack_pred_list) + '\te: ' + str(e) + '\tsucc: ' + str(succ))
+
+            org_label[i] = org_pred.item()
+            attack_label[i] = fake_pred.item()
+            
+            diff = torch.sum((org_image - fake_image) ** 2).item()
+            diff_all += diff
+
+            if fake_label.item() != fake_pred:
+                diff_succ += diff
+                succ += 1
+                succ_label[i] = 1
+                # break
+
+
+        diff_all /= (1.0 * image_arr.shape[0])
+        if succ > 0:
+            diff_succ /= (1.0 * succ)
+        
+        str_log = 'src: ' + str(org_target) + '\ttotal: ' + str(i + 1) + '\tsuccess: ' + str(succ) + '\tdiff_suc: ' + str(diff_succ) + '\tdif_total: ' + str(diff_all) 
+        # print(str_log)
+        logger.debug(str_log)
+        total_succ += succ
+    asr_1 = total_succ/image_arr.shape[0]/num_class
+    logger.debug(f"FGSM attack ASR: {asr_1}.")
+    
+    '''PGD attack'''
+    total_succ = 0
+    e = 0.001
+    for temporal in range(num_class):
+        org_target = temporal
+        image_arr = torch.load('saved_tensors/data100/class_'+ str(org_target) +'.pth.tar')
+        succ = 0
+        diff_succ = 0.0
+        diff_all  = 0.0
+        fake_label = torch.LongTensor(1)
+        fake_label[0] = org_target
+        fake_label = torch.autograd.Variable(fake_label.cuda(), requires_grad=False)
+        org_label = torch.zeros(image_arr.shape[0])
+        attack_label = torch.zeros(image_arr.shape[0])
+        succ_label = torch.zeros(image_arr.shape[0])
+        succ_iter = torch.zeros(image_arr.shape[0])
+        for i in range(image_arr.shape[0]):
+        #for i in range(2):
+            org_image = torch.FloatTensor(1, image_shape[0], image_shape[1], image_shape[2])
+            org_image[0] = image_arr[i]
+            # print(image_arr[i])
+            org_image = torch.autograd.Variable(org_image.cuda(), requires_grad=True)
+
+            # act = surrogate_model.local(org_image)
+            # output = surrogate_model.cloud(act)
+            output = surrogate_model(org_image)
+            # activation = nn.LogSoftmax(1)
+
+            # output = activation(output)
+            
+            _, org_pred = output.topk(1, 1, True, True)
+            org_pred = org_pred.data[0, 0]
+            # if i < 50:
+            #     print(org_pred)
+            fake_image = org_image.clone()
+
+            #modify the original image
+            max_val = torch.max(org_image).item()
+            min_val = torch.min(org_image).item()
+            for iter in range(50): # PGD: 
                 # calculate gradient
                 grad = torch.zeros(1, image_shape[0], image_shape[1], image_shape[2]).cuda()
                 fake_image = torch.autograd.Variable(fake_image.cuda(), requires_grad=True)
 
                 if fake_image.grad is not None:
                     fake_image.grad.zero_()
-                act = surrogate_model.local(fake_image)
-                output = surrogate_model.cloud(act)
+                # act = surrogate_model.local(fake_image)
+                # output = surrogate_model.cloud(act)
+                output = surrogate_model(fake_image)
                 loss = criterion(output, fake_label)
                 loss.backward()
+                #print(loss)
                 grad -= torch.sign(fake_image.grad)
 
-                fake_image = fake_image - grad * e # e is epsilon in FGSM:  https://arxiv.org/pdf/1706.06083.pdf
+                fake_image = fake_image - grad * e # e is alpha in PGD:  https://arxiv.org/pdf/1706.06083.pdf
                 fake_image[fake_image > max_val] = max_val
                 fake_image[fake_image < min_val] = min_val
-                act = target_model.local_list[attack_client](fake_image)
-                output = target_model.cloud(act)
-
+                # act = surrogate_model.local(fake_image)
+                # output = surrogate_model.cloud(act)
+                output = surrogate_model(fake_image)
                 _, fake_pred = output.topk(1, 1, True, True)
                 fake_pred = fake_pred.data[0, 0]
 
-                attack_pred_list = []
-                act = surrogate_model.local(fake_image)
-                output = surrogate_model.cloud(act)
-                _, attack_pred = output.topk(1, 1, True, True)
-                attack_pred_list.append(attack_pred.data[0, 0].item())
+                if fake_label.item() != fake_pred.item() or iter == 49:
+                    # print(fake_pred.item(), fake_label.item())
+                    attack_pred_list = []
 
-                if (i + 1) % 20 == 0:
-                    print(str(i) + '\torg prediction: ' + str(org_pred.item()) + '\tfake prediction: ' + str(fake_pred.item()) +
-                        '\tattack_pred: ' + str(attack_pred_list) + '\te: ' + str(e) + '\tsucc: ' + str(succ))
+                    # act = surrogate_model.local(fake_image)
+                    # output = surrogate_model.cloud(act)
+                    output = surrogate_model(fake_image)
+                    _, attack_pred = output.topk(1, 1, True, True)
+                    attack_pred_list.append(attack_pred.data[0, 0].item())
 
-                org_label[i] = org_pred.item()
-                attack_label[i] = fake_pred.item()
-                
-                diff = torch.sum((org_image - fake_image) ** 2).item()
-                diff_all += diff
+                    if (i + 1) % 20 == 0:
+                        print(str(i) + '\torg prediction: ' + str(org_pred.item()) + '\tfake prediction: ' + str(fake_pred.item()) +
+                        '\tattack_pred: ' + str(attack_pred_list) + '\te: ' + str(e) + '\titer: ' + str(iter) + '\tsucc: ' + str(succ))
 
-                if fake_label.item() != fake_pred:
-                    diff_succ += diff
-                    succ += 1
-                    succ_label[i] = 1
-                    # break
+                    org_label[i] = org_pred.item()
+                    attack_label[i] = fake_pred.item()
+                    succ_iter[i] = iter + 1
+                    
+                    diff = torch.sum((org_image - fake_image) ** 2).item()
+                    diff_all += diff
 
-
-            diff_all /= (1.0 * image_arr.shape[0])
-            if succ > 0:
-                diff_succ /= (1.0 * succ)
-            
-            str_log = 'src: ' + str(org_target) + '\ttotal: ' + str(i + 1) + '\tsuccess: ' + str(succ) + '\tdiff_suc: ' + str(diff_succ) + '\tdif_total: ' + str(diff_all) 
-            # print(str_log)
-            logger.debug(str_log)
-            total_succ += succ
-        logger.debug(f"Total succeed times {total_succ}.")
-    elif attack_option == "PGD":
-        if e is None:
-            e = 0.02
-        for temporal in range(num_class):
-            org_target = temporal
-            image_arr = torch.load('saved_tensors/data100/class_'+ str(org_target) +'.pth.tar')
-            succ = 0
-            diff_succ = 0.0
-            diff_all  = 0.0
-            fake_label = torch.LongTensor(1)
-            fake_label[0] = org_target
-            fake_label = torch.autograd.Variable(fake_label.cuda(), requires_grad=False)
-            org_label = torch.zeros(image_arr.shape[0])
-            attack_label = torch.zeros(image_arr.shape[0])
-            succ_label = torch.zeros(image_arr.shape[0])
-            succ_iter = torch.zeros(image_arr.shape[0])
-            for i in range(image_arr.shape[0]):
-            #for i in range(2):
-                org_image = torch.FloatTensor(1, image_shape[0], image_shape[1], image_shape[2])
-                org_image[0] = image_arr[i]
-                # print(image_arr[i])
-                org_image = torch.autograd.Variable(org_image.cuda(), requires_grad=True)
-
-                act = surrogate_model.local(org_image)
-                output = surrogate_model.cloud(act)
-
-                # activation = nn.LogSoftmax(1)
-
-                # output = activation(output)
-                
-                _, org_pred = output.topk(1, 1, True, True)
-                org_pred = org_pred.data[0, 0]
-                # if i < 50:
-                #     print(org_pred)
-                fake_image = org_image.clone()
-
-                #modify the original image
-                max_val = torch.max(org_image).item()
-                min_val = torch.min(org_image).item()
-                for iter in range(50): # PGD: 
-                    # calculate gradient
-                    grad = torch.zeros(1, image_shape[0], image_shape[1], image_shape[2]).cuda()
-                    fake_image = torch.autograd.Variable(fake_image.cuda(), requires_grad=True)
-
-                    if fake_image.grad is not None:
-                        fake_image.grad.zero_()
-                    act = surrogate_model.local(fake_image)
-                    output = surrogate_model.cloud(act)
-                    loss = criterion(output, fake_label)
-                    loss.backward()
-                    #print(loss)
-                    grad -= torch.sign(fake_image.grad)
-
-                    fake_image = fake_image - grad * e # e is alpha in PGD:  https://arxiv.org/pdf/1706.06083.pdf
-                    fake_image[fake_image > max_val] = max_val
-                    fake_image[fake_image < min_val] = min_val
-                    act = surrogate_model.local(fake_image)
-                    output = surrogate_model.cloud(act)
-
-                    _, fake_pred = output.topk(1, 1, True, True)
-                    fake_pred = fake_pred.data[0, 0]
-
-                    if fake_label.item() != fake_pred.item() or iter == 49:
-                        # print(fake_pred.item(), fake_label.item())
-                        attack_pred_list = []
-
-                        act = surrogate_model.local(fake_image)
-                        output = surrogate_model.cloud(act)
-                        _, attack_pred = output.topk(1, 1, True, True)
-                        attack_pred_list.append(attack_pred.data[0, 0].item())
-
-                        if (i + 1) % 20 == 0:
-                            print(str(i) + '\torg prediction: ' + str(org_pred.item()) + '\tfake prediction: ' + str(fake_pred.item()) +
-                            '\tattack_pred: ' + str(attack_pred_list) + '\te: ' + str(e) + '\titer: ' + str(iter) + '\tsucc: ' + str(succ))
-
-                        org_label[i] = org_pred.item()
-                        attack_label[i] = fake_pred.item()
-                        succ_iter[i] = iter + 1
-                        
-                        diff = torch.sum((org_image - fake_image) ** 2).item()
-                        diff_all += diff
-
-                        if fake_label.item() != fake_pred:
-                            diff_succ += diff
-                            succ += 1
-                            succ_label[i] = 1
-                        break
+                    if fake_label.item() != fake_pred:
+                        diff_succ += diff
+                        succ += 1
+                        succ_label[i] = 1
+                    break
 
 
-            diff_all /= (1.0 * image_arr.shape[0])
-            if succ > 0:
-                diff_succ /= (1.0 * succ)
-            #print('total: ' + str(i + 1) + '\tsuccess: ' + str(succ) + '\tavg iter: ' + str(torch.mean(succ_iter).item()))
-            
-            str_log = 'src: ' + str(org_target) + '\ttar: ' + '\ttotal: ' + str(i + 1) + '\tsuccess: ' + str(succ) + '\tavg iter: ' + str(torch.mean(succ_iter).item()) + '\tdiff_suc: ' + str(diff_succ) + '\tdif_total: ' + str(diff_all) 
-            logger.debug(str_log)
-            total_succ += succ
-        logger.debug(f"Total succeed times {total_succ}.")
+        diff_all /= (1.0 * image_arr.shape[0])
+        if succ > 0:
+            diff_succ /= (1.0 * succ)
+        #print('total: ' + str(i + 1) + '\tsuccess: ' + str(succ) + '\tavg iter: ' + str(torch.mean(succ_iter).item()))
+        
+        str_log = 'src: ' + str(org_target) + '\ttar: ' + '\ttotal: ' + str(i + 1) + '\tsuccess: ' + str(succ) + '\tavg iter: ' + str(torch.mean(succ_iter).item()) + '\tdiff_suc: ' + str(diff_succ) + '\tdif_total: ' + str(diff_all) 
+        logger.debug(str_log)
+        total_succ += succ
+    asr_2 = total_succ/image_arr.shape[0]/num_class
+    logger.debug(f"PGD attack ASR: {asr_2}.")
 
-def prepare_steal_attack(logger, save_dir, target_dataset_name,  target_model, attack_style, aux_dataset_name = "cifar10", num_query = 10, num_class = 10, attack_client = 0, data_proportion = 0.2, noniid_ratio = 1.0):
 
-    # if "GM_option" in attack_style and resume_option: #TODO cancel this
-    #     if arch == "vgg11_bn":
-    #         surrogate_model.resplit(9)
-    #         target_model.resplit(9)
-    #     elif arch == "resnet20":
-    #         surrogate_model.resplit(7)
-    #         target_model.resplit(7)
-    #     elif arch == "mobilenetv2":
-    #         surrogate_model.resplit(13)
-    #         target_model.resplit(13)
-    # if "SoftTrain_option" in attack_style and resume_option: #TODO cancel this
-    #     if arch == "vgg11_bn":
-    #         surrogate_model.resplit(9)
-    #         target_model.resplit(9)
-    #     elif arch == "resnet20":
-    #         surrogate_model.resplit(7)
-    #         target_model.resplit(7)
-    #     elif arch == "mobilenetv2":
-    #         surrogate_model.resplit(13)
-    #         target_model.resplit(13)
+    total_avg_asr = (asr_0 + asr_1 + asr_2) / 3.
+    logger.debug(f"Average attack ASR: {total_avg_asr}.")
+
+
+    return total_avg_asr
+
+def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_model, attack_style, aux_dataset_name = "cifar10", num_query = 10, num_class = 10, attack_client = 0, data_proportion = 0.2, noniid_ratio = 1.0, last_n_batch = 10000):
+
+    '''last_n_batch: if in resume mode - instead of using all collected input-label pairs, use only the lastest n batch'''
+    '''num_query: only make sense in offline, all ME attacks except for Train-ME. SoftTrain-ME and Train-ME is more sensitive on data proportion'''
 
 
     # query getting data
@@ -550,16 +556,25 @@ def prepare_steal_attack(logger, save_dir, target_dataset_name,  target_model, a
         else:
             print("No saved pairs is available!")
             exit()
+
+        max_image_id = 0
+        for file in glob.glob(saved_crafted_image_path + "*"):
+            if "image" in file:
+                image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                if image_id > max_image_id:
+                    max_image_id = image_id
+
         for file in glob.glob(saved_crafted_image_path + "*"):
             if "image" in file:
                 fake_image = torch.load(file)
                 image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
-                fake_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
-                fake_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
+                if image_id > max_image_id - last_n_batch: # collect only the last two valid data batch. (even this is very bad)
+                    fake_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+                    fake_grad = torch.load(saved_crafted_image_path + f"grad_{image_id}.pt")
 
-                save_images.append(fake_image.clone())
-                save_grad.append(fake_grad.clone())
-                save_label.append(fake_label.clone())
+                    save_images.append(fake_image.clone())
+                    save_grad.append(fake_grad.clone())
+                    save_label.append(fake_label.clone())
         return save_images, save_grad, save_label
     
     elif attack_style == "Craft_option":
@@ -614,55 +629,30 @@ def prepare_steal_attack(logger, save_dir, target_dataset_name,  target_model, a
     elif attack_style == "TrainME_option":
         ''' TrainME: Use available training dataset for surrogate model training'''
         ''' Because of data augmentation, set query to 10 there'''
-        
+        if arch == "ViT":
+            dl_transforms = torch.nn.Sequential(
+                transforms.Resize(224),
+                transforms.CenterCrop(224))
+        else:
+            dl_transforms = None
         for images, labels in attacker_dataloader:
+            if dl_transforms is not None:
+                images = dl_transforms(images)
+
+
             # we will augment during the training.
             images = images.cuda()
             labels = labels.cuda()
-
-            z_private = target_model.local_list[attack_client](images)
-            z_private.retain_grad()
-
-            output = target_model.cloud(z_private)
+            output = target_model(images)
 
             loss = criterion(output, labels)
             loss.backward(retain_graph = True)
-            z_private_grad = z_private.grad.detach().cpu()
             
             save_images.append(images.cpu().clone())
-            save_grad.append(z_private_grad.clone())
+            save_grad.append(images.cpu().clone())
             save_label.append(labels.cpu().clone())
         return save_images, save_grad, save_label
-        # if resume_option and "TrainME_option" in attack_style and gradient_matching: #TODO: Test correctness.cluster all label together.
-        #     assist_images = []
-        #     assist_grad = []
-        #     assist_label = []
-        #     saved_crafted_image_path = save_dir + "saved_grads/"
-        #     if os.path.isdir(saved_crafted_image_path):
-        #         print("load from data collected during training")
-        #     else:
-        #         print("No saved data is presented!")
-        #         exit()
-            
-        #     max_image_id = 0
-        #     for file in glob.glob(saved_crafted_image_path + "*"):
-        #         if "image" in file and "grad_image" not in file:
-        #             image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
-        #             if image_id > max_image_id:
-        #                 max_image_id = image_id
-        #     for label in range(num_class): # put same label together
-        #         for file in glob.glob(saved_crafted_image_path + "*"):
-        #             if "image" in file and "grad_image" not in file:
-        #                 image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
-        #                 if image_id >= max_image_id - 5:
-        #                     saved_image = torch.load(file)
-        #                     saved_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
-        #                     saved_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
-
-        #                     assist_images.append(saved_image.clone())
-        #                     assist_grad.append(saved_grad.clone()) # add a random existing grad.
-        #                     assist_label.append(saved_label.clone())
-
+    
     elif attack_style == "SoftTrain_option":
 
         soft_alpha = 0.9
@@ -723,10 +713,7 @@ def prepare_steal_attack(logger, save_dir, target_dataset_name,  target_model, a
         # Use SoftTrain_option, query the gradients on inputs with all label combinations
         soft_alpha = 0.9
         similar_func = torch.nn.CosineSimilarity(dim = 1)
-        if "last" in attack_style:
-            last_n_batch = int(attack_style.split("last")[-1])
-        else:
-            last_n_batch = 99
+        
         saved_crafted_image_path = save_dir + "/saved_grads/"
         
         if os.path.isdir(saved_crafted_image_path):
@@ -808,17 +795,13 @@ def prepare_steal_attack(logger, save_dir, target_dataset_name,  target_model, a
         else:
             print("No saved data is presented!")
             exit()
-        if "last" in attack_style:
-            last_n_batch = int(attack_style.split("last")[-1])
-        else:
-            last_n_batch = 99
+        
         max_image_id = 0
         for file in glob.glob(saved_crafted_image_path + "*"):
             if "image" in file and "grad_image" not in file:
                 image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
                 if image_id > max_image_id:
                     max_image_id = image_id
-        print(f"max_image is {max_image_id}")
         
         for file in glob.glob(saved_crafted_image_path + "*"):
             if "image" in file and "grad_image" not in file:
@@ -828,17 +811,17 @@ def prepare_steal_attack(logger, save_dir, target_dataset_name,  target_model, a
                     continue
                 
                 try:
-                    for label in range(num_class): # put same label together
-                        saved_image = torch.load(file)
+                    for label in range(num_class): # put same-class labels together
+                        saved_act = torch.load(saved_crafted_image_path + f"act_{image_id}_label{label}.pt")
                         saved_grads = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
                         saved_label = label * torch.ones(saved_grads.size(0), ).long()
 
-                        save_images.append(saved_image.clone())
+                        saved_act.append(saved_act.clone())
                         save_grad.append(saved_grads.clone()) # add a random existing grad.
                         save_label.append(saved_label.clone())
                 except:
                     break
-        return save_images, save_grad, save_label
+        return saved_act, save_grad, save_label
     
     elif attack_style == "Copycat_option":
         # implement transfer set as copycat paper, here we use cifar-10 dataset.
@@ -893,8 +876,8 @@ def prepare_steal_attack(logger, save_dir, target_dataset_name,  target_model, a
         raise("No such MEA attack style")
 
 
-def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model, target_dataset_name, val_loader, aux_dataset_name = "cifar100", batch_size = 128, learning_rate = 0.05, num_query = 10, num_epoch = 200, attack_client=0, attack_style = "TrainME_option", 
-                data_proportion = 0.2, noniid_ratio = 1.0, train_clas_layer = -1, surrogate_arch = "same", adversairal_attack_option = False):
+def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_dataset_name, val_loader, aux_dataset_name = "cifar100", batch_size = 128, learning_rate = 0.05, num_query = 10, num_epoch = 200, attack_client=0, attack_style = "TrainME_option", 
+                data_proportion = 0.2, noniid_ratio = 1.0, train_clas_layer = -1, surrogate_arch = "same", adversairal_attack_option = False, last_n_batch = 10000):
     # attack_style determines which MEA to perfrom:
     # 
     # data proportion/noniid_ratio is only need for offline MEA. determines 
@@ -902,8 +885,38 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
     
     model_log_file = save_dir + '/steal_attack.log'
     logger = setup_logger('{}_steal_logger'.format(str(save_dir)), model_log_file, level=logging.DEBUG)
-    logger.debug(f"=========RUNING MEA ATTACK - style {attack_style}, data_proportion-{data_proportion}, num_query-{num_query}")
+    logger.debug(f"=========RUNING MEA ATTACK - num_cloud_layer {train_clas_layer}, style {attack_style}, data_proportion-{data_proportion}, num_query-{num_query}")
+    
 
+    
+    # wandb_name = save_dir.split("/")[-1]
+    if "resume" in attack_style:
+        wandb_name = "online"
+        logger.debug(f"online resume attack setting - Using collected info of last {last_n_batch} batches!")
+    else:
+        wandb_name = "offline"
+    wandb.init(
+            # set the wandb project where this run will be logged
+            project=f"{wandb_name}-SFL-MEA",
+            
+            # track hyperparameters and run metadata
+            config={
+            "learning_rate": learning_rate,
+            "architecture": arch,
+            "dataset": target_dataset_name,
+            "noniid_ratio": noniid_ratio,
+            "data_proportion": data_proportion,
+            "epochs": num_epoch,
+            "batch_size": batch_size,
+            "cutting_layer": cutting_layer,
+            "num_cloud_layer": train_clas_layer,
+            "attack_style": attack_style,
+            "num_query": num_query,
+            "surrogate_arch": surrogate_arch,
+            "last_n_batch": last_n_batch,
+            }
+        )
+    
     if train_clas_layer < 0:
         surrogate_model = architectures.create_surrogate_model(arch, cutting_layer, num_class, 0, "same")
     else:
@@ -923,12 +936,12 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
     
     milestones = sorted([int(step * num_epoch) for step in [0.2, 0.5, 0.8]])
     optimizer_option = "SGD"
-
+    # if "GM_option_resume" in attack_style:
+    #     optimizer_option = "Adam"
     start_time = time.time()
 
     surrogate_model.local.apply(init_weights)
     surrogate_model.cloud.apply(init_weights)
-    surrogate_model.classifier.apply(init_weights)
 
     surrogate_params = []
 
@@ -954,7 +967,7 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
     if optimizer_option == "SGD":
         suro_optimizer = torch.optim.SGD(surrogate_params, lr=learning_rate, momentum=0.9, weight_decay=5e-4)
     else:
-        suro_optimizer = torch.optim.Adam(surrogate_params, lr=0.0001, weight_decay=5e-4)
+        suro_optimizer = torch.optim.Adam(surrogate_params, lr=learning_rate, weight_decay=5e-4)
 
     suro_scheduler = torch.optim.lr_scheduler.MultiStepLR(suro_optimizer, milestones=milestones,
                                                                 gamma=0.2)  # learning rate decay
@@ -973,12 +986,12 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
     # prepare activation/grad/label pairs for the MEA
     if "GM_option_resume" in attack_style:
         if_shuffle = False
-        batch_size = 100
+        batch_size = batch_size
     else:
         if_shuffle = True
         batch_size = batch_size
     if not ("Generator_option" in attack_style):
-        save_images, save_grad, save_label = prepare_steal_attack(logger, save_dir, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio)
+        save_images, save_grad, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
     
         save_images = torch.cat(save_images)
         save_grad = torch.cat(save_grad)
@@ -991,7 +1004,7 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
         # use in GM
         mean_norm = save_grad.norm(dim=-1).mean().detach().item()
     else:
-        generator = prepare_steal_attack(logger, save_dir, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio)
+        generator = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
         generator.eval()
         generator.cuda()
         test_output_path = save_dir + "/generator_test"
@@ -1001,11 +1014,18 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
 
     image_shape = get_image_shape(target_dataset_name)
     # set up data augmentation
-    dl_transforms = torch.nn.Sequential(
-        transforms.RandomCrop(image_shape[-1], padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15)
-    )
+    if arch == "ViT":
+        dl_transforms = torch.nn.Sequential(
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15))
+    else:
+        dl_transforms = torch.nn.Sequential(
+            transforms.RandomCrop(image_shape[-1], padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15)
+        )
+    
     if "Craft_option" in attack_style or "Generator_option" in attack_style or "GM_option" in attack_style:
         dl_transforms = None
     
@@ -1015,15 +1035,17 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
 
     time_cost = time.time() - start_time
     logger.debug(f"Time cost on preparing the attack: {time_cost}")
+    wandb.run.summary["time-cost-prepare-attack"] = time_cost
     start_time = time.time()
 
     acc_loss_min = 9.9
     val_acc_max = 0.0
     fidelity_max = 0.0
     best_tail_state_dict = None
-    val_accu, fidel_score = steal_test(target_model, surrogate_model, val_loader)
-    logger.debug("epoch: {}, val_acc: {}, val_fidelity: {}".format(0, val_accu, fidel_score))
-
+    val_accu, fidel_score = steal_test(arch, target_model, target_model, val_loader)
+    logger.debug("target-model, val_acc: {}, val_fidelity: {}".format(0, val_accu, fidel_score))
+    wandb.run.summary["target-model-orig-val-acc"] = val_accu
+    wandb.run.summary["target-model-orig-val-fid"] = fidel_score
     # Train surrogate model
     for epoch in range(1, num_epoch + 1):
         grad_loss_list = []
@@ -1040,7 +1062,13 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
                 grad = grad.cuda()
                 label = label.cuda()
                 suro_optimizer.zero_grad()
-                act = surrogate_model.local(image)
+
+                if attack_style == "GM_option":
+                    with torch.no_grad():
+                        act = surrogate_model.local(image)
+                else: # GM_option_resume
+                    act = image
+                
                 act.requires_grad_()
                 output = surrogate_model.cloud(act)
                 ce_loss = criterion(output, label)
@@ -1062,20 +1090,8 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
             
         elif attack_style == "SoftTrain_option" or attack_style == "SoftTrain_option_resume": #perform matching (distable augmentation)
             
-            for idx, (index, image, grad, label) in enumerate(dl):
-                image = image.cuda()
-                grad = grad.cuda()
-                label = label.cuda()
-                suro_optimizer.zero_grad()
-                act = surrogate_model.local(image)
-                output = surrogate_model.cloud(act)
-                _, real_label = label.max(dim = 1)
-                soft_lambda = 0.1
-                ce_loss = (1 - soft_lambda) * criterion(output, real_label) + soft_lambda * torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
-                total_loss = ce_loss
-                total_loss.backward()
-                suro_optimizer.step()
-
+            
+            # pretrain use the ground-truth data
             for idx, (index, image, grad, label) in enumerate(dl):
                 # if dl_transforms is not None:
                 image = dl_transforms(image)
@@ -1098,6 +1114,24 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
                     
                 acc_list.append(acc.cpu().item())
 
+            # use the grad dataset to finetune
+            for idx, (index, image, grad, label) in enumerate(dl):
+                image = image.cuda()
+                grad = grad.cuda()
+                label = label.cuda()
+                suro_optimizer.zero_grad()
+                output = surrogate_model(image)
+                _, real_label = label.max(dim = 1)
+                soft_lambda = 0.1
+                ce_loss = (1 - soft_lambda) * criterion(output, real_label) + soft_lambda * torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
+                total_loss = ce_loss
+                total_loss.backward()
+                suro_optimizer.step()
+                acc_loss_list.append(ce_loss.detach().cpu().item())
+
+                acc = accuracy(output.data, real_label)[0]
+                    
+                acc_list.append(acc.cpu().item())
 
         elif attack_style == "Generator_option" or attack_style == "Generator_option_resume": # dynamically generates input and label using the trained Generator, used only in GAN-ME
             iter_generator_times = 20
@@ -1115,8 +1149,7 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
                     torchvision.utils.save_image(imgGen, test_output_path + '/{}/out_{}.jpg'.format(epoch, i * batch_size + batch_size))
                 suro_optimizer.zero_grad()
 
-                output = surrogate_model.local(fake_input)
-                output = surrogate_model.cloud(output)
+                output = surrogate_model(fake_input)
 
                 ce_loss = criterion(output, label)
 
@@ -1141,8 +1174,9 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
                 label = label.cuda()
 
                 suro_optimizer.zero_grad()
-                act = surrogate_model.local(image)
-                output = surrogate_model.cloud(act)
+                # act = surrogate_model.local(image)
+                # output = surrogate_model.cloud(act)
+                output = surrogate_model(image)
 
                 if "Knockoff_option" in attack_style:
                     log_prob = torch.nn.functional.log_softmax(output, dim=1)
@@ -1173,7 +1207,7 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
         acc_loss_mean = np.mean(acc_loss_list)
         avg_acc = np.mean(acc_list)
 
-        val_accu, fidel_score = steal_test(target_model, surrogate_model, val_loader)
+        val_accu, fidel_score = steal_test(arch, target_model, surrogate_model, val_loader)
 
         if val_accu > val_acc_max:
             acc_loss_min = acc_loss_mean
@@ -1189,11 +1223,10 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
             closest_tail_state_dict = surrogate_model.cloud.state_dict()
         
         logger.debug("epoch: {}, train_acc: {}, val_acc: {}, fidel_score: {}, acc_loss: {}, grad_loss: {}".format(epoch, avg_acc, val_accu, fidel_score, acc_loss_mean, grad_loss_mean))
-    
+        wandb.log({"surrogate-model-train-acc": avg_acc, "surrogate-model-val-acc": val_accu, "surrogate-model-val-fid": fidel_score, "surrogate-model-train-loss": acc_loss_mean, "surrogate-model-GM-loss": grad_loss_mean})
     time_cost = time.time() - start_time
-
     logger.debug(f"Time cost on training surrogate model: {time_cost}")
-
+    wandb.run.summary["time-cost-train-surrogate"] = time_cost
     if best_tail_state_dict is not None:
         logger.debug("load best stealed model.")
         logger.debug("Best perform model, val_acc: {}, fidel_score: {}, acc_loss: {}".format(val_acc_max, acc_max_fidelity, acc_loss_min))
@@ -1206,11 +1239,11 @@ def steal_attack(logger, save_dir, arch, cutting_layer, num_class, target_model,
         surrogate_model.local.load_state_dict(closest_client_state_dict)
         surrogate_model.cloud.load_state_dict(closest_tail_state_dict)
 
+    
 
     if adversairal_attack_option:
-        adversarial_attack(logger, target_dataset_name, target_model, surrogate_model, num_class, "PGD_target", attack_client=attack_client, e = 0.02)
-        adversarial_attack(logger, target_dataset_name, target_model, surrogate_model, num_class, "FGSM", attack_client=attack_client, e = 0.1)
-        adversarial_attack(logger, target_dataset_name, target_model, surrogate_model, num_class, "PGD", attack_client=attack_client, e = 0.001)
-
+        average_ASR = adversarial_attack(logger, target_dataset_name, target_model, surrogate_model, num_class)
+        wandb.run.summary["average ASR"] = average_ASR
+    wandb.finish()
 
     

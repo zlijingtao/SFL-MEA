@@ -106,8 +106,8 @@ class MobileNet(nn.Module):
         print(self.cloud)
         print("classifier:")
         print(self.classifier)
-        self.first_cloud_layer = list(self.cloud.children())[0]
-        self.last_local_layer = list(self.local.children())[-1]
+        # self.first_cloud_layer = list(self.cloud.children())[0]
+        # self.last_local_layer = list(self.local_list[0].children())[-1]
         for m in self.cloud:
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
@@ -150,27 +150,39 @@ class MobileNet(nn.Module):
                 if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
                     num_of_cloud_layer += 1
         return num_of_cloud_layer
-
+    
+    def get_num_of_local_layer(self):
+        num_of_local_layer = 0
+        list_of_layers = list(self.local_list[0].children())
+        for i, module in enumerate(list_of_layers):
+            if "Conv2d" in str(module) or "Linear" in str(module):
+                num_of_local_layer += 1
+        return num_of_local_layer
+    
     def recover(self):
         if self.cloud_classifier_merge:
             self.resplit(self.original_num_cloud)
             self.unmerge_classifier_cloud()
             
 
-    def resplit(self, num_of_cloud_layer):
+    def resplit(self, num_of_layer, count_from_right = True):
         if not self.cloud_classifier_merge:
             self.merge_classifier_cloud()
-            
+        
+        list_of_layers = list(self.local_list[0].children())
+        list_of_layers.extend(list(self.cloud.children()))
+
         for i in range(self.num_client):
-            list_of_layers = list(self.local_list[i].children())
-            list_of_layers.extend(list(self.cloud.children()))
             total_layer = 0
             for _, module in enumerate(list_of_layers):
                 print(str(module))
                 if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
                     total_layer += 1
             print("total layer is: ", total_layer)
-            num_of_local_layer = (total_layer - num_of_cloud_layer)
+            if count_from_right:
+                num_of_local_layer = (total_layer - num_of_layer)
+            else:
+                num_of_local_layer = num_of_layer
             local_list = []
             local_count = 0
             cloud_list = []
@@ -192,17 +204,17 @@ class MobileNet(nn.Module):
         with torch.no_grad():
             noise_input = torch.randn([1, 3, 32, 32])
             try:
-                device = next(self.local.parameters()).device
+                device = next(self.local_list[0].parameters()).device
                 noise_input = noise_input.to(device)
             except:
                 pass
-            smashed_data = self.local(noise_input)
+            smashed_data = self.local_list[0](noise_input)
         return smashed_data.size()
 
     def get_MAC_param(self):
         with torch.no_grad():
             noise_input = torch.randn([1, 3, 32, 32])
-            device = next(self.local.parameters()).device
+            device = next(self.local_list[0].parameters()).device
             noise_input = noise_input.to(device)
             client_macs, client_params = profile(self.local, inputs=(noise_input, ))
             noise_smash = torch.randn(self.get_smashed_data_size())
@@ -218,36 +230,36 @@ class MobileNet(nn.Module):
           
           if not federated:
             #CPU warm up
-            self.local.cpu()
-            self.local.eval()
-            smashed_data = self.local(noise_input) #CPU warm up
+            self.local_list[0].cpu()
+            self.local_list[0].eval()
+            smashed_data = self.local_list[0](noise_input) #CPU warm up
             
             start_time = time.time()
             for _ in range(500):
-                smashed_data = self.local(noise_input)
+                smashed_data = self.local_list[0](noise_input)
             lapse_cpu = (time.time() - start_time)/500
           else:
-            self.local.cpu()
+            self.local_list[0].cpu()
             self.cloud.cpu()
             self.classifier.cpu()
-            self.local.eval()
+            self.local_list[0].eval()
             self.cloud.eval()
             self.classifier.eval()
 
-            smashed_data = self.local(noise_input) #CPU warm up
+            smashed_data = self.local_list[0](noise_input) #CPU warm up
             output = self.cloud(smashed_data)
             output = output.view(output.size(0), -1)
             output = self.classifier(output)
             start_time = time.time()
             for _ in range(500):
-                output = self.local(noise_input)
+                output = self.local_list[0](noise_input)
                 output = self.cloud(output)
                 output = output.view(output.size(0), -1)
                 output = self.classifier(output)
             lapse_cpu = (time.time() - start_time)/500
           
           if not federated:
-            self.local.cuda()
+            self.local_list[0].cuda()
             smashed_data = smashed_data.cuda()
             self.cloud.eval()
             #GPU-WARM-UP
@@ -262,7 +274,7 @@ class MobileNet(nn.Module):
                 output = self.classifier(output)
             lapse_gpu = (time.time() - start_time)/500
           else:
-            self.local.cuda()
+            self.local_list[0].cuda()
             self.cloud.cuda()
             self.classifier.cuda()
             lapse_gpu = 0.0
@@ -273,17 +285,17 @@ class MobileNet(nn.Module):
         import time
         noise_input = torch.randn([128, 3, 32, 32])
         noise_label = torch.randint(0, 10, [128, ])
-        self.local.cpu()
+        self.local_list[0].cpu()
         self.cloud.cpu()
         self.classifier.cpu()
-        self.local.train()
+        self.local_list[0].train()
         self.cloud.train()
         self.classifier.train()
         
         criterion = torch.nn.CrossEntropyLoss()
         
         '''Calculate client backward on CPU'''
-        smashed_data = self.local(noise_input) #CPU warm up
+        smashed_data = self.local_list[0](noise_input) #CPU warm up
         output = self.cloud(smashed_data)
         output = output.view(output.size(0), -1)
         output = self.classifier(output)
@@ -293,7 +305,7 @@ class MobileNet(nn.Module):
 
         lapse_cpu_all = 0
         for _ in range(500):
-            smashed_data = self.local(noise_input)
+            smashed_data = self.local_list[0](noise_input)
             output = self.cloud(smashed_data)
             output = output.view(output.size(0), -1)
             output = self.classifier(output)
@@ -307,7 +319,7 @@ class MobileNet(nn.Module):
         if not federated:
             lapse_cpu_server = 0
             for _ in range(500):
-                smashed_data = self.local(noise_input)
+                smashed_data = self.local_list[0](noise_input)
                 output = self.cloud(smashed_data.detach())
                 output = output.view(output.size(0), -1)
                 output = self.classifier(output)
@@ -324,7 +336,7 @@ class MobileNet(nn.Module):
             lapse_cpu_client = lapse_cpu_all
         
         '''Calculate Server backward on GPU'''
-        self.local.cuda()
+        self.local_list[0].cuda()
         self.cloud.cuda()
         self.classifier.cuda()
         if not federated:
@@ -334,7 +346,7 @@ class MobileNet(nn.Module):
             
             #GPU warmup
             for _ in range(100):
-                smashed_data = self.local(noise_input)
+                smashed_data = self.local_list[0](noise_input)
                 output = self.cloud(smashed_data.detach())
                 output = output.view(output.size(0), -1)
                 output = self.classifier(output)
@@ -343,7 +355,7 @@ class MobileNet(nn.Module):
 
             lapse_gpu_server = 0
             for _ in range(500):
-                smashed_data = self.local(noise_input)
+                smashed_data = self.local_list[0](noise_input)
                 output = self.cloud(smashed_data.detach())
                 output = output.view(output.size(0), -1)
                 output = self.classifier(output)
@@ -359,12 +371,16 @@ class MobileNet(nn.Module):
         return lapse_cpu_client, lapse_gpu_server
 
     def forward(self, x):
-        local_output = self.local(x)
-        x = self.cloud(local_output)
-        # NOTE: change pooling kernel_size 7 -> 4 for CIFAR10
-        x = F.avg_pool2d(x, 4)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        if self.cloud_classifier_merge:
+            x = self.local_list[0](x)
+            x = self.cloud(x)
+        else:
+            local_output = self.local_list[0](x)
+            x = self.cloud(local_output)
+            # NOTE: change pooling kernel_size 7 -> 4 for CIFAR10
+            x = F.avg_pool2d(x, 4)
+            x = x.view(x.size(0), -1)
+            x = self.classifier(x)
         return x
 
 # (expansion, out_planes, num_blocks, stride)

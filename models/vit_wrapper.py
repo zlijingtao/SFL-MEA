@@ -1,7 +1,4 @@
 import copy
-
-import functools
-
 class virtual_module_class():
     def __init__(self, object_list, object_name_list, number_layer_to_freeze) -> None:
         self.object_list = object_list
@@ -22,16 +19,20 @@ class virtual_module_class():
                     tranable_param_list += list(item.parameters())
         return tranable_param_list
     
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict, strict = True):
         for name, module in zip(self.object_name_list, self.object_list):
-            module.load_state_dict(state_dict[name])
+            module.load_state_dict(state_dict[name], strict = strict)
     
     def state_dict(self):
         state_dict = {}
         for name, module in zip(self.object_name_list, self.object_list):
             state_dict[name] = module.state_dict()
         return state_dict
-            
+    
+    def apply(self, apply_functions):
+        for item in self.object_list:
+            item.apply(apply_functions)
+    
     def cuda(self):
         for item in self.object_list:
             item.cuda()
@@ -60,24 +61,24 @@ class vit_split_model_wrapper():
         self.num_client = num_client
         self.cutlayer = cutlayer
         self.model = model
-        trainable_object_list = [self.model.vit.embeddings, *self.model.vit.encoder.layer, self.model.vit.layernorm, self.model.classifier]
-        trainable_object_name_list = ["vit.embeddings", "vit.encoder.layer.0", "vit.encoder.layer.1", "vit.encoder.layer.2", "vit.encoder.layer.2"
+        self.trainable_object_list = [self.model.vit.embeddings, *self.model.vit.encoder.layer, self.model.vit.layernorm, self.model.classifier]
+        self.trainable_object_name_list = ["vit.embeddings", "vit.encoder.layer.0", "vit.encoder.layer.1", "vit.encoder.layer.2", "vit.encoder.layer.2"
                                            , "vit.encoder.layer.4", "vit.encoder.layer.5", "vit.encoder.layer.6", "vit.encoder.layer.7"
                                            , "vit.encoder.layer.8", "vit.encoder.layer.9", "vit.encoder.layer.10", "vit.encoder.layer.11", "vit.layernorm", "classifier"]
         
         if cutlayer < 0 or cutlayer > 12:
             raise("invalid cutlayer for vit")
-        cloud_object_list = trainable_object_list[cutlayer + 1:]
-        cloud_object_name_list = trainable_object_name_list[cutlayer + 1:]
-        local_object_name_list = trainable_object_name_list[:cutlayer + 1]
+        cloud_object_list = self.trainable_object_list[cutlayer + 1:]
+        cloud_object_name_list = self.trainable_object_name_list[cutlayer + 1:]
+        local_object_name_list = self.trainable_object_name_list[:cutlayer + 1]
         self.cloud = virtual_module_class(cloud_object_list, cloud_object_name_list, -1)
         
         self.freeze_front_layer(number_layer_to_freeze)
         self.eval()
 
         self.model_list = [self.model]
-        self.local_list = [virtual_module_class(trainable_object_list[:cutlayer + 1], local_object_name_list, number_layer_to_freeze)]
-
+        self.local_list = [virtual_module_class(self.trainable_object_list[:cutlayer + 1], local_object_name_list, number_layer_to_freeze)]
+        self.local = self.local_list[0]
         for i in range(1, num_client):
             self.model_list.append(copy.deepcopy(self.model)) # create entire copy of the model
 
@@ -107,18 +108,45 @@ class vit_split_model_wrapper():
 
         if number_layer_to_freeze < 0 or number_layer_to_freeze > self.cutlayer:
             raise("invalid cutlayer for vit")
-        object_list = [self.model.vit.embeddings, *self.model.vit.encoder.layer, self.model.vit.layernorm, self.model.classifier]
-
         number_layer_to_freeze = number_layer_to_freeze + 1 # always freeze embedding layer
         
-        self.trainable_object_list = object_list[:number_layer_to_freeze]
-
+        count = 0
         for module in self.trainable_object_list:
-            for param in module.parameters():
-                param.requires_grad = False
+            if count < number_layer_to_freeze:
+                for param in module.parameters():
+                    param.requires_grad = False
+            else:
+                for param in module.parameters():
+                    param.requires_grad = True
+            count += 1
+
+    def get_num_of_local_layer(self):
+        return self.cutlayer
+
+    def get_num_of_cloud_layer(self):
+        return 14 - self.cutlayer
 
     def merge_classifier_cloud(self):
         pass
+    
+    def resplit(self, number_layer_at_cloud):
+        number_layer_at_cloud = int(number_layer_at_cloud) # make sure it is an integer
+        if number_layer_at_cloud == 14 - self.cutlayer:
+            print("cutlayer is already satisfied, ignore resplit")
+        else:
+            # raise("cannot support resplit for now, please reinitialize with a different cutting layer")
+
+            for i in range(self.num_client):
+                temp_object_list = [self.model_list[i].vit.embeddings, *self.model_list[i].vit.encoder.layer, self.model_list[i].vit.layernorm, self.model_list[i].classifier]
+                
+                self.local_list[i].object_list = temp_object_list[:15-number_layer_at_cloud]
+                self.local_list[i].object_name_list = self.trainable_object_name_list[:15-number_layer_at_cloud]
+                self.local_list[i].number_layer_to_freeze = 14 - number_layer_at_cloud # corresponding cut-layer
+
+                self.cloud.object_list = temp_object_list[15-number_layer_at_cloud:]
+                self.cloud.object_name_list = self.trainable_object_name_list[15-number_layer_at_cloud:]
+                self.cloud.number_layer_to_freeze = -1
+                # pack these object into a list, get their parameters
 
     def __call__(self, x):
         return self.model(x).logits

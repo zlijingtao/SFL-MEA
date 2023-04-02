@@ -11,6 +11,7 @@ This is the script to train SFL
 import torch
 import numpy as np
 import SFL
+import os
 import argparse
 from attacks.model_extraction_attack import steal_attack
 from utils import cutting_train_clas_layer_mapping
@@ -47,6 +48,7 @@ parser.add_argument('--random_seed', default=123, type=int, help='random_seed')
 # steal setting
 parser.add_argument('--attack_client', default=0, type=int, help='id of the thief client')
 parser.add_argument('--attack_epochs', default=50, type=int, help='number of epochs for the steal algorithm')
+parser.add_argument('--last_n_batch', default=10000, type=int, help='use last_n_batch collected input-label-pairs to perform the surrogate model training')
 parser.add_argument('--surrogate_arch', default="same", type=str, help='set surrogate_arch')
 parser.add_argument('--aux_dataset', default="cifar100", type=str, help='number of classes for the testing dataset')
 parser.add_argument('--adversairal_attack', action='store_true', default=False, help='if True, test transfer adversarial attack')
@@ -69,11 +71,16 @@ mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epoch
                  source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid_ratio)
 mi.logger.debug(str(args))
 
-mi.train(verbose=True)
-# mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, "best"))
 
 
-train_clas_layer = cutting_train_clas_layer_mapping(args.arch, args.cutlayer)
+if not os.path.isfile(f"./{args.folder}/{args.filename}/checkpoint_client_{args.num_epochs}.tar"):
+    mi.train(verbose=True)
+    mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, args.num_epochs))
+else:
+    mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, args.num_epochs))
+
+
+train_clas_layer = mi.model.get_num_of_cloud_layer()
 
 if "craft_train" in args.regularization:
     attack_style = "Craft_option_resume"
@@ -83,10 +90,10 @@ elif "gan_train" in args.regularization:
     attack_style = "Generator_option_resume"
 elif "soft_train" in args.regularization:
     attack_style = "SoftTrain_option_resume"
-steal_attack(mi.logger, save_dir_name, args.arch, args.cutlayer, mi.num_class, mi.model, args.dataset, mi.pub_dataloader,
+steal_attack(save_dir_name, args.arch, args.cutlayer, mi.num_class, mi.model, args.dataset, mi.pub_dataloader,
              args.aux_dataset, args.batch_size, args.learning_rate, 50, args.attack_epochs,
              args.attack_client, attack_style, 1.0, args.noniid_ratio, 
-             train_clas_layer, args.surrogate_arch, args.adversairal_attack)
+             train_clas_layer, args.surrogate_arch, args.adversairal_attack, args.last_n_batch)
 
 
 # %%

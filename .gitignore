@@ -12,3 +12,4 @@ saves/*
 old_saves/*
 tiny-imagenet-200/
 mobilenetv2_pytorch_standalone/pretrained/
+wandb/*

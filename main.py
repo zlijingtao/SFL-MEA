@@ -12,6 +12,7 @@ import torch
 import numpy as np
 import SFL
 import argparse
+import wandb
 
 parser = argparse.ArgumentParser(description='SFL Training')
 
@@ -61,7 +62,10 @@ mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epoch
                  source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid_ratio)
 mi.logger.debug(str(args))
 
-mi.train(verbose=True)
-
+if not os.path.isfile(f"./{args.folder}/{args.filename}/checkpoint_client_best.tar"):
+    mi.train(verbose=True)
+    mi.resume("./{}/{}/checkpoint_client_best.tar".format(args.folder, args.filename))
+else:
+    mi.resume("./{}/{}/checkpoint_client_best.tar".format(args.folder, args.filename))
 
 # %%

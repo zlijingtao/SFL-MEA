@@ -9,6 +9,100 @@ import math
 
 from torch.nn.modules.linear import Linear
 
+
+
+def get_decoder(gan_AE_type, input_nc, output_nc, input_dim, output_dim, gan_AE_activation):
+    if gan_AE_type == "custom":
+        decoder = custom_AE(input_nc=input_nc, output_nc=output_nc, input_dim=input_dim, output_dim=output_dim,
+                                            activation=gan_AE_activation).cuda()
+    elif gan_AE_type == "custom_bn":
+        decoder = custom_AE_bn(input_nc=input_nc, output_nc=output_nc, input_dim=input_dim, output_dim=output_dim,
+                                                activation=gan_AE_activation).cuda()
+    elif gan_AE_type == "complex":
+        decoder = complex_AE(input_nc=input_nc, output_nc=output_nc, input_dim=input_dim, output_dim=output_dim,
+                                            activation=gan_AE_activation).cuda()
+    elif gan_AE_type == "complex_plus":
+        decoder = complex_plus_AE(input_nc=input_nc, output_nc=output_nc, input_dim=input_dim,
+                                                output_dim=output_dim, activation=gan_AE_activation).cuda()
+    elif gan_AE_type == "complex_res":
+        decoder = complex_res_AE(input_nc=input_nc, output_nc=output_nc, input_dim=input_dim,
+                                                output_dim=output_dim, activation=gan_AE_activation).cuda()
+    elif gan_AE_type == "complex_resplus":
+        decoder = complex_resplus_AE(input_nc=input_nc, output_nc=3, input_dim=input_dim,
+                                                    output_dim=output_dim, activation=gan_AE_activation).cuda()
+    elif "complex_resplusN" in gan_AE_type:
+        try:
+            N = int(gan_AE_type.split("complex_resplusN")[1])
+        except:
+            print("auto extract N from complex_resplusN failed, set N to default 2")
+            N = 2
+        decoder = complex_resplusN_AE(N = N, input_nc=input_nc, output_nc=output_nc, input_dim=input_dim,
+                                                        output_dim=output_dim, activation=gan_AE_activation).cuda()
+    elif "complex_normplusN" in gan_AE_type:
+        try:
+            afterfix = gan_AE_type.split("complex_normplusN")[1]
+            N = int(afterfix.split("C")[0])
+            internal_C = int(afterfix.split("C")[1])
+        except:
+            print("auto extract N from complex_normplusN failed, set N to default 2")
+            N = 0
+            internal_C = 64
+        decoder = complex_normplusN_AE(N = N, internal_nc = internal_C, input_nc=input_nc, output_nc=output_nc,
+                                                    input_dim=input_dim, output_dim=output_dim,
+                                                    activation=gan_AE_activation).cuda()
+    
+    elif "conv_normN" in gan_AE_type:
+        try:
+            afterfix = gan_AE_type.split("conv_normN")[1]
+            N = int(afterfix.split("C")[0])
+            internal_C = int(afterfix.split("C")[1])
+        except:
+            print("auto extract N from conv_normN failed, set N to default 2")
+            N = 0
+            internal_C = 64
+        decoder = conv_normN_AE(N = N, internal_nc = internal_C, input_nc=input_nc, output_nc=output_nc,
+                                                    input_dim=input_dim, output_dim=output_dim,
+                                                    activation=gan_AE_activation).cuda()
+
+    elif "res_normN" in gan_AE_type:
+        try:
+            afterfix = gan_AE_type.split("res_normN")[1]
+            N = int(afterfix.split("C")[0])
+            internal_C = int(afterfix.split("C")[1])
+        except:
+            print("auto extract N from res_normN failed, set N to default 2")
+            N = 0
+            internal_C = 64
+        decoder = res_normN_AE(N = N, internal_nc = internal_C, input_nc=input_nc, output_nc=output_nc,
+                                                    input_dim=input_dim, output_dim=output_dim,
+                                                    activation=gan_AE_activation).cuda()
+    
+    elif "TB_normplusN" in gan_AE_type:
+        try:
+            afterfix = gan_AE_type.split("TB_normplusN")[1]
+            N = int(afterfix.split("C")[0])
+            internal_C = int(afterfix.split("C")[1])
+        except:
+            print("auto extract N from TB_normplusN failed, set N to default 0")
+            N = 0
+            internal_C = 64
+        decoder = TB_normplusN_AE(N = N, internal_nc = internal_C, input_nc=input_nc, output_nc=output_nc,
+                                                    input_dim=input_dim, output_dim=output_dim,
+                                                    activation=gan_AE_activation).cuda()
+    elif gan_AE_type == "simple":
+        decoder = simple_AE(input_nc=input_nc, output_nc=output_nc, input_dim=input_dim, output_dim=output_dim,
+                                            activation=gan_AE_activation).cuda()
+    elif gan_AE_type == "simple_bn":
+        decoder = simple_AE_bn(input_nc=input_nc, output_nc=output_nc, input_dim=input_dim, output_dim=output_dim,
+                                                activation=gan_AE_activation).cuda()
+    elif gan_AE_type == "simplest":
+        decoder = simplest_AE(input_nc=input_nc, output_nc=output_nc, input_dim=input_dim, output_dim=output_dim,
+                                            activation=gan_AE_activation).cuda()
+    else:
+        raise ("No such GAN AE type.")
+    return decoder
+
+
 def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0, surrogate_arch = "same"):
     train_clas_layer = int(train_clas_layer)
 
@@ -152,8 +246,31 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
 
 
         return MobileNet_surrogate(make_mobilenet_layers(cutting_layer,cfg["A"], in_planes=32), num_class = num_class)
+    elif "ViT" in arch:
+        if surrogate_arch != "same":
+            raise("other surrogate arc options are not supported")
+        from transformers import ViTForImageClassification
+        from models.vit_wrapper import vit_split_model_wrapper
+        if num_class == 10:
+            id2label = {0: 'airplane',
+                        1: 'automobile',
+                        2: 'bird',
+                        3: 'cat',
+                        4: 'deer',
+                        5: 'dog',
+                        6: 'frog',
+                        7: 'horse',
+                        8: 'ship',
+                        9: 'truck'}
+            label2id = {label:id for id,label in id2label.items()}
+        else:
+            raise("not yet support!")
 
-
+        model = ViTForImageClassification.from_pretrained('google/vit-base-patch16-224-in21k',
+                                                        id2label=id2label,
+                                                        label2id=label2id)
+        model = vit_split_model_wrapper(model, 12 - train_clas_layer, 1, 12 - train_clas_layer)
+        return model
 
 
 class MobView(nn.Module):
@@ -254,12 +371,16 @@ class MobileNet_surrogate(nn.Module):
     
     
     def forward(self, x):
-        local_output = self.local(x)
-        x = self.cloud(local_output)
-        # NOTE: change pooling kernel_size 7 -> 4 for CIFAR10
-        x = F.avg_pool2d(x, 4)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        if self.cloud_classifier_merge:
+            x = self.local(x)
+            x = self.cloud(x)
+        else:
+            local_output = self.local(x)
+            x = self.cloud(local_output)
+            # NOTE: change pooling kernel_size 7 -> 4 for CIFAR10
+            x = F.avg_pool2d(x, 4)
+            x = x.view(x.size(0), -1)
+            x = self.classifier(x)
         return x
 
 
@@ -378,10 +499,14 @@ class VGG_surrogate(nn.Module):
         self.original_num_cloud = self.get_num_of_cloud_layer()
 
     def forward(self, x):
-        self.local_output = self.local(x)
-        x = self.cloud(self.local_output)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        if self.cloud_classifier_merge:
+            x = self.local(x)
+            x = self.cloud(x)
+        else:
+            self.local_output = self.local(x)
+            x = self.cloud(self.local_output)
+            x = x.view(x.size(0), -1)
+            x = self.classifier(x)
         return x
 
     def merge_classifier_cloud(self):
@@ -410,13 +535,13 @@ class VGG_surrogate(nn.Module):
         if not self.cloud_classifier_merge:
             list_of_layers = list(self.cloud.children())
             for i, module in enumerate(list_of_layers):
-                if "Conv2d" in str(module) or "Linear" in str(module):
+                if "Conv2d" in str(module) or "Linear" in str(module) or "MaxPool2d" in str(module):
                     num_of_cloud_layer += 1
             num_of_cloud_layer += self.length_clas
         else:
             list_of_layers = list(self.cloud.children())
             for i, module in enumerate(list_of_layers):
-                if "Conv2d" in str(module) or "Linear" in str(module):
+                if "Conv2d" in str(module) or "Linear" in str(module) or "MaxPool2d" in str(module):
                     num_of_cloud_layer += 1
         return num_of_cloud_layer
     
@@ -432,7 +557,7 @@ class VGG_surrogate(nn.Module):
         list_of_layers.extend(list(self.cloud.children()))
         total_layer = 0
         for i, module in enumerate(list_of_layers):
-            if "Conv2d" in str(module) or "Linear" in str(module):
+            if "Conv2d" in str(module) or "Linear" in str(module) or "MaxPool2d" in str(module):
                 total_layer += 1
         
         num_of_local_layer = (total_layer - num_of_cloud_layer)
@@ -440,7 +565,7 @@ class VGG_surrogate(nn.Module):
         local_count = 0
         cloud_list = []
         for i, module in enumerate(list_of_layers):
-            if "Conv2d" in str(module) or "Linear" in str(module):
+            if "Conv2d" in str(module) or "Linear" in str(module) or "MaxPool2d" in str(module):
                 local_count += 1
             if local_count <= num_of_local_layer:
                 local_list.append(module)
@@ -576,11 +701,15 @@ class ResNet_surrogate(nn.Module):
         self.cloud = nn.Sequential(*cloud_list)
         self.local = nn.Sequential(*local_list)
     def forward(self, x):
-        self.local_output = self.local(x)
-        x = self.cloud(self.local_output)
-        x = F.avg_pool2d(x, 4)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        if self.cloud_classifier_merge:
+            x = self.local(x)
+            x = self.cloud(x)
+        else:
+            self.local_output = self.local(x)
+            x = self.cloud(self.local_output)
+            x = F.avg_pool2d(x, 4)
+            x = x.view(x.size(0), -1)
+            x = self.classifier(x)
         return x
 
 class cifarResNet_surrogate(nn.Module):
@@ -662,11 +791,15 @@ class cifarResNet_surrogate(nn.Module):
         self.cloud = nn.Sequential(*cloud_list)
         self.local = nn.Sequential(*local_list)
     def forward(self, x):
-        self.local_output = self.local(x)
-        x = self.cloud(self.local_output)
-        x = F.avg_pool2d(x, 8)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        if self.cloud_classifier_merge:
+            x = self.local(x)
+            x = self.cloud(x)
+        else:
+            self.local_output = self.local(x)
+            x = self.cloud(self.local_output)
+            x = F.avg_pool2d(x, 8)
+            x = x.view(x.size(0), -1)
+            x = self.classifier(x)
         return x
 
 class conv3x3(nn.Module):
