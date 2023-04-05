@@ -546,6 +546,7 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
     save_images = []
     save_grad = []
     save_label = []
+    save_act = []
 
     if attack_style == "Craft_option_resume":
         ''' crafting training dataset for surrogate model training'''
@@ -805,23 +806,30 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
         
         for file in glob.glob(saved_crafted_image_path + "*"):
             if "image" in file and "grad_image" not in file:
+
+
                 image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
                 
+                # saved_image = torch.load(saved_crafted_image_path + f"image_{image_id}.pt")
+
                 if image_id <= max_image_id - last_n_batch: # collect only the last two valid data batch. (even this is very bad)
                     continue
                 
                 try:
                     for label in range(num_class): # put same-class labels together
                         saved_act = torch.load(saved_crafted_image_path + f"act_{image_id}_label{label}.pt")
+                        
                         saved_grads = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{label}.pt")
                         saved_label = label * torch.ones(saved_grads.size(0), ).long()
 
-                        saved_act.append(saved_act.clone())
-                        save_grad.append(saved_grads.clone()) # add a random existing grad.
+                        save_act.append(saved_act.clone())
+                        # save_images.append(saved_image.clone())
+                        save_grad.append(saved_grads.clone())
                         save_label.append(saved_label.clone())
                 except:
                     break
-        return saved_act, save_grad, save_label
+        return save_act, save_grad, save_label
+        # return save_images, save_grad, save_label
     
     elif attack_style == "Copycat_option":
         # implement transfer set as copycat paper, here we use cifar-10 dataset.
@@ -887,8 +895,6 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     logger = setup_logger('{}_steal_logger'.format(str(save_dir)), model_log_file, level=logging.DEBUG)
     logger.debug(f"=========RUNING MEA ATTACK - num_cloud_layer {train_clas_layer}, style {attack_style}, data_proportion-{data_proportion}, num_query-{num_query}")
     
-
-    
     # wandb_name = save_dir.split("/")[-1]
     if "resume" in attack_style:
         wandb_name = "online"
@@ -901,6 +907,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
             
             # track hyperparameters and run metadata
             config={
+            "file_name": save_dir.split("/")[-1],
             "learning_rate": learning_rate,
             "architecture": arch,
             "dataset": target_dataset_name,
@@ -936,8 +943,11 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     
     milestones = sorted([int(step * num_epoch) for step in [0.2, 0.5, 0.8]])
     optimizer_option = "SGD"
-    # if "GM_option_resume" in attack_style:
-    #     optimizer_option = "Adam"
+
+    if attack_style == "GM_option_resume":
+        optimizer_option = "Adam"
+        print(f"Use Adam optimizer with lr = {learning_rate}")
+
     start_time = time.time()
 
     surrogate_model.local.apply(init_weights)
@@ -984,12 +994,11 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     criterion = torch.nn.CrossEntropyLoss()
 
     # prepare activation/grad/label pairs for the MEA
-    if "GM_option_resume" in attack_style:
-        if_shuffle = False
-        batch_size = batch_size
-    else:
-        if_shuffle = True
-        batch_size = batch_size
+    # if "GM_option_resume" in attack_style:
+    #     if_shuffle = False
+    # else:
+    #     if_shuffle = True
+    if_shuffle = True
     if not ("Generator_option" in attack_style):
         save_images, save_grad, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
     
@@ -1066,15 +1075,27 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 if attack_style == "GM_option":
                     with torch.no_grad():
                         act = surrogate_model.local(image)
+                    act.requires_grad = True
+                    output = surrogate_model.cloud(act)
                 else: # GM_option_resume
-                    act = image
+                    # print(image.size())
+
+                    # smashed_size = target_model.get_smashed_data_size(batch_size)
+                    # print(smashed_size)
+                    act = torch.clone(image).requires_grad_()
+                    # flatten act, otherwise this cause error. [some mistake in the saving process]
+                    if act.size(2) == 1 and act.size(3) == 1:
+                        act = act.view([act.size(0), act.size(1)])
+                    # output = surrogate_model.cloud(act + 1e-3 * torch.randn_like(image))
+                    # print(surrogate_model.cloud)
+                    output = surrogate_model.cloud(act)
                 
-                act.requires_grad_()
-                output = surrogate_model.cloud(act)
                 ce_loss = criterion(output, label)
                 gradient_loss_style = "l2"
                 grad_lambda = 1.0
-                grad_approx = torch.autograd.grad(ce_loss, act, create_graph = True)[0]
+                grad_approx = torch.autograd.grad(ce_loss, act, create_graph = True)[0] #TODO: debug no grad for GM_resume
+                
+
                 if gradient_loss_style == "l2":
                     grad_loss = ((grad - grad_approx).norm(dim=1, p =2)).mean() / mean_norm
                 elif gradient_loss_style == "l1":

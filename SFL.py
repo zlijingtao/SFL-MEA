@@ -99,6 +99,8 @@ class Trainer:
                 self.local_params.append(self.model.local_list[i].parameters())
 
             if "gan_train_ME" in self.regularization_option:
+                self.nz = 512
+                self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
                 self.generator.cuda()
                 self.local_params.append(self.generator.parameters())
 
@@ -492,8 +494,7 @@ class Trainer:
             self.grad_collect_start_epoch = 0
         
         if "gan_train_ME" in self.regularization_option:
-            self.nz = 512
-            self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
+            
             extra_txt = f"gan_train_ME latent vector size is {self.nz}"
         elif "craft_train_ME" in self.regularization_option:
             self.craft_image_id = 0
@@ -765,7 +766,10 @@ class Trainer:
                     self.old_images = dl_transforms(self.old_images)
                 
                 if "GM_train_ME" in self.regularization_option:
-                    self.old_labels = (torch.randint_like(self.old_labels, low = 0, high = 10) + int(self.rotate_label)) % self.num_class
+                    # self.old_labels = (torch.randint_like(self.old_labels, low = 0, high = 10) + int(self.rotate_label)) % self.num_class
+                    # self.old_labels = (torch.randint_like(self.old_labels, low = 0, high = 10) + int(self.rotate_label)) % self.num_class
+
+                    self.old_labels = torch.ones_like(self.old_labels) * int(self.rotate_label)
                 elif "soft_train_ME" in self.regularization_option:
                     self.old_labels = (self.old_labels + int(self.rotate_label)) % self.num_class # rotating around orginal true label
             

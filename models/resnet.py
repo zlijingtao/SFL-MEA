@@ -26,6 +26,7 @@ class MobView(nn.Module):
         batch_size = input.size(0)
         shape = (batch_size, -1)
         out = out.view(shape)
+        # print(out.size())
         return out
 
 def init_weights(m):

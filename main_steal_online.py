@@ -26,6 +26,7 @@ parser.add_argument('--folder', default="saves/train-ME", type=str, help='please
 parser.add_argument('--num_client', default=10, type=int, help='number of client')
 parser.add_argument('--num_epochs', default=200, type=int, help='number of epochs')
 parser.add_argument('--learning_rate', default=0.05, type=float, help='Learning Rate')
+parser.add_argument('--learning_rate_MEA', default=-1, type=float, help='Learning Rate of MEA, if not set, then set it to be the same as SFL learnign rate')
 parser.add_argument('--client_sample_ratio', default=1.0, type=float, help='client_sample_ratio')
 parser.add_argument('--noniid_ratio', default=1.0, type=float, help='noniid_ratio, if = 0.1, meaning 1 out of 10 class per client')
 parser.add_argument('--dataset', default="cifar10", type=str, help='number of classes for the testing dataset')
@@ -90,8 +91,12 @@ elif "gan_train" in args.regularization:
     attack_style = "Generator_option_resume"
 elif "soft_train" in args.regularization:
     attack_style = "SoftTrain_option_resume"
+
+if args.learning_rate_MEA == -1:
+    args.learning_rate_MEA = args.learning_rate
+
 steal_attack(save_dir_name, args.arch, args.cutlayer, mi.num_class, mi.model, args.dataset, mi.pub_dataloader,
-             args.aux_dataset, args.batch_size, args.learning_rate, 50, args.attack_epochs,
+             args.aux_dataset, args.batch_size, args.learning_rate_MEA, 50, args.attack_epochs,
              args.attack_client, attack_style, 1.0, args.noniid_ratio, 
              train_clas_layer, args.surrogate_arch, args.adversairal_attack, args.last_n_batch)
 

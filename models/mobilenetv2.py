@@ -200,9 +200,9 @@ class MobileNet(nn.Module):
     def get_current_client(self):
         return self.current_client
 
-    def get_smashed_data_size(self):
+    def get_smashed_data_size(self, batch_size = 1):
         with torch.no_grad():
-            noise_input = torch.randn([1, 3, 32, 32])
+            noise_input = torch.randn([batch_size, 3, 32, 32])
             try:
                 device = next(self.local_list[0].parameters()).device
                 noise_input = noise_input.to(device)
