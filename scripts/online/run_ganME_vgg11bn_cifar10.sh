@@ -10,19 +10,15 @@ random_seed_list="123"
 scheme=V2
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
-learning_rate_MEA=0.01
+learning_rate_MEA=0.003
 attack_epochs=200
 attack_client=0
 #because ganME is to train a model, we sweep the start epoch (training the generator)
-regularization_list="gan_train_ME_start80 gan_train_ME_start120 gan_train_ME_start160"
-# regularization_list="gan_train_ME_start80"
-# regularization_list="gan_train_ME_start40 gan_train_ME_start180"
-# regularization_list="gan_train_ME_start0"
+regularization_list="gan_train_ME_start160 gan_train_ME_start180 gan_train_ME_start190"
 cutlayer_list="10 11 12 13"
-# cutlayer_list="11"
-# cutlayer_list="10"
 regularization_strength_list="1.0"
-num_client_list="5"
+# num_client_list="5"
+num_client_list="10 20"
 noniid_ratio_list="1.0"
 
 for random_seed in $random_seed_list; do

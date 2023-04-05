@@ -10,13 +10,16 @@ random_seed_list="123"
 scheme=V2
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
+learning_rate_MEA=0.01
 attack_epochs=200
 attack_client=0
 
 regularization=craft_train_ME_start120
-cutlayer_list="10 11 12 13 14"
-regularization_strength_list="50"
+cutlayer_list="10 11 12 13"
+# regularization_strength_list="20 50 100"
+regularization_strength_list="20 100"
 num_client_list="5"
+# num_client_list="5 10 20"
 noniid_ratio_list="1.0"
 last_n_batch_list="100 500 1000"
 
@@ -30,7 +33,7 @@ for random_seed in $random_seed_list; do
                                                 filename="vgg11-cifar10-$regularization-step$regularization_strength-cut$cutlayer-client$num_client-noniid$noniid_ratio"
                                                 CUDA_VISIBLE_DEVICES=$GPU_id python main_steal_online.py   --arch=$arch --cutlayer=$cutlayer --batch_size=$batch_size \
                                                         --folder $folder_name --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
-                                                        --dataset=$dataset --noniid_ratio=$noniid_ratio --scheme=$scheme  --learning_rate=$learning_rate --attack_epochs=$attack_epochs \
+                                                        --dataset=$dataset --noniid_ratio=$noniid_ratio --scheme=$scheme  --learning_rate=$learning_rate --learning_rate_MEA=$learning_rate_MEA --attack_epochs=$attack_epochs \
                                                         --attack_client=$attack_client  --regularization=$regularization  --regularization_strength=$regularization_strength --last_n_batch=$last_n_batch
                                         done
                                 done

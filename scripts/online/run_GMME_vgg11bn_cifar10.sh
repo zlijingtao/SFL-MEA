@@ -15,8 +15,7 @@ attack_epochs=50
 attack_client=0
 
 regularization=GM_train_ME_start120
-# cutlayer_list="10 11 12 13 14"
-cutlayer_list="13 14"
+cutlayer_list="10 11 12 13"
 regularization_strength_list="1.0"
 num_client_list="5"
 noniid_ratio_list="1.0"
