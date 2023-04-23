@@ -16,11 +16,10 @@ attack_client=0
 
 regularization=soft_train_ME_start120
 cutlayer_list="10 11 12 13"
-# cutlayer_list="14"
 regularization_strength_list="1.0"
-num_client_list="5"
+num_client_list="20 50 5 10"
 noniid_ratio_list="1.0"
-last_n_batch_list="10 50 100 500"
+last_n_batch_list="0 100 1000"
 for random_seed in $random_seed_list; do
         for num_client in $num_client_list; do
                 for cutlayer in $cutlayer_list; do

@@ -82,7 +82,7 @@ class MobileNet(nn.Module):
             else:
                 new_copy = copy.deepcopy(self.local_list[0])
 
-                self.local_list.append(new_copy.cuda())
+                self.local_list.append(new_copy)
                 if initialize_different:
                     self.local_list[i].apply(init_weights)
                     

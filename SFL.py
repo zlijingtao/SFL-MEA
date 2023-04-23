@@ -50,7 +50,7 @@ class Trainer:
         
         self.warm = 1
         self.scheme = scheme
-        self.num_client = num_client # max num of active clients at each round
+        
         self.dataset = dataset
         self.image_shape = get_image_shape(self.dataset)
         self.call_resume = False
@@ -70,7 +70,10 @@ class Trainer:
         # dividing datasets to actual number of clients, self.num_clients is num of active clients at each round (assume client sampling).
         # number of client < actual number of clients
 
-        self.actual_num_users = int(self.num_client/self.client_sample_ratio)
+        self.actual_num_users = num_client
+        self.num_client = int(num_client * self.client_sample_ratio) # max num of active clients at each round
+
+        print(f"sample {self.num_client} out of {self.actual_num_users}")
 
         if "gan_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option: 
             #data-free GAN-attack
@@ -99,7 +102,7 @@ class Trainer:
                 self.local_params.append(self.model.local_list[i].parameters())
 
             if "gan_train_ME" in self.regularization_option:
-                self.nz = 512
+                self.nz = int(512 * self.regularization_strength)
                 self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
                 self.generator.cuda()
                 self.local_params.append(self.generator.parameters())
@@ -203,6 +206,9 @@ class Trainer:
                 for i, p in enumerate(self.model.local_list[0].parameters()):
                     p.register_hook(lambda grad: torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda()))
 
+            if "gradient_clipping" in self.regularization_option:
+                for i, p in enumerate(self.model.local_list[0].parameters()):
+                    p.register_hook(lambda grad: torch.clip(grad, -self.regularization_strength, self.regularization_strength))
 
         total_loss.backward()
 
@@ -299,6 +305,11 @@ class Trainer:
 
         #if enable poison option
         poison_option = False
+
+        if "poison" in self.regularization_option:
+            poison_option = True
+
+
         self.model.cloud.train()
         self.model.local_list[client_id].train()
         self.generator.cuda()
@@ -338,6 +349,10 @@ class Trainer:
         g_noise_out_dist = torch.mean(torch.abs(x_private[:B, :] - x_private[B:, :]))
         g_noise_z_dist = torch.mean(torch.abs(z[:B, :] - z[B:, :]).view(B,-1),dim=1)
         noise_w = 50
+
+        if "noreg" in self.regularization_option:
+            noise_w = 0
+
         g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
 
         # z_private = self.model.local_list[client_id](x_private)
@@ -554,8 +569,8 @@ class Trainer:
                     transforms.RandomResizedCrop(224),
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomRotation(15)
-    )
-
+            )
+            self.logger.debug("debug-0")
             if "GM_train_ME" in self.regularization_option:
                 if self.GM_data_proportion == 0.0:
                     print("TO use GM_train_option, Must have some data available")
@@ -577,12 +592,13 @@ class Trainer:
             saved_iterator_list = []
             for client_id in range(len(self.client_dataloader)):
                 saved_iterator_list.append(iter(self.client_dataloader[client_id]))
-
+            
+            self.logger.debug("debug-1")
             Grad_staleness_visual = False # TODO: set to false.
             if Grad_staleness_visual:
                 self.query_image_id = 0
 
-            "Start SFL training"
+            self.logger.debug("Start SFL training")
             for epoch in range(1, self.n_epochs+1):
                 if epoch > self.warm:
                     self.scheduler_step(epoch)
@@ -591,7 +607,7 @@ class Trainer:
                     idxs_users = range(self.num_client)
                 else:
                     idxs_users = np.random.choice(range(self.actual_num_users), self.num_client, replace=False) # 10 out of 1000
-                
+                    
                 # sample num_client for parapllel training from actual number of users, take their iterator as well.
                 client_iterator_list = []
                 for client_id in range(self.num_client):

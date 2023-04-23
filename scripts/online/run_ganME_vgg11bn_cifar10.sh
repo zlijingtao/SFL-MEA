@@ -14,11 +14,13 @@ learning_rate_MEA=0.003
 attack_epochs=200
 attack_client=0
 #because ganME is to train a model, we sweep the start epoch (training the generator)
-regularization_list="gan_train_ME_start160 gan_train_ME_start180 gan_train_ME_start190"
+# regularization_list="gan_train_ME_start160 gan_train_ME_start180 gan_train_ME_start190"
+# regularization_list="gan_train_ME_start180"
+
+regularization_list="gan_train_ME_start180_noreg"
 cutlayer_list="10 11 12 13"
 regularization_strength_list="1.0"
-# num_client_list="5"
-num_client_list="10 20"
+num_client_list="100"
 noniid_ratio_list="1.0"
 
 for random_seed in $random_seed_list; do

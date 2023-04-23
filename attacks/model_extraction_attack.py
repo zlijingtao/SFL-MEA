@@ -712,6 +712,7 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
     
     elif attack_style == "SoftTrain_option_resume":
         # Use SoftTrain_option, query the gradients on inputs with all label combinations
+        # UPDATE:  we ignore last n batch here, we move this to training grads.
         soft_alpha = 0.9
         similar_func = torch.nn.CosineSimilarity(dim = 1)
         
@@ -728,37 +729,31 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
                 image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
                 if image_id > max_image_id:
                     max_image_id = image_id
-    
-        for file in glob.glob(saved_crafted_image_path + "*"):
-            if "image" in file and "grad_image" not in file:
-                
-                saved_image = torch.load(file)
 
-                image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+        for image_id in range(max_image_id + 1):
+            saved_image = torch.load(saved_crafted_image_path + f"image_{image_id}.pt")
+            true_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label0.pt").cuda()
+            true_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt").cuda()
+            cos_sim_list = []
 
-                if image_id > max_image_id - last_n_batch: # collect only the last two valid data batch. (even this is very bad)
-                    true_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label0.pt").cuda()
-                    true_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt").cuda()
-                    cos_sim_list = []
+            for c in range(num_class):
+                fake_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{c}.pt").cuda()
+                cos_sim_val = similar_func(fake_grad.view(true_label.size(0), -1), true_grad.view(true_label.size(0), -1))
+                cos_sim_list.append(cos_sim_val.detach().clone()) # 10 item of [128, 1]
 
-                    for c in range(num_class):
-                        fake_grad = torch.load(saved_crafted_image_path + f"grad_image{image_id}_label{c}.pt").cuda()
-                        cos_sim_val = similar_func(fake_grad.view(true_label.size(0), -1), true_grad.view(true_label.size(0), -1))
-                        cos_sim_list.append(cos_sim_val.detach().clone()) # 10 item of [128, 1]
+            cos_sim_tensor = torch.stack(cos_sim_list).view(num_class, -1).t().cuda() # [128, 10]
+            cos_sim_tensor += 1
+            cos_sim_sum = (cos_sim_tensor).sum(1) - 1
+            derived_label = (1 - soft_alpha) * cos_sim_tensor / cos_sim_sum.view(-1, 1) # [128, 10]
 
-                    cos_sim_tensor = torch.stack(cos_sim_list).view(num_class, -1).t().cuda() # [128, 10]
-                    cos_sim_tensor += 1
-                    cos_sim_sum = (cos_sim_tensor).sum(1) - 1
-                    derived_label = (1 - soft_alpha) * cos_sim_tensor / cos_sim_sum.view(-1, 1) # [128, 10]
+            
+            labels_as_idx = true_label.detach().view(-1, 1)
+            replace_val = soft_alpha * torch.ones(labels_as_idx.size(), dtype=torch.long).cuda()
+            derived_label.scatter_(1, labels_as_idx, replace_val)
 
-                    
-                    labels_as_idx = true_label.detach().view(-1, 1)
-                    replace_val = soft_alpha * torch.ones(labels_as_idx.size(), dtype=torch.long).cuda()
-                    derived_label.scatter_(1, labels_as_idx, replace_val)
-
-                    save_images.append(saved_image.clone())
-                    save_grad.append(true_grad.detach().cpu().clone())
-                    save_label.append(derived_label.detach().cpu().clone())
+            save_images.append(saved_image.clone())
+            save_grad.append(true_grad.detach().cpu().clone())
+            save_label.append(derived_label.detach().cpu().clone())
         return save_images, save_grad, save_label
     
     elif attack_style == "GM_option":
@@ -868,14 +863,23 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
         return save_images, save_grad, save_label
     
     elif attack_style == "Generator_option":
-        nz = 512
+        try:
+            nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
+        except:
+            nz = 512
+        print(f"latent vector dim: {nz}")
         generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
         '''GAN_ME, data-free model extraction, train a conditional GAN, train-time option: use 'gan_train' in regularization_option'''
         train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = False)
         return generator
     
     elif attack_style == "Generator_option_resume":
-        nz = 512
+        print(save_dir)
+        try:
+            nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
+        except:
+            nz = 512
+        print(f"latent vector dim: {nz}")
         generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
         # get prototypical data using GAN, training generator consumes grad query.
         train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = True)
@@ -1001,15 +1005,18 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     if_shuffle = True
     if not ("Generator_option" in attack_style):
         save_images, save_grad, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
-    
         save_images = torch.cat(save_images)
         save_grad = torch.cat(save_grad)
         save_label = torch.cat(save_label)
         indices = torch.arange(save_label.shape[0]).long()
+
+        # if "SoftTrain_option_resume" in attack_style:
+        #     indices = torch.flip(indices, dims = [0])
         ds = torch.utils.data.TensorDataset(indices, save_images, save_grad, save_label)
         dl = torch.utils.data.DataLoader(
             ds, batch_size=batch_size, num_workers=4, shuffle=if_shuffle
         )
+
         # use in GM
         mean_norm = save_grad.norm(dim=-1).mean().detach().item()
     else:
@@ -1038,6 +1045,11 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     if "Craft_option" in attack_style or "Generator_option" in attack_style or "GM_option" in attack_style:
         dl_transforms = None
     
+    if "Generator_option" in attack_style:
+        try:
+            nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
+        except:
+            nz = 512
     # if attack_style == "SoftTrain_option_resume": #TODO: test the usefulness of this.
     #     dl_transforms = None
     
@@ -1055,6 +1067,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     logger.debug("target-model, val_acc: {}, val_fidelity: {}".format(0, val_accu, fidel_score))
     wandb.run.summary["target-model-orig-val-acc"] = val_accu
     wandb.run.summary["target-model-orig-val-fid"] = fidel_score
+    
     # Train surrogate model
     for epoch in range(1, num_epoch + 1):
         grad_loss_list = []
@@ -1135,29 +1148,36 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                     
                 acc_list.append(acc.cpu().item())
 
+            dl = torch.utils.data.DataLoader(
+                ds, batch_size=batch_size, num_workers=4, shuffle=False
+            )
             # use the grad dataset to finetune
             for idx, (index, image, grad, label) in enumerate(dl):
-                image = image.cuda()
-                grad = grad.cuda()
-                label = label.cuda()
-                suro_optimizer.zero_grad()
-                output = surrogate_model(image)
-                _, real_label = label.max(dim = 1)
-                soft_lambda = 0.1
-                ce_loss = (1 - soft_lambda) * criterion(output, real_label) + soft_lambda * torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
-                total_loss = ce_loss
-                total_loss.backward()
-                suro_optimizer.step()
-                acc_loss_list.append(ce_loss.detach().cpu().item())
+                # print(index)
+                if idx > len(dl) - last_n_batch:
+                    # print(index)
+                    image = image.cuda()
+                    grad = grad.cuda()
+                    label = label.cuda()
+                    suro_optimizer.zero_grad()
+                    output = surrogate_model(image)
+                    _, real_label = label.max(dim = 1)
+                    soft_lambda = 0.1
+                    ce_loss = (1 - soft_lambda) * criterion(output, real_label) + soft_lambda * torch.mean(torch.sum(-label * torch.nn.functional.log_softmax(output, dim=1), dim=1))
+                    total_loss = ce_loss
+                    total_loss.backward()
+                    suro_optimizer.step()
+                    acc_loss_list.append(ce_loss.detach().cpu().item())
 
-                acc = accuracy(output.data, real_label)[0]
-                    
-                acc_list.append(acc.cpu().item())
+                    acc = accuracy(output.data, real_label)[0]
+                        
+                    acc_list.append(acc.cpu().item())
 
         elif attack_style == "Generator_option" or attack_style == "Generator_option_resume": # dynamically generates input and label using the trained Generator, used only in GAN-ME
             iter_generator_times = 20
+            
             for i in range(iter_generator_times):
-                z = torch.randn((batch_size, 512)).cuda()
+                z = torch.randn((batch_size, nz)).cuda()
                 label = torch.randint(low=0, high=num_class, size = [batch_size, ]).cuda()
                 fake_input = generator(z, label)
 

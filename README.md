@@ -1,6 +1,13 @@
 # SFL IP protection: a model split approach to protect IP of FL
 This repository is official pytorch repository of SFL IP protection
 
+## Roadmap:
+[x] Use MIA to set a layer threshold 
+[ ] Finish sweeping all offline/online MEAs
+[ ] Improve Gan-based data-free extraction attack
+[ ] Test Gradient Clipping on defending GAN-based data-free extraction attack
+[ ] Extend both to ViT-cifar10-finetune
+
 ## Requirement:
 
 conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
@@ -15,7 +22,9 @@ transformers (pip install)
 
 * *SFL.py*: It implements the all utility functions of split learning and model extraction attacks during SFL (collection step)
   
-* *attacks/model_extraction_attack.py*: It implements the model extraction attacks (final step).
+* *attacks/model_extraction_attack.py*: It implements the model extraction attacks (as IP protection test).
+
+* *attacks/model_extraction_attack.py*: It implements the model inversion attacks (as Data security test).
 
 * *main.py*: Entry code to train a vanilla model. wandb registered
 
@@ -27,6 +36,6 @@ transformers (pip install)
 
 ## Proof Of Concepts:
 
-
+* *bash run_all_offline.sh*
 
 ## Cite the work:

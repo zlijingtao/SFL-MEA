@@ -64,11 +64,17 @@ cutting_layer = args.cutlayer
 num_client = args.num_client
 save_dir_name = "./{}/{}".format(args.folder, args.filename)
 
+
+if num_client > 10:
+    client_sample_ratio = 10. /num_client
+else:
+    client_sample_ratio = 1.0
+
 mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epochs, scheme = args.scheme,
                  num_client = num_client, dataset=args.dataset, save_dir=save_dir_name,
                  regularization_option=args.regularization, regularization_strength = args.regularization_strength,
                  collude_use_public=args.collude_use_public, learning_rate = args.learning_rate,
-                 load_from_checkpoint = args.load_from_checkpoint, finetune_freeze_bn = args.finetune_freeze_bn, client_sample_ratio = args.client_sample_ratio,
+                 load_from_checkpoint = args.load_from_checkpoint, finetune_freeze_bn = args.finetune_freeze_bn, client_sample_ratio = client_sample_ratio,
                  source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid_ratio)
 mi.logger.debug(str(args))
 
