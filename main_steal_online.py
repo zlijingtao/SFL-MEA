@@ -64,9 +64,23 @@ cutting_layer = args.cutlayer
 num_client = args.num_client
 save_dir_name = "./{}/{}".format(args.folder, args.filename)
 
+if args.scheme == "V1":
+    if num_client == 100:
+        batch_size = 4
+    elif num_client == 50:
+        batch_size = 8
+    elif num_client == 20:
+        batch_size = 16
+    elif num_client == 10:
+        batch_size = 32
+    elif num_client == 5:
+        batch_size = 64
+    elif num_client == 2:
+        batch_size = 128
 
-if num_client > 10:
-    client_sample_ratio = 10. /num_client
+if num_client > 20:
+    client_sample_ratio = 20. /num_client
+    args.num_epochs = int(200 / client_sample_ratio)
 else:
     client_sample_ratio = 1.0
 

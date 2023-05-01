@@ -173,7 +173,7 @@ class Trainer:
         # self.model.first_cloud_layer.register_backward_hook(get_activation_gradient(grads, 'first_cloud_layer'))
         
         if save_grad:
-        # Final Prediction Logits (complete forward pass)
+            # Final Prediction Logits (complete forward pass)
             z_private = self.model.local_list[client_id](x_private)
             z_private.retain_grad()
             output = self.model.cloud(z_private)
@@ -199,27 +199,33 @@ class Trainer:
                 l2_regularization = self.regularization_strength * torch.norm(all_params, 2)
                 total_loss = total_loss + l2_regularization
             
-            if "gradient_noise_cloud" in self.regularization_option:
-                for i, p in enumerate(self.model.cloud.parameters()):
-                    p.register_hook(lambda grad: torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda()))
-            if "gradient_noise_local" in self.regularization_option:
-                for i, p in enumerate(self.model.local_list[0].parameters()):
-                    p.register_hook(lambda grad: torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda()))
+            if "gradient_noise" in self.regularization_option:
+                def noise_hook(grad):
+                    return torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda())
+                z_private.register_hook(noise_hook)
+            # hook activation gradient and add noise to it.
 
-            if "gradient_clipping" in self.regularization_option:
-                for i, p in enumerate(self.model.local_list[0].parameters()):
-                    p.register_hook(lambda grad: torch.clip(grad, -self.regularization_strength, self.regularization_strength))
+
+            # if "gradient_noise_cloud" in self.regularization_option:
+            #     for i, p in enumerate(self.model.cloud.parameters()):
+            #         p.register_hook(lambda grad: torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda()))
+            # if "gradient_noise_local" in self.regularization_option:
+            #     for i, p in enumerate(self.model.local_list[0].parameters()):
+            #         p.register_hook(lambda grad: torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda()))
+
+            # if "gradient_clipping" in self.regularization_option:
+            #     for i, p in enumerate(self.model.local_list[0].parameters()):
+            #         p.register_hook(lambda grad: torch.clip(grad, -self.regularization_strength, self.regularization_strength))
 
         total_loss.backward()
 
-        if save_grad:
+        if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
 
             # print(z_private.grad.detach())
             # print(grads["first_cloud_layer"])
             # print(torch.equal(grads["first_cloud_layer"], z_private.grad.detach()))
 
-            if not ("normal_train" in self.regularization_option):
-                zeroing_grad(self.model.local_list[client_id])
+            zeroing_grad(self.model.local_list[client_id])
 
             # collect gradient
             if not os.path.isdir(self.save_dir + "/saved_grads"):
@@ -233,7 +239,7 @@ class Trainer:
                 torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
-        del total_loss, f_loss
+        del total_loss, f_loss, z_private
         return total_losses, f_losses
     
     def craft_train_target_step(self, client_id):
@@ -366,13 +372,18 @@ class Trainer:
 
         total_loss = f_loss - g_noise
 
+        if "gradient_noise" in self.regularization_option: #TODO: test this
+            def noise_hook(grad):
+                return torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda())
+            x_private.register_hook(noise_hook)
+
         total_loss.backward()
 
         zeroing_grad(self.model.local_list[client_id])
 
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
-        del total_loss, f_loss
+        del total_loss, f_loss, x_private
 
         return total_losses, f_losses
 
@@ -556,7 +567,9 @@ class Trainer:
 
             # epoch_save_list = [1, 2 ,5 ,10 ,20 ,50 ,100]
             epoch_save_list = [50, 100, 150, 200]
-
+            if self.client_sample_ratio < 1.0:
+                for i in range(len(epoch_save_list)):
+                    epoch_save_list[i] = int(epoch_save_list[i] /self.client_sample_ratio)
             #Main Training
             
             dl_transforms = torch.nn.Sequential(
@@ -570,7 +583,6 @@ class Trainer:
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomRotation(15)
             )
-            self.logger.debug("debug-0")
             if "GM_train_ME" in self.regularization_option:
                 if self.GM_data_proportion == 0.0:
                     print("TO use GM_train_option, Must have some data available")
@@ -593,7 +605,6 @@ class Trainer:
             for client_id in range(len(self.client_dataloader)):
                 saved_iterator_list.append(iter(self.client_dataloader[client_id]))
             
-            self.logger.debug("debug-1")
             Grad_staleness_visual = False # TODO: set to false.
             if Grad_staleness_visual:
                 self.query_image_id = 0
@@ -612,7 +623,7 @@ class Trainer:
                 client_iterator_list = []
                 for client_id in range(self.num_client):
                     if ("gan_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option) and idxs_users[client_id] == self.actual_num_users - 1:
-                        pass
+                        client_iterator_list.append(None)
                     else:
                         client_iterator_list.append(saved_iterator_list[idxs_users[client_id]])
 
@@ -632,7 +643,7 @@ class Trainer:
                     
                     # shuffle_client_list = range(self.num_client)
                     for client_id in range(self.num_client):
-                        # Get data
+                        # Get data TODO: solve this fatal error
                         if idxs_users[client_id] != self.actual_num_users - 1: # if current client is not the attack client (default is the last one)
                             try:
                                 images, labels = next(client_iterator_list[client_id])
