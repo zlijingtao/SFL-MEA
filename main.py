@@ -13,6 +13,7 @@ import numpy as np
 import SFL
 import argparse
 import wandb
+import os
 
 parser = argparse.ArgumentParser(description='SFL Training')
 

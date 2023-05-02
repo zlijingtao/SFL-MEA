@@ -26,7 +26,7 @@ for regularization_strength in $regularization_strength_list; do
 
     filename="l1-$regularization_strength-vgg11-cifar10-cut-5"
 
-    python main.py --regularization l1 --regularization_strength=$regularization_strength  --folder=$folder_name --file_name=$filename --cutlayer 10
+    python main.py --regularization l1 --regularization_strength=$regularization_strength  --folder=$folder_name --filename=$filename --cutlayer 10
     
     for num_query in $num_query_list; do
         for attack_style in $attack_style_list; do
