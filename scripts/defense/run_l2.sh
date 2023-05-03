@@ -20,13 +20,13 @@ num_query_list="100000"
 attack_style_list="SoftTrain_option TrainME_option"
 data_proportion_list="0.02"
 
-regularization_strength_list="0.01 0.002 0.001 0.0005"
+regularization_strength_list="0.2 0.15 0.05"
 
 for regularization_strength in $regularization_strength_list; do
 
     filename="l2-$regularization_strength-vgg11-cifar10-cut-5"
 
-    python main.py --regularization l2 --regularization_strength=$regularization_strength  --folder=$folder_name --file_name=$filename --cutlayer 10
+    python main.py --regularization l2 --regularization_strength=$regularization_strength  --folder=$folder_name --filename=$filename --cutlayer 10
     
     for num_query in $num_query_list; do
         for attack_style in $attack_style_list; do

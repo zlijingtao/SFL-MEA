@@ -66,7 +66,6 @@ np.random.seed(random_seed)
 
 args.num_epochs = "best"
 
-
 save_dir_name = "./{}/{}".format(args.folder, args.filename)
 
 mi = SFL.Trainer(args.arch, args.cutlayer, args.batch_size, n_epochs = args.num_epochs, scheme = args.scheme,
