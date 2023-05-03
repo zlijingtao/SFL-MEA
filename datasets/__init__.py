@@ -33,15 +33,15 @@ def denormalize(x, dataset): # normalize a zero mean, std = 1 to range [0, 1]
     # B, 3, H, W
     return torch.clamp(tensor, 0, 1).permute(3, 0, 1, 2)
 
-def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_users = 10, collude_use_public = False, augmentation_option = False):
+def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_users = 10, augmentation_option = False, last_client_fix_amount = -1):
     if dataset_name == "cifar10":
         client_dataloader, _ , _ = get_cifar10_trainloader(batch_size=batch_size,
                                                                         num_workers=4,
                                                                         shuffle=True,
                                                                         num_client=actual_num_users,
-                                                                        collude_use_public=collude_use_public,
                                                                         augmentation_option = augmentation_option,
-                                                                        noniid_ratio = noniid_ratio)
+                                                                        noniid_ratio = noniid_ratio,
+                                                                        last_client_fix_amount = last_client_fix_amount)
         pub_dataloader, _ , _ = get_cifar10_testloader(batch_size=batch_size,
                                                                         num_workers=4,
                                                                         shuffle=False)
@@ -51,9 +51,9 @@ def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_u
                                                                         num_workers=4,
                                                                         shuffle=True,
                                                                         num_client=actual_num_users,
-                                                                        collude_use_public=collude_use_public,
                                                                         augmentation_option = augmentation_option,
-                                                                        noniid_ratio = noniid_ratio)
+                                                                        noniid_ratio = noniid_ratio,
+                                                                        last_client_fix_amount = last_client_fix_amount)
 
         pub_dataloader, _ , _ = get_cifar100_testloader(batch_size=batch_size,
                                                                         num_workers=4,
@@ -65,9 +65,9 @@ def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_u
                                                             num_workers=4,
                                                             shuffle=True,
                                                             num_client=actual_num_users,
-                                                            collude_use_public=collude_use_public,
                                                             augmentation_option = augmentation_option,
-                                                            noniid_ratio = noniid_ratio)
+                                                            noniid_ratio = noniid_ratio,
+                                                            last_client_fix_amount = last_client_fix_amount)
         pub_dataloader = get_imagenet_testloader(batch_size=batch_size,
                                                         num_workers=4,
                                                         shuffle=False)
@@ -82,7 +82,7 @@ def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_u
                                                                 shuffle=True,
                                                                 num_client=actual_num_users,
                                                                 augmentation_option = augmentation_option,
-                                                                collude_use_public=collude_use_public)
+                                                                last_client_fix_amount = last_client_fix_amount)
         pub_dataloader, _, _ = get_SVHN_testloader(batch_size=batch_size,
                                                                 num_workers=4,
                                                                 shuffle=False)
@@ -97,7 +97,7 @@ def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_u
                                                                             shuffle=True,
                                                                             num_client=actual_num_users,
                                                                             augmentation_option = augmentation_option,
-                                                                            collude_use_public=collude_use_public)
+                                                                            last_client_fix_amount = last_client_fix_amount)
         orig_class = 200
     elif dataset_name == "mnist":
         if noniid_ratio != 1.0:
@@ -107,7 +107,7 @@ def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_u
                                                                             num_workers=4,
                                                                             shuffle=True,
                                                                             num_client=actual_num_users,
-                                                                            collude_use_public=collude_use_public)
+                                                                            last_client_fix_amount = last_client_fix_amount)
         orig_class = 10
     elif dataset_name == "fmnist":
         if noniid_ratio != 1.0:
@@ -117,7 +117,7 @@ def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_u
                                                                             num_workers=4,
                                                                             shuffle=True,
                                                                             num_client=actual_num_users,
-                                                                            collude_use_public=collude_use_public)
+                                                                            last_client_fix_amount = last_client_fix_amount)
         orig_class = 10
     elif dataset_name == "femnist":
         if noniid_ratio != 1.0:
@@ -127,7 +127,7 @@ def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_u
                                                                             num_workers=4,
                                                                             shuffle=True,
                                                                             num_client=actual_num_users,
-                                                                            collude_use_public=collude_use_public)
+                                                                            last_client_fix_amount = last_client_fix_amount)
         orig_class = 62
     else:
         raise ("Dataset {} is not supported!".format(dataset_name))

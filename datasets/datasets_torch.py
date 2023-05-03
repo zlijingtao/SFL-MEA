@@ -284,7 +284,46 @@ def load_mnist_membership():
     return xpriv, xpub, xmem, xnomem, xmem_test, xnomem_test
 
 
-def get_femnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = False):
+
+def split_training_data_to_training_loader(training_data, num_client, batch_size, shuffle, num_workers, last_client_fix_amount = -1, noniid_ratio = 1.0, num_class = 10):
+    if last_client_fix_amount != -1 and noniid_ratio != 1.0:
+        import warnings
+        warnings.warn("noniid_ratio is disabled when last_client_fix_amount is specified")
+    
+    subset_split_list = []
+    if last_client_fix_amount == -1:
+        for i in range(num_client):
+            subset_split_list.append(list(range(i * (len(training_data)//num_client), (i+1) * (len(training_data)//num_client))))
+    else: # leave a fixed amount, split other data to all but one clients
+        for i in range(num_client - 1):
+            subset_split_list.append(list(range(i * ((len(training_data) - last_client_fix_amount)//(num_client - 1)), (i+1) * ((len(training_data) - last_client_fix_amount)//(num_client - 1)))))
+        # adding the fixed amount
+        subset_split_list.append(list(range(len(training_data) - last_client_fix_amount, len(training_data))))
+
+    if num_client == 1:
+        training_loader_list = [torch.utils.data.DataLoader(training_data,  batch_size=batch_size, shuffle=shuffle,
+                num_workers=num_workers)]
+    elif num_client > 1:
+        training_loader_list = []
+
+        if noniid_ratio < 1.0:
+            noniid_training_subset_list = noniid_alllabel(training_data, num_client, noniid_ratio, num_class)
+
+        for i in range(num_client):
+
+            if noniid_ratio == 1.0:
+                training_subset = torch.utils.data.Subset(training_data, subset_split_list[i])
+            else:
+                training_subset = DatasetSplit(training_data, noniid_training_subset_list[i])
+            
+            subset_training_loader = DataLoader(
+                training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
+            training_loader_list.append(subset_training_loader)
+    
+    
+    return training_loader_list
+
+def get_femnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, augmentation_option = False, last_client_fix_amount = -1):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -297,23 +336,14 @@ def get_femnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_clien
     """
     mnist_training, mnist_testing = load_femnist()
     
-    if num_client == 1:
-        mnist_training_loader = [torch.utils.data.DataLoader(mnist_training,  batch_size=batch_size, shuffle=shuffle,
-                num_workers=num_workers)]
-    elif num_client > 1:
-        mnist_training_loader = []
-        for i in range(num_client):
-            mnist_training_subset = torch.utils.data.Subset(mnist_training, list(range(i * (len(mnist_training)//num_client), (i+1) * (len(mnist_training)//num_client))))
-            subset_training_loader = DataLoader(
-                mnist_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            mnist_training_loader.append(subset_training_loader)
-    
+    mnist_training_loader = split_training_data_to_training_loader(mnist_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount)
+
     mnist_testing_loader = torch.utils.data.DataLoader(mnist_testing,  batch_size=batch_size, shuffle=False,
                 num_workers=num_workers)
 
     return mnist_training_loader, mnist_testing_loader
 
-def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = False):
+def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, augmentation_option = False, last_client_fix_amount = -1):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -326,23 +356,15 @@ def get_mnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client 
     """
     mnist_training, mnist_testing = load_mnist()
     
-    if num_client == 1:
-        mnist_training_loader = [torch.utils.data.DataLoader(mnist_training,  batch_size=batch_size, shuffle=shuffle,
-                num_workers=num_workers)]
-    elif num_client > 1:
-        mnist_training_loader = []
-        for i in range(num_client):
-            mnist_training_subset = torch.utils.data.Subset(mnist_training, list(range(i * (len(mnist_training)//num_client), (i+1) * (len(mnist_training)//num_client))))
-            subset_training_loader = DataLoader(
-                mnist_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            mnist_training_loader.append(subset_training_loader)
+    mnist_training_loader = split_training_data_to_training_loader(mnist_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount)
     
     mnist_testing_loader = torch.utils.data.DataLoader(mnist_testing,  batch_size=batch_size, shuffle=False,
                 num_workers=num_workers)
 
     return mnist_training_loader, mnist_testing_loader
 
-def get_fmnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = False):
+
+def get_fmnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, augmentation_option = False, last_client_fix_amount = -1):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -355,24 +377,15 @@ def get_fmnist_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client
     """
     fmnist_training, fmnist_testing = load_fmnist()
     
-    if num_client == 1:
-        fmnist_training_loader = [torch.utils.data.DataLoader(fmnist_training,  batch_size=batch_size, shuffle=shuffle,
-                num_workers=num_workers)]
-    elif num_client > 1:
-        fmnist_training_loader = []
-        for i in range(num_client):
-            fmnist_training_subset = torch.utils.data.Subset(fmnist_training, list(range(i * (len(fmnist_training)//num_client), (i+1) * (len(fmnist_training)//num_client))))
-            subset_training_loader = DataLoader(
-                fmnist_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            fmnist_training_loader.append(subset_training_loader)
-    
+    fmnist_training_loader = split_training_data_to_training_loader(fmnist_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount)
+
     fmnist_testing_loader = torch.utils.data.DataLoader(fmnist_testing,  batch_size=batch_size, shuffle=False,
                 num_workers=num_workers)
 
     return fmnist_training_loader, fmnist_testing_loader
 
 
-def get_tinyimagenet_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, augmentation_option = False):
+def get_tinyimagenet_bothloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, augmentation_option = False, last_client_fix_amount = -1):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -411,24 +424,15 @@ def get_tinyimagenet_bothloader(batch_size=16, num_workers=2, shuffle=True, num_
     tinyimagenet_training = datasets.ImageFolder('tiny-imagenet-200/train', transform=transform_train)
     tinyimagenet_testing = datasets.ImageFolder('tiny-imagenet-200/val', transform=transform_test)
 
-    if num_client == 1:
-        tinyimagenet_training_loader = [torch.utils.data.DataLoader(tinyimagenet_training,  batch_size=batch_size, shuffle=shuffle,
-                num_workers=num_workers)]
-    elif num_client > 1:
-        tinyimagenet_training_loader = []
-        for i in range(num_client):
-            mnist_training_subset = torch.utils.data.Subset(tinyimagenet_training, list(range(i * (len(tinyimagenet_training)//num_client), (i+1) * (len(tinyimagenet_training)//num_client))))
-            subset_training_loader = DataLoader(
-                mnist_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            tinyimagenet_training_loader.append(subset_training_loader)
-    
+    tinyimagenet_training_loader = split_training_data_to_training_loader(tinyimagenet_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount)
+
     tinyimagenet_testing_loader = torch.utils.data.DataLoader(tinyimagenet_testing,  batch_size=batch_size, shuffle=False,
                 num_workers=num_workers)
 
     return tinyimagenet_training_loader, tinyimagenet_testing_loader
 
 
-def get_imagenet_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False):
+def get_imagenet_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False, last_client_fix_amount = -1):
     """ return training dataloader
     Returns: train_data_loader:torch dataloader object
     """
@@ -451,25 +455,8 @@ def get_imagenet_trainloader(batch_size=16, num_workers=2, shuffle=True, num_cli
     indices = torch.randperm(len(imagenet_training))[:int(len(imagenet_training)* data_portion)]
 
     imagenet_training = torch.utils.data.Subset(imagenet_training, indices)
-
-    if num_client == 1:
-        imagenet_training_loader = [DataLoader(
-            imagenet_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)]
-    elif num_client > 1:
-        imagenet_training_loader = []
-
-        if noniid_ratio < 1.0:
-            imagenet_training_subset_list = noniid_alllabel(imagenet_training, num_client, noniid_ratio, 100)
-
-        for i in range(num_client):
-            if noniid_ratio == 1.0:
-                imagenet_training_subset = torch.utils.data.Subset(imagenet_training, list(range(i * (len(imagenet_training)//num_client), (i+1) * (len(imagenet_training)//num_client))))
-            else:
-                imagenet_training_subset = DatasetSplit(imagenet_training, imagenet_training_subset_list[i])
-            
-            subset_training_loader = DataLoader(
-                imagenet_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            imagenet_training_loader.append(subset_training_loader)
+    
+    imagenet_training_loader = split_training_data_to_training_loader(imagenet_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount, noniid_ratio, 1000)
 
     return imagenet_training_loader
 
@@ -488,7 +475,7 @@ def get_imagenet_testloader(batch_size=16, num_workers=2, shuffle=True):
     
     return imagenet_test_loader
 
-def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False):
+def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False, last_client_fix_amount = -1):
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset
@@ -519,51 +506,9 @@ def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_clie
 
     cifar10_training = torch.utils.data.Subset(cifar10_training, indices)
 
-    if num_client == 1:
-        cifar10_training_loader = [DataLoader(
-            cifar10_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)]
-    elif num_client > 1:
-        cifar10_training_loader = []
 
-        if noniid_ratio < 1.0:
-            cifar10_training_subset_list = noniid_alllabel(cifar10_training, num_client, noniid_ratio, 100)
+    cifar10_training_loader = split_training_data_to_training_loader(cifar10_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount, noniid_ratio, 10)
 
-        if not collude_use_public:
-            for i in range(num_client):
-                if noniid_ratio == 1.0:
-                    cifar10_training_subset = torch.utils.data.Subset(cifar10_training, list(range(i * (len(cifar10_training)//num_client), (i+1) * (len(cifar10_training)//num_client))))
-                else:
-                    cifar10_training_subset = DatasetSplit(cifar10_training, cifar10_training_subset_list[i])
-                
-                subset_training_loader = DataLoader(
-                    cifar10_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-                cifar10_training_loader.append(subset_training_loader)
-        else:
-            '''1 + collude + (n-2) vanilla clients, all training data is shared by n-1 clients'''
-            # cifar10_test = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_train)
-            # subset_training_loader = DataLoader(
-            #     cifar10_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            # cifar10_training_loader.append(subset_training_loader)
-            # for i in range(num_client-1):
-            #     cifar10_training_subset = torch.utils.data.Subset(cifar10_training, list(range(i * (len(cifar10_training)//(num_client-1)), (i+1) * (len(cifar10_training)//(num_client-1)))))
-            #     subset_training_loader = DataLoader(
-            #         cifar10_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            #     cifar10_training_loader.append(subset_training_loader)
-            # # switch the testloader to collude position
-            # temp = cifar10_training_loader[0]
-            # cifar10_training_loader[0] = cifar10_training_loader[1]
-            # cifar10_training_loader[1] = temp
-
-            '''1+ (n-1) * collude, the single client gets all training data'''
-            subset_training_loader = DataLoader(
-                cifar10_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            cifar10_training_loader.append(subset_training_loader)
-            cifar10_test = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_train)
-            for i in range(num_client-1):
-                subset_training_loader = DataLoader(
-                    cifar10_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-                
-                cifar10_training_loader.append(subset_training_loader)
     cifar10_training2 = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
 
     cifar10_training_mem = torch.utils.data.Subset(cifar10_training2, list(range(0, 5000)))
@@ -630,7 +575,7 @@ def get_cifar10_testloader(batch_size=16, num_workers=2, shuffle=True, extra_cls
 
 
 
-def get_cifar100_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False):
+def get_cifar100_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False, last_client_fix_amount = -1):
     """ return training dataloader
     Args:
         mean: mean of cifar100 training dataset
@@ -662,51 +607,7 @@ def get_cifar100_trainloader(batch_size=16, num_workers=2, shuffle=True, num_cli
 
     cifar100_training = torch.utils.data.Subset(cifar100_training, indices)
 
-    if num_client == 1:
-        cifar100_training_loader = [DataLoader(
-            cifar100_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size, )]
-    
-    elif num_client > 1:
-        cifar100_training_loader = []
-        if noniid_ratio < 1.0:
-            cifar100_training_subset_list = noniid_alllabel(cifar100_training, num_client, noniid_ratio, 100)
-        
-        if not collude_use_public:
-            for i in range(num_client):
-                if noniid_ratio == 1.0:
-                    cifar100_training_subset = torch.utils.data.Subset(cifar100_training, list(range(i * (len(cifar100_training)//num_client), (i+1) * (len(cifar100_training)//num_client))))
-                else:
-                    cifar100_training_subset = DatasetSplit(cifar100_training, cifar100_training_subset_list[i])
-                
-                subset_training_loader = DataLoader(
-                    cifar100_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-                cifar100_training_loader.append(subset_training_loader)
-        else:
-            '''1 + collude + (n-2) vanilla clients, all training data is shared by n-1 clients'''
-            # cifar100_test = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_train)
-            # subset_training_loader = DataLoader(
-            #     cifar100_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            # cifar100_training_loader.append(subset_training_loader)
-            # for i in range(num_client-1):
-            #     cifar100_training_subset = torch.utils.data.Subset(cifar100_training, list(range(i * (len(cifar100_training)//(num_client-1)), (i+1) * (len(cifar100_training)//(num_client-1)))))
-            #     subset_training_loader = DataLoader(
-            #         cifar100_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            #     cifar100_training_loader.append(subset_training_loader)
-            # # switch the testloader to collude position
-            # temp = cifar100_training_loader[0]
-            # cifar100_training_loader[0] = cifar100_training_loader[1]
-            # cifar100_training_loader[1] = temp
-
-            '''1+ (n-1) * collude, the single client gets all training data'''
-            subset_training_loader = DataLoader(
-                cifar100_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            cifar100_training_loader.append(subset_training_loader)
-            cifar100_test = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_train)
-            for i in range(num_client-1):
-                subset_training_loader = DataLoader(
-                    cifar100_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-                
-                cifar100_training_loader.append(subset_training_loader)
+    cifar100_training_loader = split_training_data_to_training_loader(cifar100_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount, noniid_ratio, 100)
 
     cifar100_training2 = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform_train)
 
@@ -774,7 +675,7 @@ def get_cifar100_testloader(batch_size=16, num_workers=2, shuffle=True, extra_cl
 
 
 
-def get_SVHN_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False, data_portion = 1.0, augmentation_option = False):
+def get_SVHN_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, data_portion = 1.0, augmentation_option = False, last_client_fix_amount = -1):
     """ return training dataloader
     Args:
         mean: mean of SVHN training dataset
@@ -805,44 +706,8 @@ def get_SVHN_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client 
 
     SVHN_training = torch.utils.data.Subset(SVHN_training, indices)
 
+    SVHN_training_loader = split_training_data_to_training_loader(SVHN_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount)
 
-    if num_client == 1:
-        SVHN_training_loader = [DataLoader(
-            SVHN_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)]
-    elif num_client > 1:
-        SVHN_training_loader = []
-        if not collude_use_public:
-            for i in range(num_client):
-                SVHN_training_subset = torch.utils.data.Subset(SVHN_training, list(range(i * (len(SVHN_training)//num_client), (i+1) * (len(SVHN_training)//num_client))))
-                subset_training_loader = DataLoader(
-                    SVHN_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-                SVHN_training_loader.append(subset_training_loader)
-        else:
-            '''1 + collude + (n-2) vanilla clients, all training data is shared by n-1 clients'''
-            # SVHN_test = torchvision.datasets.SVHN(root='./data', train=False, download=True, transform=transform_train)
-            # subset_training_loader = DataLoader(
-            #     SVHN_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            # SVHN_training_loader.append(subset_training_loader)
-            # for i in range(num_client-1):
-            #     SVHN_training_subset = torch.utils.data.Subset(SVHN_training, list(range(i * (len(SVHN_training)//(num_client-1)), (i+1) * (len(SVHN_training)//(num_client-1)))))
-            #     subset_training_loader = DataLoader(
-            #         SVHN_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            #     SVHN_training_loader.append(subset_training_loader)
-            # # switch the testloader to collude position
-            # temp = SVHN_training_loader[0]
-            # SVHN_training_loader[0] = SVHN_training_loader[1]
-            # SVHN_training_loader[1] = temp
-
-            '''1+ (n-1) * collude, the single client gets all training data'''
-            subset_training_loader = DataLoader(
-                SVHN_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            SVHN_training_loader.append(subset_training_loader)
-            SVHN_test = torchvision.datasets.SVHN(root='./data', split='test', download=True, transform=transform_train)
-            for i in range(num_client-1):
-                subset_training_loader = DataLoader(
-                    SVHN_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-                
-                SVHN_training_loader.append(subset_training_loader)
     SVHN_training2 = torchvision.datasets.SVHN(root='./data', split='train', download=True, transform=transform_train)
 
     SVHN_training_mem = torch.utils.data.Subset(SVHN_training2, list(range(0, 5000)))
@@ -916,7 +781,7 @@ def get_SVHN_testloader(batch_size=16, num_workers=2, shuffle=True, extra_cls_re
 ################
 
 
-def get_celeba_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, collude_use_public = False):
+def get_celeba_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, last_client_fix_amount = -1):
     """ return training dataloader
     Args:
         mean: mean of celeba training dataset
@@ -939,44 +804,8 @@ def get_celeba_trainloader(batch_size=16, num_workers=2, shuffle=True, num_clien
     ])
     
     celeba_training = torchvision.datasets.CelebA(root='./data', train=True, download=True, transform=transform_train)
-    if num_client == 1:
-        celeba_training_loader = [DataLoader(
-            celeba_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)]
-    
-    elif num_client > 1:
-        celeba_training_loader = []
-        if not collude_use_public:
-            for i in range(num_client):
-                celeba_training_subset = torch.utils.data.Subset(celeba_training, list(range(i * (len(celeba_training)//num_client), (i+1) * (len(celeba_training)//num_client))))
-                subset_training_loader = DataLoader(
-                    celeba_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-                celeba_training_loader.append(subset_training_loader)
-        else:
-            '''1 + collude + (n-2) vanilla clients, all training data is shared by n-1 clients'''
-            # celeba_test = torchvision.datasets.CelebA(root='./data', train=False, download=True, transform=transform_train)
-            # subset_training_loader = DataLoader(
-            #     celeba_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            # celeba_training_loader.append(subset_training_loader)
-            # for i in range(num_client-1):
-            #     celeba_training_subset = torch.utils.data.Subset(celeba_training, list(range(i * (len(celeba_training)//(num_client-1)), (i+1) * (len(celeba_training)//(num_client-1)))))
-            #     subset_training_loader = DataLoader(
-            #         celeba_training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            #     celeba_training_loader.append(subset_training_loader)
-            # # switch the testloader to collude position
-            # temp = celeba_training_loader[0]
-            # celeba_training_loader[0] = celeba_training_loader[1]
-            # celeba_training_loader[1] = temp
 
-            '''1+ (n-1) * collude, the single client gets all training data'''
-            subset_training_loader = DataLoader(
-                celeba_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-            celeba_training_loader.append(subset_training_loader)
-            celeba_test = torchvision.datasets.CelebA(root='./data', train=False, download=True, transform=transform_train)
-            for i in range(num_client-1):
-                subset_training_loader = DataLoader(
-                    celeba_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
-                
-                celeba_training_loader.append(subset_training_loader)
+    celeba_training_loader = split_training_data_to_training_loader(celeba_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount)
 
     celeba_training2 = torchvision.datasets.CelebA(root='./data', train=True, download=True, transform=transform_train)
 

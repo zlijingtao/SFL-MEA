@@ -17,11 +17,10 @@ import wandb
 
 class Trainer:
     def __init__(self, arch, cutting_layer, batch_size, n_epochs, scheme="V2", num_client=2, dataset="cifar10",
-                 logger=None, save_dir=None, regularization_option="None", regularization_strength=0,
-                 collude_use_public=False, learning_rate=0.1, random_seed=123, load_from_checkpoint = False,
-                 attack_confidence_score = False, num_freeze_layer = 0,
+                 logger=None, save_dir=None, regularization_option="None", regularization_strength=0, learning_rate=0.1, 
+                 random_seed=123, load_from_checkpoint = False, attack_confidence_score = False, num_freeze_layer = 0,
                  finetune_freeze_bn = False, load_from_checkpoint_server = False, source_task = "cifar100", client_sample_ratio = 1.0,
-                 save_activation_tensor = False, noniid = 1.0):
+                 save_activation_tensor = False, noniid = 1.0, last_client_fix_amount = -1):
         torch.manual_seed(random_seed)
         np.random.seed(random_seed)
         self.arch = arch
@@ -59,8 +58,8 @@ class Trainer:
         self.source_task = source_task
         self.cutting_layer = cutting_layer
         self.confidence_score = attack_confidence_score
-        self.collude_use_public = collude_use_public
-        
+        self.last_client_fix_amount = last_client_fix_amount
+
         # Activation Defense:
         self.regularization_option = regularization_option
 
@@ -80,7 +79,7 @@ class Trainer:
             self.actual_num_users = self.actual_num_users - 1 # we let first N-1 client divide the training data, and skip the last client.
 
         #setup datset 
-        self.client_dataloader, self.pub_dataloader, self.num_class = get_dataset(self.dataset, self.batch_size, self.noniid_ratio, self.actual_num_users, self.collude_use_public)
+        self.client_dataloader, self.pub_dataloader, self.num_class = get_dataset(self.dataset, self.batch_size, self.noniid_ratio, self.actual_num_users, self.last_client_fix_amount)
 
 
         if "gan_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option: 
@@ -101,8 +100,8 @@ class Trainer:
                 self.model.local_list[i].cuda()
                 self.local_params.append(self.model.local_list[i].parameters())
 
-            if "gan_train_ME" in self.regularization_option:
-                self.nz = int(512 * self.regularization_strength)
+            if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
+                self.nz = 512
                 self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
                 self.generator.cuda()
                 self.local_params.append(self.generator.parameters())
@@ -394,6 +393,105 @@ class Trainer:
 
         return total_losses, f_losses
 
+    def gan_assist_train_target_step(self, x_private, label_private, client_id, num_query, epoch, batch):
+
+        #if enable poison option
+        self.model.cloud.train()
+        self.model.local_list[client_id].train()
+        self.generator.cuda()
+        self.generator.train()
+
+        x_private = x_private.cuda()
+        label_private = label_private.cuda()
+
+        train_output_path = self.save_dir + "assisted_generator_train"
+        if os.path.isdir(train_output_path):
+            rmtree(train_output_path)
+        os.makedirs(train_output_path)
+
+
+        #Sample Random Noise
+        z = torch.randn((num_query, self.nz)).cuda()
+        
+        # B = self.batch_size// 2
+
+        # labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
+        # labels_r = copy.deepcopy(labels_l).cuda()
+        # label_private = torch.stack([labels_l, labels_r]).view(-1)
+        
+        #Get class-dependent noise, adding to x_private lately
+        x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
+        
+        x_fake = x_noise + x_private
+        if epoch % 5 == 0 and batch == 0:
+            imgGen = x_noise.clone()
+            imgGen = denormalize(imgGen, self.dataset)
+            if not os.path.isdir(train_output_path + "/{}".format(epoch)):
+                os.mkdir(train_output_path + "/{}".format(epoch))
+            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch,
+                                                                                            batch * self.batch_size + self.batch_size))
+        
+        # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
+        # g_noise_out_dist = torch.mean(torch.abs(x_private[:B, :] - x_private[B:, :]))
+        # g_noise_z_dist = torch.mean(torch.abs(z[:B, :] - z[B:, :]).view(B,-1),dim=1)
+        # noise_w = 50
+        # if "noreg" in self.regularization_option:
+        #     noise_w = 0
+        # g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
+
+        # bound x_noise to have norm of 0.01
+        l2_penalty = 0.01 * torch.norm(x_noise - 0.01, 2)
+
+
+        #how-to?
+
+        # option1- an assisting classifier that tries to distinguish x_fake and x_private; use it to regularize, we tried, no good
+
+        # option2- use generator to synthesize a noise on top of the training data. its like an adversarial noise that probes the target model TODO: 
+
+        # optional: tv loss
+
+        output = self.model(x_fake)
+        
+        criterion = torch.nn.CrossEntropyLoss()
+
+        f_loss = criterion(output, label_private)
+
+        # total_loss = f_loss - g_noise + l2_penalty
+        total_loss = f_loss + l2_penalty
+
+        if "gradient_noise" in self.regularization_option: #TODO: test this
+            def noise_hook(grad):
+                return torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda())
+            h = x_fake.register_hook(noise_hook)
+
+        total_loss.backward()
+
+        zeroing_grad(self.model.local_list[client_id])
+
+        # zeroing_grad(self.model.local_list[client_id])
+
+        # collect images and labels
+
+        max_allow_image_id = 500 # 500 times batch size is a considerable amount.
+        if self.query_image_id <= max_allow_image_id:
+            if not os.path.isdir(self.save_dir + "/saved_grads"):
+                os.makedirs(self.save_dir + "/saved_grads")
+            torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
+            torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
+
+
+        if "gradient_noise" in self.regularization_option: #TODO: test this
+            h.remove()
+
+        total_losses = total_loss.detach().cpu().numpy()
+        f_losses = f_loss.detach().cpu().numpy()
+        del total_loss, f_loss
+
+        return total_losses, f_losses
+
+
+
     def validate_target(self, client_id=0):
         """
         Run evaluation
@@ -497,13 +595,14 @@ class Trainer:
         
         wandb.init(
             # set the wandb project where this run will be logged
-            project=f"{wandb_name}-SFL-Train",
+            project=f"{wandb_name}-SFL-Train-fixed-amount",
             
             # track hyperparameters and run metadata
             config={
             "learning_rate": self.lr,
             "architecture": self.arch,
             "dataset": self.dataset,
+            "last_client_fix_amount": self.last_client_fix_amount,
             "noniid_ratio": self.noniid_ratio,
             "epochs": self.n_epochs,
             "batch_size": self.batch_size,
@@ -526,8 +625,8 @@ class Trainer:
             self.logger.debug("extraing start epoch setting from arg, failed, set start_epoch to 0")
             self.grad_collect_start_epoch = 0
         
-        if "gan_train_ME" in self.regularization_option:
-            
+        if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
+            self.query_image_id = 0
             extra_txt = f"gan_train_ME latent vector size is {self.nz}"
         elif "craft_train_ME" in self.regularization_option:
             self.craft_image_id = 0
@@ -680,6 +779,8 @@ class Trainer:
                                     train_loss, f_loss = self.craft_train_target_step(client_id)
                                 elif "gan_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.gan_train_target_step(client_id, self.batch_size, epoch, batch)
+                                elif "gan_assist_train_ME" in self.regularization_option:
+                                    train_loss, f_loss = self.gan_assist_train_target_step(images, labels, client_id, self.batch_size, epoch, batch)
                                 elif "GM_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id, save_grad = True, skip_regularization=True) # adv clients won't comply to the defense
                                 else:
@@ -730,11 +831,11 @@ class Trainer:
                 if epoch % 50 == 0 or epoch == self.n_epochs or epoch in epoch_save_list:  # save model
                     self.save_model(epoch)
                     
-                    if "gan_train_ME" in self.regularization_option:
+                    if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
                         torch.save(self.generator.state_dict(), self.save_dir + 'checkpoint_generator_{}.tar'.format(epoch))
         
-        #Train step for gan_train_ME generator.
-        if "gan_train_ME" in self.regularization_option:
+        #save final images for gan_train_ME generator.
+        if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
             self.generator.cuda()
             self.generator.eval()
             z = torch.randn((10, self.nz)).cuda()
@@ -830,4 +931,9 @@ class Trainer:
 
             if dl_transforms is not None:
                 images = dl_transforms(images)
+            
+            if "gan_assist_train_ME" in self.regularization_option and epoch > self.grad_collect_start_epoch:
+                self.query_image_id += 1
+            
+            
             return images, labels

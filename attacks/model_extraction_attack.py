@@ -23,7 +23,7 @@ def init_weights(m):
         if m.bias is not None:
             m.bias.data.zero_()
 
-def train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = False):
+def train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = False, assist = False):
         
     lr_G = 2e-4
     num_steps = num_query // 100 # train once
@@ -49,17 +49,18 @@ def train_generator(logger, save_dir, target_model, generator, target_dataset_na
         generator.cuda()
         generator.eval()
 
-        z = torch.randn((10, nz)).cuda()
-        for i in range(num_class):
-            labels = i * torch.ones([10, ]).long().cuda()
-            #Get fake image from generator
-            fake = generator(z, labels) # pre_x returns the output of G before applying the activation
+        if not assist:
+            z = torch.randn((10, nz)).cuda()
+            for i in range(num_class):
+                labels = i * torch.ones([10, ]).long().cuda()
+                #Get fake image from generator
+                fake = generator(z, labels) # pre_x returns the output of G before applying the activation
 
-            imgGen = fake.clone()
-            imgGen = denormalize(imgGen, target_dataset_name)
-            if not os.path.isdir(train_output_path + "/{}".format(num_steps)):
-                os.mkdir(train_output_path + "/{}".format(num_steps))
-            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(num_steps,"final_label{}".format(i)))
+                imgGen = fake.clone()
+                imgGen = denormalize(imgGen, target_dataset_name)
+                if not os.path.isdir(train_output_path + "/{}".format(num_steps)):
+                    os.mkdir(train_output_path + "/{}".format(num_steps))
+                torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(num_steps,"final_label{}".format(i)))
     else:
         generator.cuda()
         generator.train()
@@ -884,6 +885,50 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
         # get prototypical data using GAN, training generator consumes grad query.
         train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = True)
         return generator
+    
+    elif attack_style == "Generator_assist_option_resume": #TODO: add a offline MEA version here
+        print(save_dir)
+        try:
+            nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
+        except:
+            nz = 512
+        print(f"latent vector dim: {nz}")
+        generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
+        # get prototypical data using GAN, training generator consumes grad query.
+        train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = True, assist = True)
+        
+
+        saved_crafted_image_path = save_dir + "/saved_grads/"
+        
+        if os.path.isdir(saved_crafted_image_path):
+            print("load from data collected during training")
+        else:
+            raise("No saved data is presented!")
+            
+        max_allowed_image_id = 500
+        max_image_id = 0
+        for file in glob.glob(saved_crafted_image_path + "*"):
+            if "image" in file and "grad_image" not in file:
+                image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                if image_id > max_image_id:
+                    max_image_id = image_id
+
+        for image_id in range(1, min(max_allowed_image_id, max_image_id) + 1):
+            saved_image = torch.load(saved_crafted_image_path + f"image_{image_id}.pt")
+            true_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+
+            save_images.append(saved_image.clone())
+            save_label.append(true_label.clone())
+
+            del saved_image, true_label
+
+        return generator, save_images, save_label
+
+
+
+
+
+
     else:
         raise("No such MEA attack style")
 
@@ -1003,7 +1048,39 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     # else:
     #     if_shuffle = True
     if_shuffle = True
-    if not ("Generator_option" in attack_style):
+    
+    if "Generator_option" in attack_style:
+        generator = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
+        generator.eval()
+        generator.cuda()
+        test_output_path = save_dir + "/generator_test"
+        if os.path.isdir(test_output_path):
+            rmtree(test_output_path)
+        os.makedirs(test_output_path)
+
+    elif "Generator_assist_option" in attack_style:
+        generator, save_images, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
+        generator.eval()
+        generator.cuda()
+        test_output_path = save_dir + "/generator_test"
+        if os.path.isdir(test_output_path):
+            rmtree(test_output_path)
+        os.makedirs(test_output_path)
+        
+        
+        save_images = torch.cat(save_images)
+        # save_grad = torch.cat(save_grad)
+        save_label = torch.cat(save_label)
+        indices = torch.arange(save_label.shape[0]).long()
+
+        # if "SoftTrain_option_resume" in attack_style:
+        #     indices = torch.flip(indices, dims = [0])
+        ds = torch.utils.data.TensorDataset(indices, save_images, save_label)
+        dl = torch.utils.data.DataLoader(
+            ds, batch_size=batch_size, num_workers=4, shuffle=if_shuffle
+        )
+
+    else:
         save_images, save_grad, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
         save_images = torch.cat(save_images)
         save_grad = torch.cat(save_grad)
@@ -1019,14 +1096,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
 
         # use in GM
         mean_norm = save_grad.norm(dim=-1).mean().detach().item()
-    else:
-        generator = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
-        generator.eval()
-        generator.cuda()
-        test_output_path = save_dir + "/generator_test"
-        if os.path.isdir(test_output_path):
-            rmtree(test_output_path)
-        os.makedirs(test_output_path)
+
 
     image_shape = get_image_shape(target_dataset_name)
     # set up data augmentation
@@ -1045,7 +1115,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     if "Craft_option" in attack_style or "Generator_option" in attack_style or "GM_option" in attack_style:
         dl_transforms = None
     
-    if "Generator_option" in attack_style:
+    if "Generator_option" in attack_style or "Generator_assist_option" in attack_style:
         try:
             nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
         except:
@@ -1188,6 +1258,74 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                     if not os.path.isdir(test_output_path + "/{}".format(epoch)):
                         os.mkdir(test_output_path + "/{}".format(epoch))
                     torchvision.utils.save_image(imgGen, test_output_path + '/{}/out_{}.jpg'.format(epoch, i * batch_size + batch_size))
+                suro_optimizer.zero_grad()
+
+                output = surrogate_model(fake_input)
+
+                ce_loss = criterion(output, label)
+
+                total_loss = ce_loss
+                
+                total_loss.backward()
+
+                suro_optimizer.step()
+                
+                acc_loss_list.append(ce_loss.detach().cpu().item())
+                acc = accuracy(output.data, label)[0]
+                acc_list.append(acc.cpu().item())
+        
+        elif attack_style == "Generator_assist_option_resume":
+            
+            # for idx, (index, image, grad, label) in enumerate(dl):
+            #     # if dl_transforms is not None:
+            #     image = dl_transforms(image)
+
+            # try:
+            #     index, images, labels = next(dl)
+            #     if images.size(0) != batch_size:
+            #         client_iterator_list[client_id] = iter(dl)
+            #         images, labels = next(client_iterator_list[client_id])
+            # except StopIteration:
+            #     client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
+            #     images, labels = next(client_iterator_list[client_id])
+            # iter_generator_times = 20
+            
+            for idx, (index, image, label) in enumerate(dl):
+
+                image = dl_transforms(image)
+
+                image = image.cuda()
+
+                label = label.cuda()
+
+                z = torch.randn((batch_size, nz)).cuda()
+                
+                # get images and labels from dl,
+
+                # label = torch.randint(low=0, high=num_class, size = [batch_size, ]).cuda()
+                
+                random_mask = torch.randint(low=0, high=2, size = [batch_size, ]).cuda()
+
+                noise = generator(z, label)
+                # print(noise.size())
+                # print(image.size())
+
+
+
+                fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
+
+                #TODO: compare with baseline
+                # fake_input = image
+
+                # fake_input = random_dropped_noise  + image
+
+                #Save images to file
+                if epoch == 1:
+                    imgGen = fake_input.clone()
+                    imgGen = denormalize(imgGen, target_dataset_name)
+                    if not os.path.isdir(test_output_path + "/{}".format(epoch)):
+                        os.mkdir(test_output_path + "/{}".format(epoch))
+                    torchvision.utils.save_image(imgGen, test_output_path + '/{}/out_{}.jpg'.format(epoch, idx * batch_size + batch_size))
                 suro_optimizer.zero_grad()
 
                 output = surrogate_model(fake_input)

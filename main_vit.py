@@ -24,6 +24,7 @@ parser.add_argument('--filename', default="ViT-cifar10", type=str, help='please 
 parser.add_argument('--folder', default="saves/baseline", type=str, help='please type folder name for the testing purpose')
 parser.add_argument('--num_client', default=2, type=int, help='number of client')
 parser.add_argument('--num_epochs', default=200, type=int, help='number of epochs')
+parser.add_argument('--last_client_fix_amount', default=500, type=int, help='last_client_fix_amount')
 parser.add_argument('--learning_rate', default=0.02, type=float, help='Learning Rate')
 parser.add_argument('--client_sample_ratio', default=1.0, type=float, help='client_sample_ratio')
 parser.add_argument('--noniid_ratio', default=1.0, type=float, help='noniid_ratio, if = 0.1, meaning 1 out of 10 class per client')
@@ -39,7 +40,6 @@ parser.add_argument('--load_from_checkpoint', action='store_true', default=False
 parser.add_argument('--load_from_checkpoint_server', action='store_true', default=False, help='if True, we load_from_checkpoint for server-side model')
 parser.add_argument('--transfer_source_task', default="cifar100", type=str, help='the name of the transfer_source_task, option: cifar10, cifar100')
 parser.add_argument('--finetune_freeze_bn', action='store_true', default=False, help='if True, we finetune_freeze_bn')
-parser.add_argument('--collude_use_public', action='store_true', default=False, help='if True, we use validation dataset to traing the collude clients (all other client has client_id > 0)')
 
 #training randomseed setting ()
 parser.add_argument('--random_seed', default=123, type=int, help='random_seed')
@@ -70,10 +70,9 @@ if args.scheme == "V1":
 
 mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epochs, scheme = args.scheme,
                  num_client = num_client, dataset=args.dataset, save_dir=save_dir_name,
-                 regularization_option=args.regularization, regularization_strength = args.regularization_strength,
-                 collude_use_public=args.collude_use_public, learning_rate = args.learning_rate,
+                 regularization_option=args.regularization, regularization_strength = args.regularization_strength, learning_rate = args.learning_rate,
                  load_from_checkpoint = args.load_from_checkpoint, num_freeze_layer = args.num_freeze_layer, finetune_freeze_bn = args.finetune_freeze_bn, client_sample_ratio = args.client_sample_ratio,
-                 source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid_ratio)
+                 source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid_ratio, last_client_fix_amount = args.last_client_fix_amount)
 mi.logger.debug(str(args))
 
 mi.train(verbose=True)
