@@ -239,7 +239,7 @@ class Trainer:
                 torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
-        del total_loss, f_loss, z_private
+        del total_loss, f_loss
         return total_losses, f_losses
     
     def craft_train_target_step(self, client_id):
@@ -383,7 +383,7 @@ class Trainer:
 
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
-        del total_loss, f_loss, x_private
+        del total_loss, f_loss
 
         return total_losses, f_losses
 
