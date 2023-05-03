@@ -172,7 +172,7 @@ class Trainer:
         # grads = {}
         # self.model.first_cloud_layer.register_backward_hook(get_activation_gradient(grads, 'first_cloud_layer'))
         
-        if save_grad:
+        if self.arch != "ViT":
             # Final Prediction Logits (complete forward pass)
             z_private = self.model.local_list[client_id](x_private)
             z_private.retain_grad()
@@ -199,10 +199,10 @@ class Trainer:
                 l2_regularization = self.regularization_strength * torch.norm(all_params, 2)
                 total_loss = total_loss + l2_regularization
             
-            if "gradient_noise" in self.regularization_option:
+            if "gradient_noise" in self.regularization_option and self.arch != "ViT":
                 def noise_hook(grad):
                     return torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda())
-                z_private.register_hook(noise_hook)
+                h = z_private.register_hook(noise_hook)
             # hook activation gradient and add noise to it.
 
 
@@ -218,6 +218,10 @@ class Trainer:
             #         p.register_hook(lambda grad: torch.clip(grad, -self.regularization_strength, self.regularization_strength))
 
         total_loss.backward()
+
+        if not skip_regularization:
+            if "gradient_noise" in self.regularization_option and self.arch != "ViT":
+                h.remove()
 
         if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
 
@@ -375,11 +379,14 @@ class Trainer:
         if "gradient_noise" in self.regularization_option: #TODO: test this
             def noise_hook(grad):
                 return torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda())
-            x_private.register_hook(noise_hook)
+            h = x_private.register_hook(noise_hook)
 
         total_loss.backward()
 
         zeroing_grad(self.model.local_list[client_id])
+
+        if "gradient_noise" in self.regularization_option: #TODO: test this
+            h.remove()
 
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
@@ -675,6 +682,8 @@ class Trainer:
                                     train_loss, f_loss = self.gan_train_target_step(client_id, self.batch_size, epoch, batch)
                                 elif "GM_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id, save_grad = True, skip_regularization=True) # adv clients won't comply to the defense
+                                else:
+                                    train_loss, f_loss = self.train_target_step(images, labels, client_id)
                             else:
                                 if "gan_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option:
                                     pass # do nothing is prior to the starting epoch   

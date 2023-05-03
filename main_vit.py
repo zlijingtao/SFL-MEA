@@ -54,6 +54,20 @@ cutting_layer = args.cutlayer
 num_client = args.num_client
 save_dir_name = "./{}/{}".format(args.folder, args.filename)
 
+if args.scheme == "V1":
+    if num_client == 100:
+        batch_size = 4
+    elif num_client == 50:
+        batch_size = 8
+    elif num_client == 20:
+        batch_size = 16
+    elif num_client == 10:
+        batch_size = 32
+    elif num_client == 5:
+        batch_size = 64
+    elif num_client == 2:
+        batch_size = 128
+
 mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epochs, scheme = args.scheme,
                  num_client = num_client, dataset=args.dataset, save_dir=save_dir_name,
                  regularization_option=args.regularization, regularization_strength = args.regularization_strength,
