@@ -79,7 +79,15 @@ class Trainer:
             self.actual_num_users = self.actual_num_users - 1 # we let first N-1 client divide the training data, and skip the last client.
 
         #setup datset 
-        self.client_dataloader, self.pub_dataloader, self.num_class = get_dataset(self.dataset, self.batch_size, self.noniid_ratio, self.actual_num_users, self.last_client_fix_amount)
+        print(self.last_client_fix_amount)
+        print(self.last_client_fix_amount)
+        print(self.last_client_fix_amount)
+        print(self.last_client_fix_amount)
+        print(self.last_client_fix_amount)
+        print(self.last_client_fix_amount)
+        print(self.last_client_fix_amount)
+        self.client_dataloader, self.pub_dataloader, self.num_class = get_dataset(self.dataset, self.batch_size, self.noniid_ratio, self.actual_num_users, False, last_client_fix_amount)
+
 
 
         if "gan_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option: 
@@ -88,6 +96,7 @@ class Trainer:
 
         self.num_batches = len(self.client_dataloader[0])
         print("Total number of batches per epoch for each client is ", self.num_batches)
+        print("Total number of batches per epoch for the attacking client is ", len(self.client_dataloader[-1]))
 
         self.model = get_model(self.arch, self.cutting_layer, self.num_client, self.num_class, num_freeze_layer)
         self.model.merge_classifier_cloud()
@@ -228,18 +237,26 @@ class Trainer:
             # print(grads["first_cloud_layer"])
             # print(torch.equal(grads["first_cloud_layer"], z_private.grad.detach()))
 
-            zeroing_grad(self.model.local_list[client_id])
-
             # collect gradient
             if not os.path.isdir(self.save_dir + "/saved_grads"):
                 os.makedirs(self.save_dir + "/saved_grads")
-            torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
+
+            if "naive_train_ME" in self.regularization_option:
+                pass
+            else:
+                zeroing_grad(self.model.local_list[client_id])
+                torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
+                
             if "GM_train_ME" in self.regularization_option:
                 torch.save(z_private.detach().cpu(), self.save_dir + f"/saved_grads/act_{self.query_image_id}_label{self.rotate_label}.pt")
+            
             # collect image/label
             if self.rotate_label == 0:
-                torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
-                torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
+                max_allow_image_id = 500 # 500 times batch size is a considerable amount.
+                if self.query_image_id <= max_allow_image_id:
+                    torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
+                    torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
+
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
@@ -625,8 +642,9 @@ class Trainer:
             self.logger.debug("extraing start epoch setting from arg, failed, set start_epoch to 0")
             self.grad_collect_start_epoch = 0
         
+        self.query_image_id = 0
+        self.rotate_label = 0
         if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
-            self.query_image_id = 0
             extra_txt = f"gan_train_ME latent vector size is {self.nz}"
         elif "craft_train_ME" in self.regularization_option:
             self.craft_image_id = 0
@@ -634,14 +652,12 @@ class Trainer:
             self.num_craft_step = max(int(self.regularization_strength), 20)
             extra_txt = f"Graft_train_ME num_step per images is {self.num_craft_step}"
         elif "GM_train_ME" in self.regularization_option:
-            self.query_image_id = 0
-            self.rotate_label = 0
             self.GM_data_proportion = self.regularization_strength # use reguarlization_strength to set data_proportion
             extra_txt = f"GM_train_ME data proportion is {self.GM_data_proportion}"
         elif "soft_train_ME" in self.regularization_option:
-            self.query_image_id = 0
-            self.rotate_label = 0
             extra_txt = f"soft_train_ME data proportion is {1./self.actual_num_users}"
+        elif "naive_train_ME" in self.regularization_option:
+            extra_txt = "naive_train_ME"
         else:
             extra_txt = "(Not a train_ME run)"
 
@@ -781,14 +797,14 @@ class Trainer:
                                     train_loss, f_loss = self.gan_train_target_step(client_id, self.batch_size, epoch, batch)
                                 elif "gan_assist_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.gan_assist_train_target_step(images, labels, client_id, self.batch_size, epoch, batch)
-                                elif "GM_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option:
+                                elif "GM_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id, save_grad = True, skip_regularization=True) # adv clients won't comply to the defense
                                 else:
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id)
                             else:
                                 if "gan_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option:
                                     pass # do nothing is prior to the starting epoch   
-                                elif "soft_train_ME" in self.regularization_option: # adv clients won't comply to the defense
+                                elif "soft_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option: # adv clients won't comply to the defense
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id, skip_regularization=True)
                                 else:
                                     train_loss, f_loss = self.train_target_step(images, labels, client_id)
@@ -932,7 +948,7 @@ class Trainer:
             if dl_transforms is not None:
                 images = dl_transforms(images)
             
-            if "gan_assist_train_ME" in self.regularization_option and epoch > self.grad_collect_start_epoch:
+            if ("gan_assist_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option ):
                 self.query_image_id += 1
             
             

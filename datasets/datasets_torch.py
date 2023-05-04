@@ -300,6 +300,7 @@ def split_training_data_to_training_loader(training_data, num_client, batch_size
         # adding the fixed amount
         subset_split_list.append(list(range(len(training_data) - last_client_fix_amount, len(training_data))))
 
+
     if num_client == 1:
         training_loader_list = [torch.utils.data.DataLoader(training_data,  batch_size=batch_size, shuffle=shuffle,
                 num_workers=num_workers)]
@@ -476,6 +477,19 @@ def get_imagenet_testloader(batch_size=16, num_workers=2, shuffle=True):
     return imagenet_test_loader
 
 def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False, last_client_fix_amount = -1):
+    
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    print(last_client_fix_amount)
+    
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset

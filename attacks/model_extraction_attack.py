@@ -756,7 +756,32 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
             save_grad.append(true_grad.detach().cpu().clone())
             save_label.append(derived_label.detach().cpu().clone())
         return save_images, save_grad, save_label
-    
+    elif attack_style == "NaiveTrain_option_resume":
+        saved_crafted_image_path = save_dir + "/saved_grads/"
+        
+        if os.path.isdir(saved_crafted_image_path):
+            print("load from data collected during training")
+        else:
+            raise("No saved data is presented!")
+            
+        max_allowed_image_id = 500
+        max_image_id = 0
+        for file in glob.glob(saved_crafted_image_path + "*"):
+            if "image" in file and "grad_image" not in file:
+                image_id = int(file.split('/')[-1].split('_')[-1].replace(".pt", ""))
+                if image_id > max_image_id:
+                    max_image_id = image_id
+
+        for image_id in range(1, min(max_allowed_image_id, max_image_id) + 1):
+            saved_image = torch.load(saved_crafted_image_path + f"image_{image_id}.pt")
+            true_label = torch.load(saved_crafted_image_path + f"label_{image_id}.pt")
+
+            save_images.append(saved_image.clone())
+            save_label.append(true_label.clone())
+
+            del saved_image, true_label
+
+        return save_images, save_label 
     elif attack_style == "GM_option":
         target_model.local_list[attack_client].eval()
         target_model.cloud.eval()
@@ -1079,7 +1104,19 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
         dl = torch.utils.data.DataLoader(
             ds, batch_size=batch_size, num_workers=4, shuffle=if_shuffle
         )
+    elif "NaiveTrain_option_resume" in attack_style:
+        save_images, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
+        save_images = torch.cat(save_images)
+        # save_grad = torch.cat(save_grad)
+        save_label = torch.cat(save_label)
+        indices = torch.arange(save_label.shape[0]).long()
 
+        # if "SoftTrain_option_resume" in attack_style:
+        #     indices = torch.flip(indices, dims = [0])
+        ds = torch.utils.data.TensorDataset(indices, save_images, save_label)
+        dl = torch.utils.data.DataLoader(
+            ds, batch_size=batch_size, num_workers=4, shuffle=if_shuffle
+        )
     else:
         save_images, save_grad, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
         save_images = torch.cat(save_images)
@@ -1191,7 +1228,28 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 suro_optimizer.step()
 
                 grad_loss_list.append(total_loss.detach().cpu().item())
-            
+        elif attack_style == "NaiveTrain_option_resume":
+            # pretrain use the ground-truth data
+            for idx, (index, image, label) in enumerate(dl):
+                # if dl_transforms is not None:
+                image = dl_transforms(image)
+                image = image.cuda()
+                # grad = grad.cuda()
+                label = label.cuda()
+                suro_optimizer.zero_grad()
+                act = surrogate_model.local(image)
+                output = surrogate_model.cloud(act)
+
+                ce_loss = criterion(output, label)
+
+                total_loss = ce_loss
+                total_loss.backward()
+                suro_optimizer.step()
+                acc_loss_list.append(ce_loss.detach().cpu().item())
+
+                acc = accuracy(output.data, label)[0]
+                    
+                acc_list.append(acc.cpu().item())
         elif attack_style == "SoftTrain_option" or attack_style == "SoftTrain_option_resume": #perform matching (distable augmentation)
             
             

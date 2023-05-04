@@ -10,7 +10,7 @@ random_seed_list="123"
 scheme=V2
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
-learning_rate_MEA=0.003
+learning_rate_MEA=0.001
 attack_epochs=200
 attack_client=0
 #because ganME is to train a model, we sweep the start epoch (training the generator)
