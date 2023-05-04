@@ -317,8 +317,10 @@ def split_training_data_to_training_loader(training_data, num_client, batch_size
             else:
                 training_subset = DatasetSplit(training_data, noniid_training_subset_list[i])
             
-            subset_training_loader = DataLoader(
-                training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
+            if len(subset_split_list[i]) < batch_size:
+                subset_training_loader = DataLoader(training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=len(subset_split_list[i]))
+            else:
+                subset_training_loader = DataLoader(training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
             training_loader_list.append(subset_training_loader)
     
     

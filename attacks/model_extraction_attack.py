@@ -1334,28 +1334,11 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
         
         elif attack_style == "Generator_assist_option_resume":
             
-            # for idx, (index, image, grad, label) in enumerate(dl):
-            #     # if dl_transforms is not None:
-            #     image = dl_transforms(image)
-
-            # try:
-            #     index, images, labels = next(dl)
-            #     if images.size(0) != batch_size:
-            #         client_iterator_list[client_id] = iter(dl)
-            #         images, labels = next(client_iterator_list[client_id])
-            # except StopIteration:
-            #     client_iterator_list[client_id] = iter(self.client_dataloader[idxs_users[client_id]])
-            #     images, labels = next(client_iterator_list[client_id])
-            # iter_generator_times = 20
-            
             for idx, (index, image, label) in enumerate(dl):
 
                 image = dl_transforms(image)
-
                 image = image.cuda()
-
                 label = label.cuda()
-
                 z = torch.randn((batch_size, nz)).cuda()
                 
                 # get images and labels from dl,
@@ -1372,8 +1355,9 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 # print(image)
 
 
-                # fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
-                fake_input = noise   + image
+                fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
+                # fake_input = noise   + image
+                # fake_input = noise
 
                 #TODO: compare with baseline
                 # fake_input = image
