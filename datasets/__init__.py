@@ -34,6 +34,7 @@ def denormalize(x, dataset): # normalize a zero mean, std = 1 to range [0, 1]
     return torch.clamp(tensor, 0, 1).permute(3, 0, 1, 2)
 
 def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_users = 10, augmentation_option = False, last_client_fix_amount = -1):
+    
     if dataset_name == "cifar10":
         client_dataloader, _ , _ = get_cifar10_trainloader(batch_size=batch_size,
                                                                         num_workers=4,

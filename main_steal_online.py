@@ -112,6 +112,8 @@ elif "soft_train" in args.regularization:
     attack_style = "SoftTrain_option_resume"
 elif "gan_assist_train" in args.regularization:
     attack_style = "Generator_assist_option_resume"
+elif "naive_train" in args.regularization:
+    attack_style = "NaiveTrain_option_resume"
 
 if args.learning_rate_MEA == -1:
     args.learning_rate_MEA = args.learning_rate
