@@ -440,7 +440,7 @@ class Trainer:
         # g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
 
         # bound x_noise to have norm of 0.01
-        l2_penalty = 0.01 * torch.norm(x_noise - 0.01, 2)
+        l2_penalty = 0.1 * torch.norm(x_noise - 0.1, 2)
 
 
         #how-to?
@@ -466,8 +466,6 @@ class Trainer:
             h = x_fake.register_hook(noise_hook)
 
         total_loss.backward()
-
-        zeroing_grad(self.model.local_list[client_id])
 
         # zeroing_grad(self.model.local_list[client_id])
 

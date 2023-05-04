@@ -1310,9 +1310,12 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 # print(noise.size())
                 # print(image.size())
 
+                # print(noise)
+                # print(image)
 
 
-                fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
+                # fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
+                fake_input = noise   + image
 
                 #TODO: compare with baseline
                 # fake_input = image
