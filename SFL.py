@@ -78,14 +78,7 @@ class Trainer:
             #data-free GAN-attack
             self.actual_num_users = self.actual_num_users - 1 # we let first N-1 client divide the training data, and skip the last client.
 
-        #setup datset 
-        print(self.last_client_fix_amount)
-        print(self.last_client_fix_amount)
-        print(self.last_client_fix_amount)
-        print(self.last_client_fix_amount)
-        print(self.last_client_fix_amount)
-        print(self.last_client_fix_amount)
-        print(self.last_client_fix_amount)
+        #setup datset
         self.client_dataloader, self.pub_dataloader, self.num_class = get_dataset(self.dataset, self.batch_size, self.noniid_ratio, self.actual_num_users, False, last_client_fix_amount)
 
 

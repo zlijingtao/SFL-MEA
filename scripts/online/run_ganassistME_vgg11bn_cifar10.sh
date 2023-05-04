@@ -23,7 +23,7 @@ cutlayer_list="10"
 regularization_strength_list="1.0"
 num_client_list="5"
 noniid_ratio_list="1.0"
-last_client_fix_amount=20
+last_client_fix_amount=1000
 
 for random_seed in $random_seed_list; do
         for num_client in $num_client_list; do
