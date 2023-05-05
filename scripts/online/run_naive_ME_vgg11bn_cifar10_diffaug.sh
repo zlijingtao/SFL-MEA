@@ -11,19 +11,17 @@ scheme=V2
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.001
-attack_epochs=200
+attack_epochs=50
 attack_client=0
 
-regularization=naive_train_ME_start0
+regularization=naive_train_ME_diffaug_start0
 # cutlayer_list="10 11 12 13"
-# cutlayer_list="11 12 13"
 cutlayer_list="10"
 regularization_strength=1.0
 # num_client_list="5 10"
 num_client_list="5"
 noniid_ratio_list="1.0"
 last_n_batch_list="0"
-# last_client_fix_amount_list="200 500 1000 2000"
 last_client_fix_amount_list="200"
 for random_seed in $random_seed_list; do
         for num_client in $num_client_list; do

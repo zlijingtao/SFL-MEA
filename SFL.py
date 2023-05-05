@@ -13,6 +13,7 @@ import os, copy
 from shutil import rmtree
 from datasets import get_dataset, denormalize, get_image_shape
 from models import get_model
+from tools import DiffAugment
 import wandb
 
 class Trainer:
@@ -356,7 +357,7 @@ class Trainer:
                         # if batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the beginning of the epoch
                         if self.num_batches - batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the end of the epoch
                             # search for attacker_client_id in current user pool and delete it:
-                            for self.attacker_client_id in idxs_users:
+                            if self.attacker_client_id in idxs_users:
                                 idxs_users.remove(self.attacker_client_id)
                     
                     
@@ -542,6 +543,11 @@ class Trainer:
     def train_target_step(self, x_private, label_private, client_id=0, save_grad = False, skip_regularization = False):
         self.model.cloud.train()
         self.model.local_list[client_id].train()
+
+        if "diffaug" in self.regularization_option:
+            
+            x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout')
+
 
         x_private = x_private.cuda()
         label_private = label_private.cuda()
@@ -836,7 +842,7 @@ class Trainer:
 
         # bound x_noise to have norm of 0.01
         if "norm1" in self.regularization_option:
-            lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.05, 1)
+            lnorm_penalty = 0.1 * torch.norm(x_noise - self.regularization_strength, 1)
         elif "var" in self.regularization_option:
             lnorm_penalty = -self.regularization_strength * torch.mean(torch.std(x_noise, dim = [1,2,3]))
         else:

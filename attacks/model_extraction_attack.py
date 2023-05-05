@@ -38,7 +38,7 @@ def train_generator(logger, save_dir, target_model, generator, target_dataset_na
     optimizer_G = torch.optim.Adam(generator.parameters(), lr=lr_G )
     scheduler_G = torch.optim.lr_scheduler.MultiStepLR(optimizer_G, steps, scale)
     
-    train_output_path = save_dir + "/generator_train"
+    train_output_path = save_dir + "/gen_out"
     if os.path.isdir(train_output_path):
         rmtree(train_output_path)
     os.makedirs(train_output_path)
@@ -49,18 +49,17 @@ def train_generator(logger, save_dir, target_model, generator, target_dataset_na
         generator.cuda()
         generator.eval()
 
-        if not assist:
-            z = torch.randn((10, nz)).cuda()
-            for i in range(num_class):
-                labels = i * torch.ones([10, ]).long().cuda()
-                #Get fake image from generator
-                fake = generator(z, labels) # pre_x returns the output of G before applying the activation
+        z = torch.randn((10, nz)).cuda()
+        for i in range(num_class):
+            labels = i * torch.ones([10, ]).long().cuda()
+            #Get fake image from generator
+            fake = generator(z, labels) # pre_x returns the output of G before applying the activation
 
-                imgGen = fake.clone()
-                imgGen = denormalize(imgGen, target_dataset_name)
-                if not os.path.isdir(train_output_path + "/{}".format(num_steps)):
-                    os.mkdir(train_output_path + "/{}".format(num_steps))
-                torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(num_steps,"final_label{}".format(i)))
+            imgGen = fake.clone()
+            imgGen = denormalize(imgGen, target_dataset_name)
+            if not os.path.isdir(train_output_path + "/{}".format(num_steps)):
+                os.mkdir(train_output_path + "/{}".format(num_steps))
+            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(num_steps,"final_label{}".format(i)))
     else:
         generator.cuda()
         generator.train()
@@ -1087,7 +1086,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
         generator, save_images, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
         generator.eval()
         generator.cuda()
-        test_output_path = save_dir + "/generator_test"
+        test_output_path = save_dir + "/normalized_gen_out"
         if os.path.isdir(test_output_path):
             rmtree(test_output_path)
         os.makedirs(test_output_path)
@@ -1341,13 +1340,10 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 label = label.cuda()
                 z = torch.randn((batch_size, nz)).cuda()
                 
-                # get images and labels from dl,
-
-                # label = torch.randint(low=0, high=num_class, size = [batch_size, ]).cuda()
-                
-                # random_mask = torch.randint(low=0, high=2, size = [batch_size, ]).cuda()
+                random_mask = torch.randint(low=0, high=2, size = [batch_size, ]).cuda()
 
                 noise = generator(z, label)
+                
                 # print(noise.size())
                 # print(image.size())
 
@@ -1358,14 +1354,12 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
                 # fake_input = noise   + image
                 # fake_input = noise
-
-                #TODO: compare with baseline
                 # fake_input = image
-
-                # fake_input = random_dropped_noise  + image
 
                 #Save images to file
                 if epoch == 1:
+                    noise = noise.clone()
+                    fake_input = torch.clip((noise - torch.mean(noise)) / torch.std(noise), -1, 1)
                     imgGen = fake_input.clone()
                     imgGen = denormalize(imgGen, target_dataset_name)
                     if not os.path.isdir(test_output_path + "/{}".format(epoch)):
