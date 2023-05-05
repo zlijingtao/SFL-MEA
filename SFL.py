@@ -836,9 +836,11 @@ class Trainer:
 
         # bound x_noise to have norm of 0.01
         if "norm1" in self.regularization_option:
-            lnorm_penalty = 0.1 * torch.norm(x_noise - self.regularization_strength, 1)
+            lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.01, 1)
         else:
-            lnorm_penalty = 0.1 * torch.norm(x_noise - self.regularization_strength, 2)
+            lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.01, 2)
+
+        #TODO: add torch.var(dim = x)
 
         #how-to?
 
