@@ -21,7 +21,7 @@ regularization_list="gan_assist_train_ME_norm2_start0"
 # cutlayer_list="10 11 12 13"
 cutlayer_list="10"
 # regularization_strength_list="0.01 0.05 0.1"
-regularization_strength_list="0.05 0.1 0.2"
+regularization_strength_list="0.1"
 num_client_list="5"
 noniid_ratio_list="1.0"
 # last_client_fix_amount=1000
@@ -35,7 +35,7 @@ for random_seed in $random_seed_list; do
                                                 for regularization_strength in $regularization_strength_list; do
                                         
                                                 folder_name="saves/train-ME-new"
-                                                filename="vgg11-cifar10-$regularization-Lnorm$regularization_strength-cut$cutlayer-client$num_client-noniid$noniid_ratio--data$last_client_fix_amount"
+                                                filename="vgg11-cifar10-$regularization-str$regularization_strength-newLnorm0.1-cut$cutlayer-client$num_client-noniid$noniid_ratio--data$last_client_fix_amount"
                                                 CUDA_VISIBLE_DEVICES=$GPU_id python main_steal_online.py   --arch=$arch --cutlayer=$cutlayer --batch_size=$batch_size \
                                                         --folder $folder_name --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
                                                         --dataset=$dataset --noniid_ratio=$noniid_ratio --scheme=$scheme  --learning_rate=$learning_rate --learning_rate_MEA=$learning_rate_MEA --attack_epochs=$attack_epochs \
