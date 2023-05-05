@@ -1345,7 +1345,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
 
                 # label = torch.randint(low=0, high=num_class, size = [batch_size, ]).cuda()
                 
-                random_mask = torch.randint(low=0, high=2, size = [batch_size, ]).cuda()
+                # random_mask = torch.randint(low=0, high=2, size = [batch_size, ]).cuda()
 
                 noise = generator(z, label)
                 # print(noise.size())
