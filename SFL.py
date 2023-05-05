@@ -824,8 +824,7 @@ class Trainer:
             imgGen = denormalize(imgGen, self.dataset)
             if not os.path.isdir(train_output_path + "/{}".format(epoch)):
                 os.mkdir(train_output_path + "/{}".format(epoch))
-            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch,
-                                                                                            batch * self.batch_size + self.batch_size))
+            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
         
         # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
         # g_noise_out_dist = torch.mean(torch.abs(x_private[:B, :] - x_private[B:, :]))
