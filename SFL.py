@@ -807,20 +807,13 @@ class Trainer:
         label_private = label_private.cuda()
 
         train_output_path = self.save_dir + "assisted_generator_train"
-        if os.path.isdir(train_output_path):
-            rmtree(train_output_path)
-        os.makedirs(train_output_path)
+        if not os.path.isdir(train_output_path):
+            os.makedirs(train_output_path)
 
 
         #Sample Random Noise
         z = torch.randn((x_private.size(0), self.nz)).cuda()
-        
-        # B = self.batch_size// 2
 
-        # labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
-        # labels_r = copy.deepcopy(labels_l).cuda()
-        # label_private = torch.stack([labels_l, labels_r]).view(-1)
-        
         #Get class-dependent noise, adding to x_private lately
         x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
         
@@ -832,33 +825,14 @@ class Trainer:
                 os.mkdir(train_output_path + "/{}".format(epoch))
             torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
         
-        # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
-        # g_noise_out_dist = torch.mean(torch.abs(x_private[:B, :] - x_private[B:, :]))
-        # g_noise_z_dist = torch.mean(torch.abs(z[:B, :] - z[B:, :]).view(B,-1),dim=1)
-        # noise_w = 50
-        # if "noreg" in self.regularization_option:
-        #     noise_w = 0
-        # g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
-
-        # bound x_noise to have norm of 0.01
+        # bound x_noise to have norm of 1
         if "norm1" in self.regularization_option:
             lnorm_penalty = 0.1 * torch.norm(x_noise - self.regularization_strength, 1)
         elif "var" in self.regularization_option:
             lnorm_penalty = -self.regularization_strength * torch.mean(torch.std(x_noise, dim = [1,2,3]))
         else:
-            lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.05, 2)
-
-        #TODO: add torch.var(dim = x)
-
-        #how-to?
-
-        # option1- an assisting classifier that tries to distinguish x_fake and x_private; use it to regularize, we tried, no good
-
-        # option2- use generator to synthesize a noise on top of the training data. its like an adversarial noise that probes the target model 
-
-        # TODO: use a conditional AutoEncoder
-
-        # optional: tv loss
+            lnorm_penalty = self.regularization_strength * (torch.norm(x_noise, 2) - 1) ** 2
+        
 
         output = self.model(x_fake)
         

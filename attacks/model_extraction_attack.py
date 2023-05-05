@@ -1340,21 +1340,14 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 label = label.cuda()
                 z = torch.randn((batch_size, nz)).cuda()
                 
+                # get images and labels from dl,
                 random_mask = torch.randint(low=0, high=2, size = [batch_size, ]).cuda()
 
                 noise = generator(z, label)
-                
-                # print(noise.size())
-                # print(image.size())
-
-                # print(noise)
-                # print(image)
-
 
                 fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
                 # fake_input = noise   + image
                 # fake_input = noise
-                # fake_input = image
 
                 #Save images to file
                 if epoch == 1:
