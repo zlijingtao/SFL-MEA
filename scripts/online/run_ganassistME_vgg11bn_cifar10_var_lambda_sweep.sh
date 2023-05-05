@@ -11,7 +11,7 @@ scheme=V2
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.001
-attack_epochs=50
+attack_epochs=200
 attack_client=0
 #because ganME is to train a model, we sweep the start epoch (training the generator)
 # regularization_list="gan_train_ME_start160 gan_train_ME_start180 gan_train_ME_start190"
@@ -21,7 +21,7 @@ attack_client=0
 regularization_list="gan_assist_train_ME_var_start0"
 # cutlayer_list="10 11 12 13"
 cutlayer_list="10"
-regularization_strength_list="0.01"
+regularization_strength_list="0.1 0.01 0.001"
 num_client_list="5"
 noniid_ratio_list="1.0"
 # last_client_fix_amount=1000
