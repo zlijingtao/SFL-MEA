@@ -13,13 +13,14 @@ learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.001
 attack_epochs=50
 attack_client=0
-regularization_list="gan_assist_train_ME_norm2_start0"
+# regularization_list="gan_assist_train_ME_norm2_start0"
+regularization_list="gan_assist_train_ME_plateau1_start0 gan_assist_train_ME_plateau2_start0"
 cutlayer_list="10"
-regularization_strength_list="0.0001"
+regularization_strength_list="0.1 0.01"
 num_client_list="5"
 noniid_ratio_list="1.0"
 # last_client_fix_amount=1000
-last_client_fix_amount_list="200"
+last_client_fix_amount_list="200 50"
 for random_seed in $random_seed_list; do
         for num_client in $num_client_list; do
                 for cutlayer in $cutlayer_list; do

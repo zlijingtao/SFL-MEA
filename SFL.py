@@ -844,6 +844,16 @@ class Trainer:
             lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
             # lnorm_penalty = 0.1 * torch.norm(x_noise - 0.1, 2) # fix x_noise to be around 0.1
             total_loss = f_loss + lnorm_penalty
+        elif "plateau1" in self.regularization_option:
+            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+            lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.1, 1) # fix x_noise to be around 0.1
+            total_loss = f_loss + lnorm_penalty
+        elif "plateau2" in self.regularization_option:
+            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+            lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.1, 2) # fix x_noise to be around 0.1
+            total_loss = f_loss + lnorm_penalty
         else:
             total_loss = f_loss
 
