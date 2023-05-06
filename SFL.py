@@ -815,13 +815,14 @@ class Trainer:
         
 
         #Get class-dependent noise, adding to x_private lately
-        # z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
-        # x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
-        # x_fake = torch.cat([x_noise + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-        
-        z = torch.randn((x_private.size(0), self.nz)).cuda()
-        x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
-        x_fake = x_noise + x_private
+        if "half_half" in self.regularization_option:
+            z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
+            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
+            x_fake = torch.cat([x_noise + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+        else:
+            z = torch.randn((x_private.size(0), self.nz)).cuda()
+            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
+            x_fake = x_noise + x_private
         
         if epoch % 5 == 0 and batch == 0:
             imgGen = x_noise.clone()
