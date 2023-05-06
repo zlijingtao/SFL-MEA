@@ -812,26 +812,18 @@ class Trainer:
 
 
         #Sample Random Noise
-        z = torch.randn((x_private.size(0), self.nz)).cuda()
+        z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
 
         #Get class-dependent noise, adding to x_private lately
-        x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
+        x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
         
-        x_fake = x_noise + x_private
+        x_fake = torch.cat([x_noise + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
         if epoch % 5 == 0 and batch == 0:
             imgGen = x_noise.clone()
             imgGen = denormalize(imgGen, self.dataset)
             if not os.path.isdir(train_output_path + "/{}".format(epoch)):
                 os.mkdir(train_output_path + "/{}".format(epoch))
             torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
-        
-        # bound x_noise to have norm of 1
-        if "norm1" in self.regularization_option:
-            lnorm_penalty = (torch.norm(x_noise, 1)/torch.numel(x_noise) - self.regularization_strength) ** 2
-        elif "var" in self.regularization_option:
-            lnorm_penalty = (torch.mean(torch.std(x_noise, dim = [1,2,3])) - self.regularization_strength) ** 2
-        else:
-            lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
         
 
         output = self.model(x_fake)
@@ -840,7 +832,20 @@ class Trainer:
 
         f_loss = criterion(output, label_private)
 
-        total_loss = f_loss + lnorm_penalty
+        # bound x_noise
+        if "norm1" in self.regularization_option:
+            lnorm_penalty = (torch.norm(x_noise, 1)/torch.numel(x_noise) - self.regularization_strength) ** 2
+            total_loss = f_loss + lnorm_penalty
+        elif "var" in self.regularization_option:
+            lnorm_penalty = (torch.mean(torch.std(x_noise, dim = [1,2,3])) - self.regularization_strength) ** 2
+            total_loss = f_loss + lnorm_penalty
+        elif "norm2" in self.regularization_option:
+            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+            lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+            # lnorm_penalty = 0.1 * torch.norm(x_noise - 0.1, 2) # fix x_noise to be around 0.1
+            total_loss = f_loss + lnorm_penalty
+        else:
+            total_loss = f_loss
 
         if "gradient_noise" in self.regularization_option: #TODO: test this
             def noise_hook(grad):
