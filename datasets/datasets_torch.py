@@ -478,18 +478,6 @@ def get_imagenet_testloader(batch_size=16, num_workers=2, shuffle=True):
 
 def get_cifar10_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False, last_client_fix_amount = -1):
     
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    print(last_client_fix_amount)
-    
     """ return training dataloader
     Args:
         mean: mean of cifar10 training dataset

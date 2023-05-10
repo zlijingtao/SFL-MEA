@@ -889,10 +889,7 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
         return save_images, save_grad, save_label
     
     elif attack_style == "Generator_option":
-        try:
-            nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
-        except:
-            nz = 512
+        nz = 512
         print(f"latent vector dim: {nz}")
         generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
         '''GAN_ME, data-free model extraction, train a conditional GAN, train-time option: use 'gan_train' in regularization_option'''
@@ -901,10 +898,7 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
     
     elif attack_style == "Generator_option_resume":
         print(save_dir)
-        try:
-            nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
-        except:
-            nz = 512
+        nz = 512
         print(f"latent vector dim: {nz}")
         generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
         # get prototypical data using GAN, training generator consumes grad query.
@@ -913,10 +907,7 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
     
     elif attack_style == "Generator_assist_option_resume": #TODO: add a offline MEA version here
         print(save_dir)
-        try:
-            nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
-        except:
-            nz = 512
+        nz = 512
         print(f"latent vector dim: {nz}")
         generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
         # get prototypical data using GAN, training generator consumes grad query.
@@ -1092,6 +1083,8 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
             rmtree(test_output_path)
         os.makedirs(test_output_path)
         
+        extract_batch_size = save_images[0].size(0)
+        print(f"extract_batch_size = {extract_batch_size}")
         
         save_images = torch.cat(save_images)
         # save_grad = torch.cat(save_grad)
@@ -1102,7 +1095,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
         #     indices = torch.flip(indices, dims = [0])
         ds = torch.utils.data.TensorDataset(indices, save_images, save_label)
         dl = torch.utils.data.DataLoader(
-            ds, batch_size=batch_size, num_workers=4, shuffle=if_shuffle
+            ds, batch_size=extract_batch_size, num_workers=4, shuffle=if_shuffle
         )
     elif "NaiveTrain_option_resume" in attack_style:
         save_images, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
@@ -1153,10 +1146,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
         dl_transforms = None
     
     if "Generator_option" in attack_style or "Generator_assist_option" in attack_style:
-        try:
-            nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
-        except:
-            nz = 512
+        nz = 512
     # if attack_style == "SoftTrain_option_resume": #TODO: test the usefulness of this.
     #     dl_transforms = None
     
@@ -1233,6 +1223,8 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
             for idx, (index, image, label) in enumerate(dl):
                 # if dl_transforms is not None:
                 image = dl_transforms(image)
+                #TODO: cancel this
+                # image = image + 0.1 * torch.randn_like(image)
                 image = image.cuda()
                 # grad = grad.cuda()
                 label = label.cuda()
@@ -1356,13 +1348,13 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
 
                 label = label.cuda()
 
-                z = torch.randn((batch_size, nz)).cuda()
+                z = torch.randn((label.size(0), nz)).cuda()
                 
                 # get images and labels from dl,
 
                 # label = torch.randint(low=0, high=num_class, size = [batch_size, ]).cuda()
                 
-                random_mask = torch.randint(low=0, high=2, size = [batch_size, ]).cuda()
+                random_mask = torch.randint(low=0, high=2, size = [label.size(0), ]).cuda()
 
                 noise = generator(z, label)
                 # print(noise.size())
@@ -1372,8 +1364,8 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 # print(image)
 
 
-                # fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
-                fake_input = noise   + image
+                fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
+                # fake_input = noise   + image
 
                 #TODO: compare with baseline
                 # fake_input = image

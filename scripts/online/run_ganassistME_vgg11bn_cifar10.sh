@@ -17,13 +17,13 @@ attack_client=0
 # regularization_list="gan_train_ME_start160 gan_train_ME_start180 gan_train_ME_start190"
 # regularization_list="gan_train_ME_start180"
 
-regularization_list="gan_assist_train_ME_start0"
+regularization_list="naive_train_ME_randomnoise_start0 naive_train_ME_diffaug_start0"
 # cutlayer_list="10 11 12 13"
 cutlayer_list="10"
-regularization_strength_list="1.0"
+regularization_strength_list="0.5"
 num_client_list="5"
 noniid_ratio_list="1.0"
-last_client_fix_amount=20
+last_client_fix_amount=50
 
 for random_seed in $random_seed_list; do
         for num_client in $num_client_list; do
@@ -32,7 +32,7 @@ for random_seed in $random_seed_list; do
                                 for regularization in $regularization_list; do
                                         for regularization_strength in $regularization_strength_list; do
                                         
-                                                folder_name="saves/train-ME-new"
+                                                folder_name="saves/train-ME-oldcommit-seed$random_seed"
                                                 filename="vgg11-cifar10-$regularization-step$regularization_strength-cut$cutlayer-client$num_client-noniid$noniid_ratio--data$last_client_fix_amount"
                                                 CUDA_VISIBLE_DEVICES=$GPU_id python main_steal_online.py   --arch=$arch --cutlayer=$cutlayer --batch_size=$batch_size \
                                                         --folder $folder_name --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
