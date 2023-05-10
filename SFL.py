@@ -344,7 +344,7 @@ class Trainer:
                     self.query_image_id += 1
                     images = torch.load("./saved_tensors/test_cifar10_image.pt").cuda()
                     labels = torch.load("./saved_tensors/test_cifar10_label.pt").cuda()
-                    self.train_target_step(images, labels, 0, save_grad = True, skip_regularization=True)
+                    self.train_target_step(images, labels, 0, epoch, batch, save_grad = True, skip_regularization=True)
                     self.optimizer_zero_grad()
                 
                 ## Secondary Loop
@@ -384,7 +384,7 @@ class Trainer:
                         
                         if client_id != self.attacker_client_id:
                             # Train step (client/server)
-                            train_loss, f_loss = self.train_target_step(images, labels, client_id)
+                            train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch)
                         else: 
                             # MEA client, perform training, collecting gradients using the adv data
                             if epoch > self.attack_start_epoch:
@@ -396,16 +396,16 @@ class Trainer:
                                 elif "gan_assist_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.gan_assist_train_target_step(images, labels, client_id, epoch, batch)
                                 elif "GM_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option:
-                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, save_grad = True, skip_regularization=True) # adv clients won't comply to the defense
+                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch, save_grad = True, skip_regularization=True) # adv clients won't comply to the defense
                                 else:
-                                    train_loss, f_loss = self.train_target_step(images, labels, client_id)
+                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch)
                             else:
                                 if "gan_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option:
                                     pass # do nothing prior to the starting epoch   
                                 elif "soft_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option: # adv clients won't comply to the defense
-                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, skip_regularization=True)
+                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch, skip_regularization=True)
                                 else:
-                                    train_loss, f_loss = self.train_target_step(images, labels, client_id)
+                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch)
 
                         if self.scheme == "V2":
                             self.optimizer_step()
@@ -540,14 +540,32 @@ class Trainer:
         self.logger.debug(' * Prec@1 {top1.avg:.3f}'.format(top1=top1))
         return top1.avg, losses.avg
 
-    def train_target_step(self, x_private, label_private, client_id=0, save_grad = False, skip_regularization = False):
+    def train_target_step(self, x_private, label_private, client_id, epoch, batch, save_grad = False, skip_regularization = False):
         self.model.cloud.train()
         self.model.local_list[client_id].train()
+        
+        if save_grad and "diffaug" in self.regularization_option:
+            x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
 
-        if "diffaug" in self.regularization_option:
+        if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
+            # collect gradient
+            if not os.path.isdir(self.save_dir + "/saved_grads"):
+                os.makedirs(self.save_dir + "/saved_grads")
             
-            x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout')
+            if "advnoise" in self.regularization_option:
+                x_private.retain_grad()
+                if not os.path.isdir(self.save_dir + "/pool_advs"):
+                    os.makedirs(self.save_dir + "/pool_advs")
+            # collect image/label
+            if epoch > self.n_epochs - 10 and self.rotate_label == 0:
+                max_allow_image_id = 500 # 500 times batch size is a considerable amount.
+                if self.query_image_id <= max_allow_image_id:
+                    torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
+                    torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
 
+        if save_grad and "randomnoise" in self.regularization_option: # add a random noise of norm value = regularization_strength to the input.
+            
+            x_private = x_private + self.regularization_strength * torch.randn_like(x_private)
 
         x_private = x_private.cuda()
         label_private = label_private.cuda()
@@ -617,31 +635,17 @@ class Trainer:
                 h.remove()
 
         if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
-
-            # print(z_private.grad.detach())
-            # print(grads["first_cloud_layer"])
-            # print(torch.equal(grads["first_cloud_layer"], z_private.grad.detach()))
-
-            # collect gradient
-            if not os.path.isdir(self.save_dir + "/saved_grads"):
-                os.makedirs(self.save_dir + "/saved_grads")
-
             if "naive_train_ME" in self.regularization_option:
                 pass
             else:
                 zeroing_grad(self.model.local_list[client_id])
                 torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
-                
             if "GM_train_ME" in self.regularization_option:
                 torch.save(z_private.detach().cpu(), self.save_dir + f"/saved_grads/act_{self.query_image_id}_label{self.rotate_label}.pt")
             
-            # collect image/label
-            if self.rotate_label == 0:
-                max_allow_image_id = 500 # 500 times batch size is a considerable amount.
-                if self.query_image_id <= max_allow_image_id:
-                    torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
-                    torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
-
+            if "advnoise" in self.regularization_option:
+                torch.save(x_private.detach().cpu() - self.regularization_strength * x_private.grad.detach().cpu() , self.save_dir + f"/pool_advs/lastest_batch{batch}.pt")
+            
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
@@ -812,18 +816,36 @@ class Trainer:
 
 
         #Sample Random Noise
+        # z = torch.randn((x_private.size(0), self.nz)).cuda()
         
+        z_label = torch.stack([label_private, label_private]).view(-1)
 
         #Get class-dependent noise, adding to x_private lately
         if "half_half" in self.regularization_option:
-            z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
-            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
-            x_fake = torch.cat([x_noise + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            z = torch.randn((x_private.size(0) * 2, self.nz)).cuda()
+            x_noise = self.generator(z, z_label) # pre_x returns the output of G before applying the activation
+            # if "reverse_grad" in self.regularization_option: #TODO: test this
+            x_noise = self.regularization_strength * x_noise
+            x_fake = torch.cat([x_noise[:x_private.size(0)//2, :, :, :] + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
         else:
-            z = torch.randn((x_private.size(0), self.nz)).cuda()
-            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
-            x_fake = x_noise + x_private
+            z = torch.randn((x_private.size(0) * 2, self.nz)).cuda()
+            x_noise = self.generator(z, z_label) # pre_x returns the output of G before applying the activation
+            # if "reverse_grad" in self.regularization_option: #TODO: test this
+            x_noise = self.regularization_strength * x_noise
+            x_fake = x_noise[:x_private.size(0), :, :, :] + x_private
         
+        #TODO:
+        # step-1 scale the Gnoise to L norm
+        # step-2 reverse the direction of the gradients on Gnoise. when backprop.
+        # see how it goes.
+
+        #TODO::
+        # increase number samples from DiffAug
+
+        
+
+
+
         if epoch % 5 == 0 and batch == 0:
             imgGen = x_noise.clone()
             imgGen = denormalize(imgGen, self.dataset)
@@ -839,30 +861,44 @@ class Trainer:
         f_loss = criterion(output, label_private)
 
         # bound x_noise
-        if "norm1" in self.regularization_option:
-            lnorm_penalty = (torch.norm(x_noise, 1)/torch.numel(x_noise) - self.regularization_strength) ** 2
-            total_loss = f_loss + lnorm_penalty
-        elif "var" in self.regularization_option:
-            lnorm_penalty = (torch.mean(torch.std(x_noise, dim = [1,2,3])) - self.regularization_strength) ** 2
-            total_loss = f_loss + lnorm_penalty
-        elif "norm2" in self.regularization_option:
-            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-            lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-            # lnorm_penalty = 0.1 * torch.norm(x_noise - 0.1, 2) # fix x_noise to be around 0.1
-            total_loss = f_loss + lnorm_penalty
-        elif "plateau1" in self.regularization_option:
-            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-            lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.1, 1) # fix x_noise to be around 0.1
-            total_loss = f_loss + lnorm_penalty
-        elif "plateau2" in self.regularization_option:
-            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-            # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-            lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.1, 2) # fix x_noise to be around 0.1
-            total_loss = f_loss + lnorm_penalty
-        else:
-            total_loss = f_loss
+        # if "norm1" in self.regularization_option:
+        #     lnorm_penalty = (torch.norm(x_noise, 1)/torch.numel(x_noise) - self.regularization_strength) ** 2
+        #     total_loss = f_loss + lnorm_penalty
+        # elif "var" in self.regularization_option:
+        #     lnorm_penalty = (torch.mean(torch.std(x_noise, dim = [1,2,3])) - self.regularization_strength) ** 2
+        #     total_loss = f_loss + lnorm_penalty
+        # elif "norm2" in self.regularization_option:
+        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+        #     lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+        #     # lnorm_penalty = 0.1 * torch.norm(x_noise - 0.1, 2) # fix x_noise to be around 0.1
+        #     total_loss = f_loss + lnorm_penalty
+        # elif "plateau1" in self.regularization_option:
+        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+        #     lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.1, 1) # fix x_noise to be around 0.1
+        #     total_loss = f_loss + lnorm_penalty
+        # elif "plateau2" in self.regularization_option:
+        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
+        #     lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.1, 2) # fix x_noise to be around 0.1
+        #     total_loss = f_loss + lnorm_penalty
+        # else:
+        total_loss = f_loss
 
+        if "diverse" in self.regularization_option:
+            # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
+            g_noise_out_dist = torch.mean(torch.abs(x_noise[:x_private.size(0), :] - x_noise[x_private.size(0):, :]))
+            g_noise_z_dist = torch.mean(torch.abs(z[:x_private.size(0), :] - z[x_private.size(0):, :]).view(x_private.size(0),-1),dim=1)
+            noise_w = 50
+            g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
+            total_loss -= g_noise
+        
+
+        if "reverse_grad" in self.regularization_option: #TODO: test this
+            def noise_hook(grad):
+                return torch.multiply(grad, -1 * torch.ones_like(grad).cuda())
+            h = x_fake.register_hook(noise_hook)
+        
         if "gradient_noise" in self.regularization_option: #TODO: test this
             def noise_hook(grad):
                 return torch.add(grad, 0.01 * torch.rand_like(grad).cuda())
@@ -882,7 +918,9 @@ class Trainer:
 
         if "gradient_noise" in self.regularization_option: #TODO: test this
             h.remove()
-
+        if "reverse_grad" in self.regularization_option: #TODO: test this
+            h.remove()
+        
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
@@ -962,8 +1000,9 @@ class Trainer:
             if dl_transforms is not None:
                 images = dl_transforms(images)
             
-            if ("gan_assist_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option):
-                self.query_image_id += 1
+            if epoch > self.n_epochs - 10:
+                if ("gan_assist_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option):
+                    self.query_image_id += 1
             
             
             return images, labels
