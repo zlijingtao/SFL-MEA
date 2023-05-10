@@ -546,6 +546,11 @@ class Trainer:
         
         if save_grad and "diffaug" in self.regularization_option:
             x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
+        
+        if save_grad and "reverse_grad" in self.regularization_option: #TODO: test this
+            def noise_hook(grad):
+                return torch.multiply(grad, -1 * torch.ones_like(grad).cuda())
+            h = x_private.register_hook(noise_hook)
 
         if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
             # collect gradient
@@ -630,6 +635,9 @@ class Trainer:
 
         total_loss.backward()
 
+        if save_grad and "reverse_grad" in self.regularization_option: #TODO: test this
+            h.remove()
+        
         if not skip_regularization:
             if "gradient_noise" in self.regularization_option and self.arch != "ViT":
                 h.remove()
