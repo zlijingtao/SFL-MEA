@@ -1355,8 +1355,8 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
 
                 noise = generator(z, label)
 
-                fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
-                # fake_input = noise   + image
+                # fake_input = 0.1 * random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
+                fake_input = 0.1 * noise   + image
                 # fake_input = image
 
                 #Save images to file
