@@ -15,13 +15,13 @@ attack_epochs=50
 attack_client=0
 # regularization_list="gan_assist_train_ME_start0 naive_train_ME_diffaug_start0"
 # regularization_list="gan_assist_train_ME_reverse_grad_start0 naive_train_ME_diffaug_start0"
-regularization_list="gan_assist_train_ME_half_half_start0 naive_train_ME_start0"
+regularization_list="gan_assist_train_ME_half_half_reverse_grad_start0 gan_assist_train_ME_half_half_diverse_reverse_grad_start0"
 cutlayer_list="10"
 regularization_strength_list="1.0"
 num_client_list="5"
 noniid_ratio_list="1.0"
 # last_client_fix_amount=1000
-last_client_fix_amount_list="200"
+last_client_fix_amount_list="50"
 for random_seed in $random_seed_list; do
         for num_client in $num_client_list; do
                 for cutlayer in $cutlayer_list; do

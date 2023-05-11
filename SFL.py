@@ -545,7 +545,10 @@ class Trainer:
         self.model.local_list[client_id].train()
         
         if save_grad and "diffaug" in self.regularization_option:
-            x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
+            if "half_half" not in self.regularization_option:
+                x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
+            else:
+                x_private = torch.cat([DiffAugment.DiffAugment(x_private[:x_private.size(0)//2, :, :, :], 'color,translation,cutout'), x_private[x_private.size(0)//2:, :, :, :]], dim = 0) # a parameterized augmentation module.
         
         if save_grad and "reverse_grad" in self.regularization_option: #TODO: test this
             x_private.requires_grad = True
@@ -901,9 +904,9 @@ class Trainer:
             noise_w = 50
             g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
             if "reverse_grad" in self.regularization_option: #TODO: test this
-                total_loss -= g_noise
-            else:
                 total_loss += g_noise
+            else:
+                total_loss -= g_noise
         
 
         if "reverse_grad" in self.regularization_option: #TODO: test this
