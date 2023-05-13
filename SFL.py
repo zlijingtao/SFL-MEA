@@ -853,11 +853,6 @@ class Trainer:
 
         #TODO::
         # increase number samples from DiffAug
-
-        
-
-
-
         if epoch % 5 == 0 and batch == 0:
             imgGen = x_noise.clone()
             imgGen = denormalize(imgGen, self.dataset)
