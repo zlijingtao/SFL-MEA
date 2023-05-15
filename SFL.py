@@ -833,18 +833,25 @@ class Trainer:
         z_label = torch.stack([label_private, label_private]).view(-1)
 
         #Get class-dependent noise, adding to x_private lately
+
+        z = torch.randn((x_private.size(0) * 2, self.nz)).cuda()
+        x_noise = self.generator(z, z_label) # pre_x returns the output of G before applying the activation
+        # if "reverse_grad" in self.regularization_option: #TODO: test this
+        
+        # if "share" in self.regularization_option:
+        
         if "half_half" in self.regularization_option:
-            z = torch.randn((x_private.size(0) * 2, self.nz)).cuda()
-            x_noise = self.generator(z, z_label) # pre_x returns the output of G before applying the activation
-            # if "reverse_grad" in self.regularization_option: #TODO: test this
-            x_noise = self.regularization_strength * x_noise
-            x_fake = torch.cat([x_noise[:x_private.size(0)//2, :, :, :] + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            x_fake = torch.cat([self.regularization_strength * x_noise[:x_private.size(0)//2, :, :, :] + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
         else:
-            z = torch.randn((x_private.size(0) * 2, self.nz)).cuda()
-            x_noise = self.generator(z, z_label) # pre_x returns the output of G before applying the activation
-            # if "reverse_grad" in self.regularization_option: #TODO: test this
-            x_noise = self.regularization_strength * x_noise
-            x_fake = x_noise[:x_private.size(0), :, :, :] + x_private
+            x_fake = self.regularization_strength * x_noise[:x_private.size(0), :, :, :] + (1 - self.regularization_strength) * x_private
+
+        # else:
+        
+        #     x_noise = self.regularization_strength * x_noise
+        #     if "half_half" in self.regularization_option:
+        #         x_fake = torch.cat([x_noise[:x_private.size(0)//2, :, :, :] + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+        #     else:
+        #         x_fake = x_noise[:x_private.size(0), :, :, :] + x_private
         
         #TODO:
         # step-1 scale the Gnoise to L norm

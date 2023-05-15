@@ -910,7 +910,7 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
         train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = True)
         return generator
     
-    elif attack_style == "Generator_assist_option_resume": #TODO: add a offline MEA version here
+    elif attack_style == "Generator_assist_option_resume" or attack_style == "Generator_assist_option_resume_cleandata": #TODO: add a offline MEA version here
         print(save_dir)
         # try:
         #     nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
@@ -1341,23 +1341,28 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 acc = accuracy(output.data, label)[0]
                 acc_list.append(acc.cpu().item())
         
-        elif attack_style == "Generator_assist_option_resume":
+        elif attack_style == "Generator_assist_option_resume" or attack_style == "Generator_assist_option_resume_cleandata":
             
             for idx, (index, image, label) in enumerate(dl):
 
                 image = dl_transforms(image)
                 image = image.cuda()
                 label = label.cuda()
-                z = torch.randn((image.size(0), nz)).cuda()
+                
                 
                 # get images and labels from dl,
-                random_mask = torch.randint(low=0, high=2, size = [image.size(0), ]).cuda()
 
-                noise = generator(z, label)
+                if "cleandata" not in attack_style:
+                    z = torch.randn((image.size(0), nz)).cuda()
 
-                fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
-                # fake_input = 0.1 * noise   + image
-                # fake_input = image
+                    random_mask = torch.randint(low=0, high=2, size = [image.size(0), ]).cuda()
+
+                    noise = generator(z, label)
+
+                    fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
+                
+                else:
+                    fake_input = image
 
                 #Save images to file
                 if epoch == 1:
