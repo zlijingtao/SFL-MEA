@@ -501,7 +501,7 @@ def adversarial_attack(logger, target_dataset_name, target_model, surrogate_mode
 
     return total_avg_asr
 
-def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_model, attack_style, aux_dataset_name = "cifar10", num_query = 10, num_class = 10, attack_client = 0, data_proportion = 0.2, noniid_ratio = 1.0, last_n_batch = 10000):
+def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_model, attack_style, regularization, regularization_strength, aux_dataset_name = "cifar10", num_query = 10, num_class = 10, attack_client = 0, data_proportion = 0.2, noniid_ratio = 1.0, last_n_batch = 10000):
 
     '''last_n_batch: if in resume mode - instead of using all collected input-label pairs, use only the lastest n batch'''
     '''num_query: only make sense in offline, all ME attacks except for Train-ME. SoftTrain-ME and Train-ME is more sensitive on data proportion'''
@@ -957,8 +957,10 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
         raise("No such MEA attack style")
 
 
-def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_dataset_name, val_loader, aux_dataset_name = "cifar100", batch_size = 128, learning_rate = 0.05, num_query = 10, num_epoch = 200, attack_client=0, attack_style = "TrainME_option", 
-                data_proportion = 0.2, noniid_ratio = 1.0, train_clas_layer = -1, surrogate_arch = "same", adversairal_attack_option = False, last_n_batch = 10000):
+def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_dataset_name, val_loader, aux_dataset_name = "cifar100", batch_size = 128, learning_rate = 0.05, 
+                num_query = 10, num_epoch = 200, attack_client=0, attack_style = "TrainME_option", regularization = "None", regularization_strength = 0.0,
+                data_proportion = 0.2, noniid_ratio = 1.0, train_clas_layer = -1, surrogate_arch = "same", 
+                adversairal_attack_option = False, last_n_batch = 10000):
     # attack_style determines which MEA to perfrom:
     # 
     # data proportion/noniid_ratio is only need for offline MEA. determines 
@@ -1074,7 +1076,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     if_shuffle = True
     
     if "Generator_option" in attack_style:
-        generator = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
+        generator = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, regularization, regularization_strength, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
         generator.eval()
         generator.cuda()
         test_output_path = save_dir + "/generator_test"
@@ -1083,7 +1085,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
         os.makedirs(test_output_path)
 
     elif "Generator_assist_option" in attack_style:
-        generator, save_images, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
+        generator, save_images, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, regularization, regularization_strength, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
         generator.eval()
         generator.cuda()
         test_output_path = save_dir + "/normalized_gen_out"
@@ -1107,7 +1109,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
             ds, batch_size=extract_batch_size, num_workers=4, shuffle=if_shuffle
         )
     elif "NaiveTrain_option_resume" in attack_style:
-        save_images, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
+        save_images, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, regularization, regularization_strength, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
         
         extract_batch_size = save_images[0].size(0)
         print(f"extract_batch_size = {extract_batch_size}")
@@ -1124,7 +1126,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
             ds, batch_size=extract_batch_size, num_workers=4, shuffle=if_shuffle
         )
     else:
-        save_images, save_grad, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
+        save_images, save_grad, save_label = prepare_steal_attack(logger, save_dir, arch, target_dataset_name, target_model, attack_style, regularization, regularization_strength, aux_dataset_name, num_query, num_class, attack_client, data_proportion, noniid_ratio, last_n_batch)
         save_images = torch.cat(save_images)
         save_grad = torch.cat(save_grad)
         save_label = torch.cat(save_label)
@@ -1181,6 +1183,8 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
     wandb.run.summary["target-model-orig-val-acc"] = val_accu
     wandb.run.summary["target-model-orig-val-fid"] = fidel_score
     
+    print("Start training surrogate")
+    print(f"attack style {attack_style}, regularization {regularization}, noise proportion {regularization_strength}")
     # Train surrogate model
     for epoch in range(1, num_epoch + 1):
         grad_loss_list = []
@@ -1343,6 +1347,7 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
         
         elif attack_style == "Generator_assist_option_resume" or attack_style == "Generator_assist_option_resume_cleandata":
             
+
             for idx, (index, image, label) in enumerate(dl):
 
                 image = dl_transforms(image)

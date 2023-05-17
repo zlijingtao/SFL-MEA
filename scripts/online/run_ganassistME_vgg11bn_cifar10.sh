@@ -5,6 +5,7 @@ GPU_id=0
 arch=vgg11_bn
 batch_size=128
 num_epochs=200
+# random_seed_list="123 124 125"
 random_seed_list="123"
 
 scheme=V2
@@ -16,9 +17,10 @@ attack_client=0
 # regularization_list="gan_assist_train_ME_start0 naive_train_ME_diffaug_start0"
 # regularization_list="gan_assist_train_ME_reverse_grad_start0 naive_train_ME_diffaug_start0"
 # regularization_list="gan_assist_train_ME_half_half_start0 naive_train_ME_start0"
-regularization_list="gan_assist_train_ME_half_half_start0"
+regularization_list="gan_assist_train_ME_half_half_share_diffaug_start0"
+# regularization_list="gan_assist_train_ME_share_start0"
 cutlayer_list="10"
-regularization_strength_list="0.1 0.2 0.5"
+regularization_strength_list="0.5"
 num_client_list="5"
 noniid_ratio_list="1.0"
 # last_client_fix_amount=1000
@@ -31,7 +33,7 @@ for random_seed in $random_seed_list; do
                                         for last_client_fix_amount in $last_client_fix_amount_list; do
                                                 for regularization_strength in $regularization_strength_list; do
                                         
-                                                folder_name="saves/adv"
+                                                folder_name="saves/share-seed$random_seed"
                                                 filename="vgg11-cifar10-$regularization-str$regularization_strength-cut$cutlayer-client$num_client-noniid$noniid_ratio--data$last_client_fix_amount"
                                                 CUDA_VISIBLE_DEVICES=$GPU_id python main_steal_online.py   --arch=$arch --cutlayer=$cutlayer --batch_size=$batch_size \
                                                         --folder $folder_name --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \

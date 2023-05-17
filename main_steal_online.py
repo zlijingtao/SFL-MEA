@@ -123,7 +123,8 @@ if args.learning_rate_MEA == -1:
 
 steal_attack(save_dir_name, args.arch, args.cutlayer, mi.num_class, mi.model, args.dataset, mi.pub_dataloader,
              args.aux_dataset, args.batch_size, args.learning_rate_MEA, 50, args.attack_epochs,
-             args.attack_client, attack_style, 1.0, args.noniid_ratio, 
+             args.attack_client, attack_style, args.regularization, args.regularization_strength,
+             1.0, args.noniid_ratio, 
              train_clas_layer, args.surrogate_arch, args.adversairal_attack, args.last_n_batch)
 
 

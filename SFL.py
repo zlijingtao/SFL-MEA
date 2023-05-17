@@ -562,7 +562,6 @@ class Trainer:
                 os.makedirs(self.save_dir + "/saved_grads")
             
             if "advnoise" in self.regularization_option:
-                x_private.retain_grad()
                 if not os.path.isdir(self.save_dir + "/pool_advs"):
                     os.makedirs(self.save_dir + "/pool_advs")
             # collect image/label
@@ -576,9 +575,22 @@ class Trainer:
             
             x_private = x_private + self.regularization_strength * torch.randn_like(x_private)
 
+        
+        
+        if save_grad and "advnoise" in self.regularization_option:
+            if os.path.isfile(self.save_dir + f"/pool_advs/lastest_batch.pt"):
+                adv_sample = torch.load(self.save_dir + f"/pool_advs/img_lastest_batch.pt")
+                adv_sample_label = torch.load(self.save_dir + f"/pool_advs/label_lastest_batch.pt")
+                x_private = torch.cat([adv_sample[x_private.size(0)//2:, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0) # a parameterized augmentation module.
+                label_private = torch.cat([adv_sample_label[x_private.size(0)//2:], label_private[x_private.size(0)//2:, :, :, :]], dim = 0) # a parameterized augmentation module.
+        
         x_private = x_private.cuda()
         label_private = label_private.cuda()
 
+        if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
+            if "advnoise" in self.regularization_option:
+                # x_private = torch.Tensor(x_private)
+                x_private.requires_grad_(True)
         # Option to Freeze batchnorm parameter of the client-side model.
         if self.load_from_checkpoint and self.finetune_freeze_bn:
             freeze_model_bn(self.model.local_list[client_id])
@@ -599,7 +611,8 @@ class Trainer:
             output = self.model.cloud(z_private)
         else:
             output = self.model(x_private)
-        
+
+
         if "label_smooth" in self.regularization_option:
             criterion = torch.nn.CrossEntropyLoss(label_smoothing=self.regularization_strength)
         else:
@@ -652,11 +665,24 @@ class Trainer:
             else:
                 zeroing_grad(self.model.local_list[client_id])
                 torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
+            
             if "GM_train_ME" in self.regularization_option:
                 torch.save(z_private.detach().cpu(), self.save_dir + f"/saved_grads/act_{self.query_image_id}_label{self.rotate_label}.pt")
             
             if "advnoise" in self.regularization_option:
-                torch.save(x_private.detach().cpu() - self.regularization_strength * x_private.grad.detach().cpu() , self.save_dir + f"/pool_advs/lastest_batch{batch}.pt")
+                # gradient = torch.autograd.grad(outputs=f_loss, inputs=x_private, grad_outputs=torch.ones_like(f_loss), retain_graph=True)
+                # if x_private.grad is not None:
+                #     print(x_private.grad)
+                # torch.save(x_private.detach().cpu(), self.save_dir + f"/pool_advs/img_lastest_batch.pt")
+                if "signflip" in self.regularization_option and "pgd" in self.regularization_option:
+                    torch.save( torch.clip(x_private.detach().cpu() + self.regularization_strength * torch.sign(x_private.grad.detach().cpu()), -1, 1) , self.save_dir + f"/pool_advs/img_lastest_batch.pt")
+                elif "signflip" in self.regularization_option:
+                    torch.save( torch.clip(x_private.detach().cpu() + self.regularization_strength * x_private.grad.detach().cpu(), -1, 1) , self.save_dir + f"/pool_advs/img_lastest_batch.pt")
+                elif "pgd" in self.regularization_option:
+                    torch.save( torch.clip(x_private.detach().cpu() - self.regularization_strength * torch.sign(x_private.grad.detach().cpu()), -1, 1) , self.save_dir + f"/pool_advs/img_lastest_batch.pt")
+                else:
+                    torch.save( torch.clip(x_private.detach().cpu() - self.regularization_strength * x_private.grad.detach().cpu(), -1, 1) , self.save_dir + f"/pool_advs/img_lastest_batch.pt")
+                torch.save(label_private.detach().cpu(), self.save_dir + f"/pool_advs/label_lastest_batch.pt")
             
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
@@ -825,20 +851,30 @@ class Trainer:
         train_output_path = self.save_dir + "assisted_generator_train"
         if not os.path.isdir(train_output_path):
             os.makedirs(train_output_path)
+        
+        if epoch > self.n_epochs - 10 and self.rotate_label == 0:
+            max_allow_image_id = 500 # 500 times batch size is a considerable amount.
+            if self.query_image_id <= max_allow_image_id:
+                if not os.path.isdir(self.save_dir + "/saved_grads"):
+                    os.makedirs(self.save_dir + "/saved_grads")
+                torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
+                torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
 
-
+        # apply diffaug during the training to allow more variation to the input images.
+        if "diffaug" in self.regularization_option:
+            if "half_half" not in self.regularization_option:
+                x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
+            else:
+                x_private = torch.cat([DiffAugment.DiffAugment(x_private[:x_private.size(0)//2, :, :, :], 'color,translation,cutout'), x_private[x_private.size(0)//2:, :, :, :]], dim = 0) # a parameterized augmentation module.
+        
         #Sample Random Noise
         # z = torch.randn((x_private.size(0), self.nz)).cuda()
         
         z_label = torch.stack([label_private, label_private]).view(-1)
 
         #Get class-dependent noise, adding to x_private lately
-
         z = torch.randn((x_private.size(0) * 2, self.nz)).cuda()
         x_noise = self.generator(z, z_label) # pre_x returns the output of G before applying the activation
-        # if "reverse_grad" in self.regularization_option: #TODO: test this
-        
-        # if "share" in self.regularization_option:
         
         if "half_half" in self.regularization_option:
             x_fake = torch.cat([self.regularization_strength * x_noise[:x_private.size(0)//2, :, :, :] + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
@@ -925,13 +961,7 @@ class Trainer:
 
         # collect images and labels
 
-        max_allow_image_id = 500 # 500 times batch size is a considerable amount.
-        if self.query_image_id <= max_allow_image_id:
-            if not os.path.isdir(self.save_dir + "/saved_grads"):
-                os.makedirs(self.save_dir + "/saved_grads")
-            torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
-            torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
-
+        
 
         if "gradient_noise" in self.regularization_option: #TODO: test this
             h.remove()
