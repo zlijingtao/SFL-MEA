@@ -1515,6 +1515,34 @@ def discriminator(input_shape, bn = True, resblock_repeat = 2, dropout = False):
     net += [nn.LazyLinear(1)]
     net += [nn.Sigmoid()]
     return nn.Sequential(*net)
+
+def D2GAN_discriminator(input_shape, bn = True, resblock_repeat = 2, dropout = False):
+    # input is 32x32x3
+    net = []
+    net += [nn.Conv2d(input_shape[0], 128, 3, 2, 1)]
+    # net += [nn.ReLU()]
+    if dropout:
+        net += [nn.Dropout(0.2)]
+    net += [nn.ReLU()]
+    net += [nn.Conv2d(128, 256, 3, 2, 1)]
+    # net += [nn.ReLU()]
+    if dropout:
+        net += [nn.Dropout(0.2)]
+    net += [nn.ReLU()]
+        
+    for _ in range(resblock_repeat):
+        net += [ResBlock(256, 256, bn=bn)]
+        if dropout:
+            net += [nn.Dropout(0.2)]
+
+    net += [nn.Conv2d(256, 256, 3, 2, 1)]
+    if dropout:
+        net += [nn.Dropout(0.2)]
+    net += [nn.ReLU()]
+    net += [nn.Flatten()]
+    net += [nn.LazyLinear(1)]
+    net += [nn.Softplus()]
+    return nn.Sequential(*net)
 #==========================================================================================
 
 class custom_AE_bn(nn.Module):

@@ -116,8 +116,25 @@ class Trainer:
                 self.nz = 512
                 self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
                 self.generator.cuda()
-                self.local_params.append(self.generator.parameters())
+                # self.local_params.append(self.generator.parameters())
 
+                self.generator_optimizer = torch.optim.Adam(list(self.generator.parameters()), lr=2e-4, betas=(0.5, 0.999))
+                # self.generator_optimizer = torch.optim.Adam(list(self.generator.parameters()), lr=5e-5)
+
+                if "D2GAN" in self.regularization_option:
+                    # https://github.com/tund/D2GAN/tree/master
+                    self.d1_alpha = 1.0
+                    self.d2_beta = 1.0
+                    self.d2_strength = 0.1
+                    self.D1 = architectures.D2GAN_discriminator(self.image_shape)
+                    self.D2 = architectures.D2GAN_discriminator(self.image_shape)
+                    d_params = list(self.D1.parameters()) + list(self.D1.parameters())
+                    self.d2_optimizer = torch.optim.Adam(d_params, lr=2e-4, betas=(0.5, 0.999))
+                    # self.d2_optimizer = torch.optim.Adam(d_params, lr=2e-4)
+                elif "normalGAN" in self.regularization_option:
+                    self.d_strength = 0.5
+                    self.D1 = architectures.D2GAN_discriminator(self.image_shape)
+                    self.d_optimizer = torch.optim.Adam(list(self.D1.parameters()), lr=2e-4, betas=(0.5, 0.999))
         # setup optimizers
         self.optimizer = torch.optim.SGD(self.params, lr=self.lr, momentum=0.9, weight_decay=5e-4)
         
@@ -767,7 +784,7 @@ class Trainer:
         self.model.local_list[client_id].train()
         self.generator.cuda()
         self.generator.train()
-
+        self.generator_optimizer.zero_grad()
         train_output_path = self.save_dir + "generator_train"
         if os.path.isdir(train_output_path):
             rmtree(train_output_path)
@@ -825,7 +842,7 @@ class Trainer:
             h = x_private.register_hook(noise_hook)
 
         total_loss.backward()
-
+        self.generator_optimizer.step()
         zeroing_grad(self.model.local_list[client_id])
 
         if "gradient_noise" in self.regularization_option: #TODO: test this
@@ -844,7 +861,16 @@ class Trainer:
         self.model.local_list[client_id].train()
         self.generator.cuda()
         self.generator.train()
+        
 
+        if "D2GAN" in self.regularization_option:
+            self.D1.cuda()
+            self.D2.cuda()
+            self.D1.train()
+            self.D2.train()
+        elif "normalGAN" in self.regularization_option:
+            self.D1.cuda()
+            self.D1.train()
         x_private = x_private.cuda()
         label_private = label_private.cuda()
 
@@ -881,6 +907,24 @@ class Trainer:
         else:
             x_fake = self.regularization_strength * x_noise[:x_private.size(0), :, :, :] + (1 - self.regularization_strength) * x_private
 
+
+        if "D2GAN" in self.regularization_option:
+            if "half_half" in self.regularization_option and batch // 2 == 0:
+                self.d2_optimizer.zero_grad()
+                
+                d1_loss = torch.mean(-self.d1_alpha * torch.log(self.D1(x_fake[x_private.size(0)//2:, :, :, :].detach())) + self.D1(x_fake[:x_private.size(0)//2, :, :, :].detach()))
+                d2_loss = torch.mean(self.D2(x_fake[x_private.size(0)//2:, :, :, :].detach()) - self.d2_beta * torch.log(self.D2(x_fake[:x_private.size(0)//2, :, :, :].detach())))
+                d_loss = d1_loss + d2_loss
+                d_loss.backward()
+                self.d2_optimizer.step()
+        elif "normalGAN" in self.regularization_option:
+            if "half_half" in self.regularization_option and batch // 2 == 0:
+                self.d_optimizer.zero_grad()
+                
+                # d_loss = torch.mean(-torch.log(self.D1(x_fake[x_private.size(0)//2:, :, :, :].detach())) + self.D1(x_fake[:x_private.size(0)//2, :, :, :].detach()))
+                d_loss = torch.mean(self.D1(x_fake[x_private.size(0)//2:, :, :, :].detach()) -  torch.log(self.D1(x_fake[:x_private.size(0)//2, :, :, :].detach())))
+                d_loss.backward()
+                self.d_optimizer.step()
         # else:
         
         #     x_noise = self.regularization_strength * x_noise
@@ -941,27 +985,36 @@ class Trainer:
             g_noise_z_dist = torch.mean(torch.abs(z[:x_private.size(0), :] - z[x_private.size(0):, :]).view(x_private.size(0),-1),dim=1)
             noise_w = 50
             g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
-            if "reverse_grad" in self.regularization_option: #TODO: test this
+            if "reverse_grad" in self.regularization_option:
                 total_loss += g_noise
             else:
                 total_loss -= g_noise
         
-
-        if "reverse_grad" in self.regularization_option: #TODO: test this
+        if "D2GAN" in self.regularization_option:
+            if "half_half" in self.regularization_option:
+                d2gan_loss = torch.mean(-self.D1(x_fake[:x_private.size(0)//2, :, :, :]) + self.d2_beta * torch.log(self.D2(x_fake[:x_private.size(0)//2, :, :, :])))
+                total_loss += self.d2_strength * d2gan_loss
+                # d2_loss = self.D2(x_fake[x_private.size(0)//2:, :, :, :].detach()) - beta * torch.log(self.D2(x_fake[:x_private.size(0)//2, :, :, :].detach()))
+        elif "normalGAN" in self.regularization_option:
+            if "half_half" in self.regularization_option:
+                # normalgan_loss = torch.mean(-self.D1(x_fake[:x_private.size(0)//2, :, :, :]))
+                normalgan_loss = torch.mean(torch.log(self.D1(x_fake[:x_private.size(0)//2, :, :, :])))
+                total_loss += self.d_strength * normalgan_loss
+        if "reverse_grad" in self.regularization_option: 
             def noise_hook(grad):
                 return torch.multiply(grad, -1 * torch.ones_like(grad).cuda())
             h = x_fake.register_hook(noise_hook)
         
-        if "gradient_noise" in self.regularization_option: #TODO: test this
+        if "gradient_noise" in self.regularization_option:
             def noise_hook(grad):
                 return torch.add(grad, 0.01 * torch.rand_like(grad).cuda())
             h = x_fake.register_hook(noise_hook)
-
+        
+        self.generator_optimizer.zero_grad()
         total_loss.backward()
-
+        self.generator_optimizer.step()
         # collect images and labels
 
-        
 
         if "gradient_noise" in self.regularization_option: #TODO: test this
             h.remove()
