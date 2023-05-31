@@ -300,7 +300,7 @@ def split_training_data_to_training_loader(training_data, num_client, batch_size
         # adding the fixed amount
         subset_split_list.append(list(range(len(training_data) - last_client_fix_amount, len(training_data))))
 
-
+    
     if num_client == 1:
         training_loader_list = [torch.utils.data.DataLoader(training_data,  batch_size=batch_size, shuffle=shuffle,
                 num_workers=num_workers)]

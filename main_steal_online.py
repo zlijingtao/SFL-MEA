@@ -25,7 +25,7 @@ parser.add_argument('--filename', default="vgg11-cifar10", type=str, help='pleas
 parser.add_argument('--folder', default="saves/train-ME", type=str, help='please type folder name for the testing purpose')
 parser.add_argument('--num_client', default=10, type=int, help='number of client')
 parser.add_argument('--num_epochs', default=200, type=int, help='number of epochs')
-parser.add_argument('--last_client_fix_amount', default=500, type=int, help='last_client_fix_amount')
+parser.add_argument('--last_client_fix_amount', default=-1, type=int, help='last_client_fix_amount')
 parser.add_argument('--learning_rate', default=0.05, type=float, help='Learning Rate')
 parser.add_argument('--learning_rate_MEA', default=-1, type=float, help='Learning Rate of MEA, if not set, then set it to be the same as SFL learnign rate')
 parser.add_argument('--client_sample_ratio', default=1.0, type=float, help='client_sample_ratio')

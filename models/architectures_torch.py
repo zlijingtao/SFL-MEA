@@ -6,7 +6,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-
+import copy
 from torch.nn.modules.linear import Linear
 
 
@@ -1089,6 +1089,358 @@ class GeneratorC(nn.Module):
         img = nn.functional.interpolate(img,scale_factor=2)
         img = self.conv_blocks2(img)
         return img
+
+# class GeneratorC_single(nn.Module):
+#     '''
+#     Conditional Generator
+#     '''
+#     def __init__(self, nz=100, ngf=64, nc=1, img_size=32):
+#         super(GeneratorC_single, self).__init__()
+        
+#         self.init_size = img_size//4
+#         self.l1 = nn.Sequential(nn.Linear(nz, ngf*2*self.init_size**2))
+
+#         self.conv_blocks0 = nn.Sequential(
+#             nn.BatchNorm2d(ngf*2),
+#         )
+#         self.conv_blocks1 = nn.Sequential(
+#             nn.Conv2d(ngf*2, ngf*2, 3, stride=1, padding=1),
+#             nn.BatchNorm2d(ngf*2),
+#             nn.LeakyReLU(0.2, inplace=True),
+#         )
+#         self.conv_blocks2 = nn.Sequential(
+#             nn.Conv2d(ngf*2, ngf, 3, stride=1, padding=1),
+#             nn.BatchNorm2d(ngf),
+#             nn.LeakyReLU(0.2, inplace=True),
+#             nn.Conv2d(ngf, nc, 3, stride=1, padding=1),
+#             nn.Tanh(),
+#             nn.BatchNorm2d(nc, affine=False) 
+#         )
+
+#     def forward(self, z):
+#         # Concatenate label embedding and image to produce input
+#         out = self.l1(z.view(z.shape[0],-1))
+#         out = out.view(out.shape[0], -1, self.init_size, self.init_size)
+#         img = self.conv_blocks0(out)
+#         img = nn.functional.interpolate(img,scale_factor=2)
+#         img = self.conv_blocks1(img)
+#         img = nn.functional.interpolate(img,scale_factor=2)
+#         img = self.conv_blocks2(img)
+#         return img
+
+def init_weights(m):
+    if type(m) == nn.Linear:
+        nn.init.xavier_uniform_(m.weight, gain=1.0)
+        if m.bias is not None: 
+            m.bias.data.zero_()
+    if type(m) == nn.Conv2d or type(m) == nn.ConvTranspose2d:
+        nn.init.xavier_uniform_(m.weight, gain=1.0)
+        if m.bias is not None: 
+            m.bias.data.zero_()
+
+# class GeneratorC_mult(nn.Module):
+#     '''
+#     Conditional Generator
+#     '''
+#     def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32):
+#         super(GeneratorC_mult, self).__init__()
+#         self.num_classes = num_classes
+#         self.generator_list = []
+#         for i in range(num_classes):
+#             self.generator_list.append(GeneratorC_single(nz, ngf, nc, img_size))
+#             self.add_module(f"gen_{i}", self.generator_list[i])
+#             self.generator_list[i].apply(init_weights)
+
+#     def forward(self, z, label):
+#         img_list = []
+#         for i in range(label.size(0)):
+#             img_list.append(self.generator_list[label[i].item()](z))
+#         img = torch.stack(img_list)
+#         del img_list
+#         print(img.size())
+#         return img
+
+
+class GeneratorC_mult(nn.Module):
+    '''
+    Conditional Generator
+    '''
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32):
+        super(GeneratorC_mult, self).__init__()
+        self.num_classes = num_classes
+        self.generator_list = []
+        self.count = 0
+        for i in range(num_classes):
+            self.generator_list.append(GeneratorC(nz, num_classes, ngf, nc, img_size))
+            self.add_module(f"gen_{i}", self.generator_list[i])
+            self.generator_list[i].apply(init_weights)
+
+    def forward(self, z, label):
+        # print(self.count % 10)
+        img = self.generator_list[self.count % 10](z, label)
+        self.count += 1
+        if self.count == 10:
+            self.count = 0
+        return img
+
+
+class GeneratorD(nn.Module):
+    '''
+    Unconditional Generator
+    '''
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32):
+        super(GeneratorD, self).__init__()
+        
+        # self.label_emb = nn.Embedding(nz)
+        
+        self.init_size = img_size//4
+        self.l1 = nn.Sequential(nn.Linear(nz, ngf*2*self.init_size**2))
+
+        self.conv_blocks0 = nn.Sequential(
+            nn.BatchNorm2d(ngf*2),
+        )
+        self.conv_blocks1 = nn.Sequential(
+            nn.Conv2d(ngf*2, ngf*2, 3, stride=1, padding=1),
+            nn.BatchNorm2d(ngf*2),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.conv_blocks2 = nn.Sequential(
+            nn.Conv2d(ngf*2, ngf, 3, stride=1, padding=1),
+            nn.BatchNorm2d(ngf),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ngf, nc, 3, stride=1, padding=1),
+            nn.Tanh(),
+            nn.BatchNorm2d(nc, affine=False) 
+        )
+
+    def forward(self, z, label):
+        # Concatenate label embedding and image to produce input
+        # label_inp = self.label_emb(label)
+        # gen_input = torch.cat((label_inp, z), -1)
+        gen_input = z
+        out = self.l1(gen_input.view(gen_input.shape[0],-1))
+        out = out.view(out.shape[0], -1, self.init_size, self.init_size)
+        img = self.conv_blocks0(out)
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks1(img)
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks2(img)
+        return img
+
+
+class GeneratorD_mult(nn.Module):
+    '''
+    Un-conditional Generator
+    '''
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32):
+        super(GeneratorD_mult, self).__init__()
+        self.generator_list = []
+        self.count = 0
+        for i in range(num_classes):
+            self.generator_list.append(GeneratorD(nz, num_classes, ngf, nc, img_size))
+            self.add_module(f"gen_{i}", self.generator_list[i])
+            self.generator_list[i].apply(init_weights)
+
+    def forward(self, z, label):
+        # print(self.count % 10)
+        img = self.generator_list[self.count % 10](z, label)
+        self.count += 1
+        if self.count == 10:
+            self.count = 0
+        return img
+
+
+class GeneratorDynamic_A(nn.Module):
+    '''
+    Conditional Generator
+    '''
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32, num_heads = 10):
+        super(GeneratorDynamic_A, self).__init__()
+        
+        self.label_emb = nn.Embedding(num_classes, nz)
+        
+        self.init_size = img_size//4
+        
+        self.num_heads = num_heads
+
+        self.l1_list = []
+        for i in range(num_heads):
+            self.l1_list.append(nn.Sequential(nn.Linear(nz*2, ngf*2*self.init_size**2)))
+            self.add_module(f"l1_{i}", self.l1_list[i])
+            self.l1_list[i].apply(init_weights)
+
+        self.conv_blocks_0 = nn.Sequential(
+            nn.BatchNorm2d(ngf*2),
+            nn.Conv2d(ngf*2, ngf*2, 3, stride=1, padding=1),
+        )
+
+        self.count = 0
+
+        self.conv_blocks1 = nn.Sequential(
+            nn.BatchNorm2d(ngf*2),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.conv_blocks2 = nn.Sequential(
+            nn.Conv2d(ngf*2, ngf, 3, stride=1, padding=1),
+            nn.BatchNorm2d(ngf),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ngf, nc, 3, stride=1, padding=1),
+            nn.Tanh(),
+            nn.BatchNorm2d(nc, affine=False) 
+        )
+
+    def forward(self, z, label):
+        # Concatenate label embedding and image to produce input
+        label_inp = self.label_emb(label)
+        gen_input = torch.cat((label_inp, z), -1)
+
+        out = self.l1_list[self.count](gen_input.view(gen_input.shape[0],-1))
+        out = out.view(out.shape[0], -1, self.init_size, self.init_size)
+
+        img = self.conv_blocks_0(out)
+        
+        self.count += 1
+        if self.count == self.num_heads:
+            self.count = 0
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks1(img)
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks2(img)
+        return img
+
+class GeneratorDynamic_B(nn.Module):
+    '''
+    Conditional Generator
+    '''
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32, num_heads = 10):
+        super(GeneratorDynamic_B, self).__init__()
+        
+        self.label_emb = nn.Embedding(num_classes, nz)
+        
+        self.init_size = img_size//4
+        
+        self.num_heads = num_heads
+
+        self.l1 = nn.Sequential(nn.Linear(nz*2, ngf*2*self.init_size**2))
+
+        
+        self.conv_blocks_0_list = []
+        for i in range(num_heads):
+            self.conv_blocks_0_list.append(nn.Sequential(
+                nn.BatchNorm2d(ngf*2),
+                nn.Conv2d(ngf*2, ngf*2, 3, stride=1, padding=1),
+            ))
+            self.add_module(f"gen_{i}", self.conv_blocks_0_list[i])
+            self.conv_blocks_0_list[i].apply(init_weights)
+        
+        self.count = 0
+
+        self.conv_blocks1 = nn.Sequential(
+            nn.BatchNorm2d(ngf*2),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.conv_blocks2 = nn.Sequential(
+            nn.Conv2d(ngf*2, ngf, 3, stride=1, padding=1),
+            nn.BatchNorm2d(ngf),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ngf, nc, 3, stride=1, padding=1),
+            nn.Tanh(),
+            nn.BatchNorm2d(nc, affine=False) 
+        )
+
+    def forward(self, z, label):
+        # Concatenate label embedding and image to produce input
+        label_inp = self.label_emb(label)
+        gen_input = torch.cat((label_inp, z), -1)
+
+        out = self.l1(gen_input.view(gen_input.shape[0],-1))
+        out = out.view(out.shape[0], -1, self.init_size, self.init_size)
+
+        img = self.conv_blocks_0_list[self.count](out)
+        
+        self.count += 1
+        if self.count == self.num_heads:
+            self.count = 0
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks1(img)
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks2(img)
+        return img
+
+class GeneratorDynamic_C(nn.Module):
+    '''
+    Conditional Generator
+    '''
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32, num_heads = 10):
+        super(GeneratorDynamic_C, self).__init__()
+        
+        self.label_emb = nn.Embedding(num_classes, nz)
+        
+        self.init_size = img_size//4
+        
+        self.num_heads = num_heads
+
+        self.l1_list = []
+        for i in range(num_heads):
+            self.l1_list.append(nn.Sequential(nn.Linear(nz*2, ngf*2*self.init_size**2)))
+            self.add_module(f"l1_{i}", self.l1_list[i])
+            self.l1_list[i].apply(init_weights)
+
+        
+        self.conv_blocks_0_list = []
+        for i in range(num_heads):
+            self.conv_blocks_0_list.append(nn.Sequential(
+                nn.BatchNorm2d(ngf*2),
+                nn.Conv2d(ngf*2, ngf*2, 3, stride=1, padding=1),
+            ))
+            self.add_module(f"gen_{i}", self.conv_blocks_0_list[i])
+            self.conv_blocks_0_list[i].apply(init_weights)
+        
+        self.count = 0
+
+        self.conv_blocks1 = nn.Sequential(
+            nn.BatchNorm2d(ngf*2),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.conv_blocks2 = nn.Sequential(
+            nn.Conv2d(ngf*2, ngf, 3, stride=1, padding=1),
+            nn.BatchNorm2d(ngf),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ngf, nc, 3, stride=1, padding=1),
+            nn.Tanh(),
+            nn.BatchNorm2d(nc, affine=False) 
+        )
+
+    def forward(self, z, label):
+        # Concatenate label embedding and image to produce input
+        label_inp = self.label_emb(label)
+        gen_input = torch.cat((label_inp, z), -1)
+
+        out = self.l1_list[self.count](gen_input.view(gen_input.shape[0],-1))
+        out = out.view(out.shape[0], -1, self.init_size, self.init_size)
+
+        img = self.conv_blocks_0_list[self.count](out)
+        
+        self.count += 1
+        if self.count == self.num_heads:
+            self.count = 0
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks1(img)
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks2(img)
+        return img
+
+
+
+
+
+
+
+
+
+
+
+
 
 class ResTransposeBlock(nn.Module):
     expansion = 1

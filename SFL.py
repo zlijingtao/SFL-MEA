@@ -4,6 +4,8 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import models.architectures_torch as architectures
+from models.architectures_torch import init_weights
+from models.fast_meta import ImagePool, DataIter, reset_l0
 from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, TV, l2loss, zeroing_grad
 from utils import freeze_model_bn, average_weights
 import logging
@@ -14,7 +16,9 @@ from shutil import rmtree
 from datasets import get_dataset, denormalize, get_image_shape
 from models import get_model
 from tools import DiffAugment
+from kornia import augmentation # differentiable augmentation
 import wandb
+import tqdm
 
 class Trainer:
     def __init__(self, arch, cutting_layer, batch_size, n_epochs, scheme="V2", num_client=2, dataset="cifar10",
@@ -112,29 +116,119 @@ class Trainer:
                 self.model.local_list[i].cuda()
                 self.local_params.append(self.model.local_list[i].parameters())
 
-            if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
-                self.nz = 512
+        if "surrogate" in self.regularization_option:
+            train_clas_layer = self.model.get_num_of_cloud_layer()
+
+            self.surrogate_model = architectures.create_surrogate_model(arch, cutting_layer, self.num_class, self.model.get_num_of_cloud_layer(), "same")
+
+            self.surrogate_model.resplit(train_clas_layer)
+            self.surrogate_model.local.apply(init_weights)
+            self.surrogate_model.cloud.apply(init_weights)
+
+            # let them be the same model
+            self.surrogate_model.local = self.model.local_list[self.attacker_client_id]
+            self.surrogate_model.cloud.cuda()
+            self.surrogate_model.cloud.train()
+            self.suro_optimizer = torch.optim.SGD(self.surrogate_model.cloud.parameters(), lr=self.lr, momentum=0.9, weight_decay=5e-4)
+            # milestones = [60, 120, 160]
+            milestones = [60, 120]
+            self.suro_scheduler = torch.optim.lr_scheduler.MultiStepLR(self.suro_optimizer, milestones=milestones,
+                                                        gamma=0.2)  # learning rate decay
+
+
+        if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
+            self.nz = 512
+            if "unconditional" not in self.regularization_option:
                 self.generator = architectures.GeneratorC(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
-                self.generator.cuda()
-                # self.local_params.append(self.generator.parameters())
+            else:
+                self.generator = architectures.GeneratorD(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
+            if "multiGAN" in self.regularization_option:
+                if "unconditional" not in self.regularization_option:
+                    self.generator = architectures.GeneratorC_mult(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
+                else:
+                    self.generator = architectures.GeneratorD_mult(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
+                print(self.generator)
+            if "dynamicGAN_A" in self.regularization_option:
+                self.generator = architectures.GeneratorDynamic_A(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_heads = 50)
+            if "dynamicGAN_B" in self.regularization_option:
+                self.generator = architectures.GeneratorDynamic_B(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_heads = 50)
+            if "dynamicGAN_C" in self.regularization_option:
+                self.generator = architectures.GeneratorDynamic_C(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_heads = 50)
+            
+            self.generator.cuda()
+            
+            if "fast_meta" in self.regularization_option:
+                self.data_pool = ImagePool(root=self.save_dir + "/run/")
+                CIFAR10_TRAIN_MEAN = (0.4914, 0.4822, 0.4465)
+                CIFAR10_TRAIN_STD = (0.247, 0.243, 0.261)
+                self.transform = transforms.Compose([
+                    transforms.RandomCrop(32, padding=4),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.RandomRotation(15),
+                    transforms.ToTensor(),
+                    transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD)
+                ])
+                self.aug = transforms.Compose([ 
+                    augmentation.RandomCrop(size=[self.image_shape[-2], self.image_shape[-1]], padding=4),
+                    augmentation.RandomHorizontalFlip(),
+                    transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD),
+                ])
+                # num of steps to train the surrogate model
 
-                self.generator_optimizer = torch.optim.Adam(list(self.generator.parameters()), lr=2e-4, betas=(0.5, 0.999))
-                # self.generator_optimizer = torch.optim.Adam(list(self.generator.parameters()), lr=5e-5)
+                self.kd_step = 5
+                
+            if "cmi" in self.regularization_option:
+                # self.data_pool = ImagePool(root=self.save_dir + "/run/")
+                from models.cmi import MemoryBank, MLPHead, MultiTransform
+                self.bank_size = 40960
+                self.mem_bank = MemoryBank('cpu', max_size=self.bank_size, dim_feat=2 * np.prod(self.model.get_smashed_data_size())) # local + global
 
-                if "D2GAN" in self.regularization_option:
-                    # https://github.com/tund/D2GAN/tree/master
-                    self.d1_alpha = 1.0
-                    self.d2_beta = 1.0
-                    self.d2_strength = 0.1
-                    self.D1 = architectures.D2GAN_discriminator(self.image_shape)
-                    self.D2 = architectures.D2GAN_discriminator(self.image_shape)
-                    d_params = list(self.D1.parameters()) + list(self.D1.parameters())
-                    self.d2_optimizer = torch.optim.Adam(d_params, lr=2e-4, betas=(0.5, 0.999))
-                    # self.d2_optimizer = torch.optim.Adam(d_params, lr=2e-4)
-                elif "normalGAN" in self.regularization_option:
-                    self.d_strength = 0.5
-                    self.D1 = architectures.D2GAN_discriminator(self.image_shape)
-                    self.d_optimizer = torch.optim.Adam(list(self.D1.parameters()), lr=2e-4, betas=(0.5, 0.999))
+                self.head = MLPHead(np.prod(self.model.get_smashed_data_size()), 128).cuda().train()
+                self.optimizer_head = torch.optim.Adam(self.head.parameters(), lr=0.1)
+                CIFAR10_TRAIN_MEAN = (0.4914, 0.4822, 0.4465)
+                CIFAR10_TRAIN_STD = (0.247, 0.243, 0.261)
+                self.aug = MultiTransform([
+                    # global view
+                    transforms.Compose([
+                        augmentation.RandomCrop(size=[self.image_shape[-2], self.image_shape[-1]], padding=4),
+                        augmentation.RandomHorizontalFlip(),
+                        transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD),
+                    ]),
+                    # local view
+                    transforms.Compose([
+                        augmentation.RandomResizedCrop(size=[self.image_shape[-2], self.image_shape[-1]], scale=[0.25, 1.0]),
+                        augmentation.RandomHorizontalFlip(),
+                        transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD),
+                    ]),
+                ])
+                self.n_neg = 4096
+                self.cr_T = 0.1
+                self.cr = 0.8
+                
+                # num of steps to train the surrogate model
+                self.kd_step = 40
+
+            self.generator_optimizer = torch.optim.Adam(list(self.generator.parameters()), lr=2e-4, betas=(0.5, 0.999))
+            # self.generator_optimizer = torch.optim.Adam(list(self.generator.parameters()), lr=5e-5)
+
+            if "EMA" in self.regularization_option:
+                self.slow_generator = copy.deepcopy(self.generator)
+                for param_t in self.slow_generator.parameters():
+                    param_t.requires_grad = False  # not update by gradient
+            if "D2GAN" in self.regularization_option:
+                # https://github.com/tund/D2GAN/tree/master
+                self.d1_alpha = 1.0
+                self.d2_beta = 1.0
+                self.d2_strength = 0.1
+                self.D1 = architectures.D2GAN_discriminator(self.image_shape)
+                self.D2 = architectures.D2GAN_discriminator(self.image_shape)
+                d_params = list(self.D1.parameters()) + list(self.D1.parameters())
+                self.d2_optimizer = torch.optim.Adam(d_params, lr=2e-4, betas=(0.5, 0.999))
+                # self.d2_optimizer = torch.optim.Adam(d_params, lr=2e-4)
+            elif "normalGAN" in self.regularization_option:
+                self.d_strength = 0.5
+                self.D1 = architectures.D2GAN_discriminator(self.image_shape)
+                self.d_optimizer = torch.optim.Adam(list(self.D1.parameters()), lr=2e-4, betas=(0.5, 0.999))
         # setup optimizers
         self.optimizer = torch.optim.SGD(self.params, lr=self.lr, momentum=0.9, weight_decay=5e-4)
         
@@ -190,6 +284,19 @@ class Trainer:
             self.model.resplit(self.cutting_layer, count_from_right=False)
 
         self.validate_target()
+
+        # if surrogate model is enabled. load it too
+        if "surrogate" in self.regularization_option:
+            print("load surrogate client-side")
+            checkpoint = torch.load(self.save_dir + "checkpoint_surrogate_client_{}.tar".format(self.n_epochs))
+            self.surrogate_model.local.cuda()
+            self.surrogate_model.local.load_state_dict(checkpoint, strict = False)
+            print("load surrogate server-side")
+            checkpoint = torch.load(self.save_dir + "checkpoint_surrogate_cloud_{}.tar".format(self.n_epochs))
+            self.surrogate_model.cloud.cuda()
+            self.surrogate_model.cloud.load_state_dict(checkpoint, strict = False)
+
+            self.validate_surrogate()
 
     def sync_client(self, idxs_users = None):
         
@@ -341,6 +448,8 @@ class Trainer:
             for epoch in range(1, self.n_epochs+1):
                 if epoch > self.warm:
                     self.scheduler_step(epoch)
+                    if "surrogate" in self.regularization_option:
+                        self.suro_scheduler.step(epoch)
                 
                 if self.client_sample_ratio  == 1.0:
                     idxs_users = range(self.num_client)
@@ -407,7 +516,7 @@ class Trainer:
                             if epoch > self.attack_start_epoch:
                                 
                                 if "craft_train_ME" in self.regularization_option:
-                                    train_loss, f_loss = self.craft_train_target_step(client_id)
+                                    train_loss, f_loss = self.craft_train_target_step(client_id, epoch, batch)
                                 elif "gan_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.gan_train_target_step(client_id, self.batch_size, epoch, batch)
                                 elif "gan_assist_train_ME" in self.regularization_option:
@@ -450,6 +559,12 @@ class Trainer:
                 avg_accu = 0
                 avg_accu, loss = self.validate_target(client_id=0)
                 wandb.log({f"val_acc": avg_accu, "val_loss": loss})
+                
+                if "surrogate" in self.regularization_option:
+                    surro_accu, loss = self.validate_surrogate()
+                    wandb.log({f"surrogate_acc": surro_accu, "surrogate_val_loss": loss})
+
+                
                 # Save the best model
                 if avg_accu > best_avg_accu:
                     self.save_model(epoch, is_best=True)
@@ -458,7 +573,8 @@ class Trainer:
                 # Save Model regularly
                 if epoch % 50 == 0 or epoch == self.n_epochs or epoch in epoch_save_list:  # save model
                     self.save_model(epoch)
-                    
+                    if "surrogate" in self.regularization_option:
+                        self.save_surrogate(epoch)
                     if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
                         torch.save(self.generator.state_dict(), self.save_dir + 'checkpoint_generator_{}.tar'.format(epoch))
         
@@ -470,8 +586,15 @@ class Trainer:
             train_output_path = "{}/generator_final".format(self.save_dir)
             for i in range(self.num_class):
                 labels = i * torch.ones([10, ]).long().cuda()
+                
                 #Get fake image from generator
-                fake = self.generator(z, labels) # pre_x returns the output of G before applying the activation
+                if "multiGAN" not in self.regularization_option:
+                    fake = self.generator(z, labels) # pre_x returns the output of G before applying the activation
+                else:
+                    fake_list = []
+                    for j in range(len(self.generator.generator_list)):
+                        fake_list.append(self.generator.generator_list[j](z, labels))
+                    fake = torch.cat(fake_list, dim = 0)
 
                 imgGen = fake.clone()
                 imgGen = denormalize(imgGen, self.dataset)
@@ -557,21 +680,58 @@ class Trainer:
         self.logger.debug(' * Prec@1 {top1.avg:.3f}'.format(top1=top1))
         return top1.avg, losses.avg
 
+
+    def validate_surrogate(self):
+        """
+        Run evaluation
+        """
+        # batch_time = AverageMeter()
+        losses = AverageMeter()
+        top1 = AverageMeter()
+        val_loader = self.pub_dataloader
+
+        # switch to evaluate mode
+        self.surrogate_model.local.eval()
+        self.surrogate_model.cloud.eval()
+        criterion = nn.CrossEntropyLoss()
+
+        if self.arch == "ViT":
+            dl_transforms = torch.nn.Sequential(
+                transforms.Resize(224),
+                transforms.CenterCrop(224))
+
+        for i, (input, target) in enumerate(val_loader):
+            if self.arch == "ViT":
+                input = dl_transforms(input)
+            input = input.cuda()
+            target = target.cuda()
+            # compute output
+            with torch.no_grad():
+                output = self.surrogate_model(input)
+                loss = criterion(output, target)
+
+            output = output.float()
+            loss = loss.float()
+            # measure accuracy and record loss
+            prec1 = accuracy(output.data, target)[0]
+            losses.update(loss.item(), input.size(0))
+            top1.update(prec1.item(), input.size(0))
+
+        self.logger.debug('Test (surrogate):\t' 'Loss {loss.val:.4f} ({loss.avg:.4f})\t' 'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(loss=losses,top1=top1))
+        self.logger.debug(' * Prec@1 {top1.avg:.3f}'.format(top1=top1))
+        return top1.avg, losses.avg
+    
+    
+    
+    
+    
+    
     def train_target_step(self, x_private, label_private, client_id, epoch, batch, save_grad = False, skip_regularization = False):
         self.model.cloud.train()
         self.model.local_list[client_id].train()
         
         if save_grad and "diffaug" in self.regularization_option:
-            if "half_half" not in self.regularization_option:
-                x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
-            else:
-                x_private = torch.cat([DiffAugment.DiffAugment(x_private[:x_private.size(0)//2, :, :, :], 'color,translation,cutout'), x_private[x_private.size(0)//2:, :, :, :]], dim = 0) # a parameterized augmentation module.
-        
-        if save_grad and "reverse_grad" in self.regularization_option: #TODO: test this
-            x_private.requires_grad = True
-            def noise_hook(grad):
-                return torch.multiply(grad, -1 * torch.ones_like(grad))
-            h = x_private.register_hook(noise_hook)
+            x_private = torch.cat([DiffAugment.DiffAugment(x_private[:x_private.size(0)//2, :, :, :], 'color,translation,cutout'), x_private[x_private.size(0)//2:, :, :, :]], dim = 0) # a parameterized augmentation module.
 
         if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
             # collect gradient
@@ -669,9 +829,6 @@ class Trainer:
 
         total_loss.backward()
 
-        if save_grad and "reverse_grad" in self.regularization_option: #TODO: test this
-            h.remove()
-        
         if not skip_regularization:
             if "gradient_noise" in self.regularization_option and self.arch != "ViT":
                 h.remove()
@@ -704,12 +861,61 @@ class Trainer:
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
+        
+        
+        if "surrogate" in self.regularization_option and "naive_train_ME" in self.regularization_option:
+            self.surrogate_model.local.eval()
+            self.surrogate_model.cloud.train()
+            with torch.no_grad():
+                suro_act = self.surrogate_model.local(x_private.detach())
+            suro_output = self.surrogate_model.cloud(suro_act)
+            suro_loss = criterion(suro_output, label_private)
+            self.suro_optimizer.zero_grad()
+            suro_loss.backward()
+            self.suro_optimizer.step()
+            del suro_loss
+        elif "surrogate" in self.regularization_option and "GM_train_ME" in self.regularization_option:
+            self.surrogate_model.local.eval()
+            self.surrogate_model.cloud.train()
+            with torch.no_grad():
+                suro_act = self.surrogate_model.local(x_private.detach())
+            suro_act.requires_grad = True
+            suro_output = self.surrogate_model.cloud(suro_act)
+            suro_loss = criterion(suro_output, label_private)
+
+            gradient_loss_style = "l2"
+            grad_lambda = 1.0
+            grad_approx = torch.autograd.grad(suro_loss, suro_act, create_graph = True)[0]
+            if gradient_loss_style == "l2":
+                grad_loss = ((z_private.grad.detach() - grad_approx).norm(dim=1, p =2)).mean()
+            elif gradient_loss_style == "l1":
+                grad_loss = ((z_private.grad.detach() - grad_approx).norm(dim=1, p =1)).mean()
+            elif gradient_loss_style == "cosine":
+                grad_loss = torch.mean(1 - F.cosine_similarity(grad_approx, z_private.grad.detach(), dim=1))
+            suro_grad_loss = grad_loss * grad_lambda
+            self.suro_optimizer.zero_grad()
+
+            suro_grad_loss.backward()
+
+
+            # suro_loss.backward()
+            self.suro_optimizer.step()
         return total_losses, f_losses
     
-    def craft_train_target_step(self, client_id):
+    def craft_train_target_step(self, client_id, epoch, batch):
         lambda_TV = 0.0
         lambda_l2 = 0.0
         craft_LR = 1e-1
+
+        if epoch > 60:
+            craft_LR /= 5
+
+        if epoch > 120:
+            craft_LR /= 5
+
+        if epoch > 160:
+            craft_LR /= 5
+
         criterion = torch.nn.CrossEntropyLoss()
         
         self.model.cloud.train()
@@ -769,6 +975,21 @@ class Trainer:
         torch.save(z_private.grad.detach().cpu(), image_save_path + f'grad_{self.craft_image_id}.pt')
 
         self.craft_step_count += 1
+
+        if "surrogate" in self.regularization_option:
+            self.surrogate_model.local.eval()
+            self.surrogate_model.cloud.train()
+            
+            with torch.no_grad():
+                suro_act = self.surrogate_model.local(fake_image.detach())
+            suro_output = self.surrogate_model.cloud(suro_act)
+            # suro_output = self.surrogate_model(fake_image.detach())
+            suro_loss = criterion(suro_output, fake_label)
+            self.suro_optimizer.zero_grad()
+            suro_loss.backward()
+            self.suro_optimizer.step()
+            del suro_loss
+
         return totalLoss.detach().cpu().numpy(), featureLoss.detach().cpu().numpy()
 
     def gan_train_target_step(self, client_id, batch_size, epoch, batch):
@@ -784,6 +1005,7 @@ class Trainer:
         self.model.local_list[client_id].train()
         self.generator.cuda()
         self.generator.train()
+        
         self.generator_optimizer.zero_grad()
         train_output_path = self.save_dir + "generator_train"
         if os.path.isdir(train_output_path):
@@ -803,6 +1025,16 @@ class Trainer:
         #Get fake image from generator
         x_private = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
 
+        if "EMA" in self.regularization_option: # if enable EMA, then alternating G and slow G
+            self.slow_generator.cuda()
+            self.slow_generator.eval()
+            x_private_slow = self.slow_generator(z, label_private).detach()
+
+
+            x_private = torch.cat([x_private[:x_private.size(0)//2, :, :, :], x_private_slow[x_private.size(0)//2:, :, :, :]], dim = 0)
+            # if batch % 2 == 1:
+            #     x_private = x_private_slow
+
         if poison_option and batch % 2 == 1: #poison step
             label_private = torch.randint(low=0, high=self.num_class, size = [self.batch_size, ]).cuda()
             x_private = x_private.detach()
@@ -815,34 +1047,27 @@ class Trainer:
             torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch,
                                                                                             batch * self.batch_size + self.batch_size))
         
-        # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
-        g_noise_out_dist = torch.mean(torch.abs(x_private[:B, :] - x_private[B:, :]))
-        g_noise_z_dist = torch.mean(torch.abs(z[:B, :] - z[B:, :]).view(B,-1),dim=1)
-        noise_w = 50
-
-        if "noreg" in self.regularization_option:
-            noise_w = 0
-
-        g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
-
-        # z_private = self.model.local_list[client_id](x_private)
-
-        # output = self.model.cloud(z_private)
-        output = self.model(x_private)
+        z_private = self.model.local_list[client_id](x_private)
+        output = self.model.cloud(z_private)
         
         criterion = torch.nn.CrossEntropyLoss()
 
         f_loss = criterion(output, label_private)
 
-        total_loss = f_loss - g_noise
+        total_loss = f_loss
 
         if "gradient_noise" in self.regularization_option: #TODO: test this
             def noise_hook(grad):
                 return torch.add(grad, 0.01 * torch.rand_like(grad).cuda())
             h = x_private.register_hook(noise_hook)
 
-        total_loss.backward()
+        if "adversary" in self.regularization_option:
+            total_loss.backward(retain_graph = True)
+        else:
+            total_loss.backward()
+            
         self.generator_optimizer.step()
+        
         zeroing_grad(self.model.local_list[client_id])
 
         if "gradient_noise" in self.regularization_option: #TODO: test this
@@ -851,6 +1076,50 @@ class Trainer:
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
+
+        if "surrogate" in self.regularization_option:
+            self.surrogate_model.local.eval()
+            self.surrogate_model.cloud.train()
+            with torch.no_grad():
+                suro_act = self.surrogate_model.local(x_private.detach())
+            suro_output = self.surrogate_model.cloud(suro_act)
+            suro_loss = criterion(suro_output, label_private)
+            
+            self.suro_optimizer.zero_grad()
+            suro_loss.backward()
+            self.suro_optimizer.step()
+
+
+            if "adversary" in self.regularization_option:
+                self.generator_optimizer.zero_grad()
+                # generator get reverse
+                with torch.no_grad():
+                    suro_z_private = self.surrogate_model.local(x_private)
+                
+                suro_output = self.surrogate_model.cloud(suro_z_private)
+
+                suro_loss = criterion(suro_output, label_private)
+
+                adversary_loss = - 2.0 * suro_loss # maximize this loss.
+
+                adversary_loss.backward() # this only affect generator
+                
+                self.generator_optimizer.step()
+
+                # print(f"adversarial loss is {adversary_loss.item()}")
+
+                del adversary_loss
+                
+                
+
+
+            del suro_loss
+
+        if "EMA" in self.regularization_option:
+            with torch.no_grad():
+                for online, target in zip(self.generator.parameters(), self.slow_generator.parameters()):
+                    target.data = 0.95 * target.data + 0.05 * online.data
+
 
         return total_losses, f_losses
 
@@ -888,28 +1157,62 @@ class Trainer:
 
         # apply diffaug during the training to allow more variation to the input images.
         if "diffaug" in self.regularization_option:
-            if "half_half" not in self.regularization_option:
-                x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
-            else:
-                x_private = torch.cat([DiffAugment.DiffAugment(x_private[:x_private.size(0)//2, :, :, :], 'color,translation,cutout'), x_private[x_private.size(0)//2:, :, :, :]], dim = 0) # a parameterized augmentation module.
-        
-        #Sample Random Noise
-        # z = torch.randn((x_private.size(0), self.nz)).cuda()
-        
-        z_label = torch.stack([label_private, label_private]).view(-1)
+            x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
 
-        #Get class-dependent noise, adding to x_private lately
-        z = torch.randn((x_private.size(0) * 2, self.nz)).cuda()
-        x_noise = self.generator(z, z_label) # pre_x returns the output of G before applying the activation
         
-        if "half_half" in self.regularization_option:
-            x_fake = torch.cat([self.regularization_strength * x_noise[:x_private.size(0)//2, :, :, :] + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+        if "fast_meta" in self.regularization_option:
+            self.z = torch.randn(size=(self.batch_size, self.nz), device="cuda:0").requires_grad_() 
+            self.generator_optimizer = torch.optim.Adam([
+                {'params': self.generator.parameters()},
+                {'params': [self.z], 'lr': 0.015}
+            ], lr=5e-3, betas=[0.5, 0.999])
+            if epoch == 120 and batch == 0:
+                reset_l0(self.generator)
+            
+            if epoch % 5 == 0:
+                self.data_pool.reset()
+            x_noise = self.generator(self.z[:x_private.size(0)//2, :], label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
+            
+        
+        elif "cmi" in self.regularization_option:
+            # self.z = torch.randn(size=(self.batch_size, self.nz), device="cuda:0").requires_grad_() 
+            self.generator_optimizer = torch.optim.Adam([
+                {'params': self.generator.parameters()}
+            ], lr=5e-3, betas=[0.5, 0.999])
+            if epoch == 120 and batch == 0:
+                reset_l0(self.generator)
+            # if epoch % 5 == 0:
+            #     self.data_pool.reset()
+            z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
+            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
         else:
-            x_fake = self.regularization_strength * x_noise[:x_private.size(0), :, :, :] + (1 - self.regularization_strength) * x_private
+            #Get class-dependent noise, adding to x_private lately
+            z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
+            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
 
+
+        if "EMA" in self.regularization_option: # if enable EMA, then alternating G and slow G
+            self.slow_generator.cuda()
+            self.slow_generator.eval()
+            x_noise_slow = self.slow_generator(z, label_private[:x_private.size(0)//2]).detach()
+
+            # if batch % 2 == 1:
+            #     x_noise = x_noise_slow
+            x_noise = torch.cat([x_noise[:x_noise.size(0)//2, :, :, :], x_noise_slow[x_noise.size(0)//2:, :, :, :]], dim = 0)
+
+        # enable half-half style by default
+        x_fake = torch.cat([self.regularization_strength * x_noise + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+        
+
+
+        #augmentation:
+        if "fast_meta" in self.regularization_option:
+            x_fake = self.aug(x_fake)
+        elif "cmi" in self.regularization_option:
+            x_fake, x_fake_local = self.aug(x_fake)
 
         if "D2GAN" in self.regularization_option:
-            if "half_half" in self.regularization_option and batch // 2 == 0:
+            if batch // 2 == 0:
                 self.d2_optimizer.zero_grad()
                 
                 d1_loss = torch.mean(-self.d1_alpha * torch.log(self.D1(x_fake[x_private.size(0)//2:, :, :, :].detach())) + self.D1(x_fake[:x_private.size(0)//2, :, :, :].detach()))
@@ -918,28 +1221,14 @@ class Trainer:
                 d_loss.backward()
                 self.d2_optimizer.step()
         elif "normalGAN" in self.regularization_option:
-            if "half_half" in self.regularization_option and batch // 2 == 0:
+            if batch // 2 == 0:
                 self.d_optimizer.zero_grad()
                 
                 # d_loss = torch.mean(-torch.log(self.D1(x_fake[x_private.size(0)//2:, :, :, :].detach())) + self.D1(x_fake[:x_private.size(0)//2, :, :, :].detach()))
                 d_loss = torch.mean(self.D1(x_fake[x_private.size(0)//2:, :, :, :].detach()) -  torch.log(self.D1(x_fake[:x_private.size(0)//2, :, :, :].detach())))
                 d_loss.backward()
                 self.d_optimizer.step()
-        # else:
         
-        #     x_noise = self.regularization_strength * x_noise
-        #     if "half_half" in self.regularization_option:
-        #         x_fake = torch.cat([x_noise[:x_private.size(0)//2, :, :, :] + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-        #     else:
-        #         x_fake = x_noise[:x_private.size(0), :, :, :] + x_private
-        
-        #TODO:
-        # step-1 scale the Gnoise to L norm
-        # step-2 reverse the direction of the gradients on Gnoise. when backprop.
-        # see how it goes.
-
-        #TODO::
-        # increase number samples from DiffAug
         if epoch % 5 == 0 and batch == 0:
             imgGen = x_noise.clone()
             imgGen = denormalize(imgGen, self.dataset)
@@ -948,62 +1237,54 @@ class Trainer:
             torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
         
 
-        output = self.model(x_fake)
-        
+        z_private = self.model.local_list[client_id](x_fake)
+        if "GM" in self.regularization_option:
+            z_private.retain_grad()
+        output = self.model.cloud(z_private)
+
+
         criterion = torch.nn.CrossEntropyLoss()
 
         f_loss = criterion(output, label_private)
 
-        # bound x_noise
-        # if "norm1" in self.regularization_option:
-        #     lnorm_penalty = (torch.norm(x_noise, 1)/torch.numel(x_noise) - self.regularization_strength) ** 2
-        #     total_loss = f_loss + lnorm_penalty
-        # elif "var" in self.regularization_option:
-        #     lnorm_penalty = (torch.mean(torch.std(x_noise, dim = [1,2,3])) - self.regularization_strength) ** 2
-        #     total_loss = f_loss + lnorm_penalty
-        # elif "norm2" in self.regularization_option:
-        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-        #     lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-        #     # lnorm_penalty = 0.1 * torch.norm(x_noise - 0.1, 2) # fix x_noise to be around 0.1
-        #     total_loss = f_loss + lnorm_penalty
-        # elif "plateau1" in self.regularization_option:
-        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-        #     lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.1, 1) # fix x_noise to be around 0.1
-        #     total_loss = f_loss + lnorm_penalty
-        # elif "plateau2" in self.regularization_option:
-        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-        #     # lnorm_penalty = (torch.norm(x_noise, 2)/torch.numel(x_noise) - self.regularization_strength) ** 2
-        #     lnorm_penalty = self.regularization_strength * torch.norm(x_noise - 0.1, 2) # fix x_noise to be around 0.1
-        #     total_loss = f_loss + lnorm_penalty
-        # else:
         total_loss = f_loss
 
-        if "diverse" in self.regularization_option:
-            # Diversity-aware regularization https://sites.google.com/view/iclr19-dsgan/
-            g_noise_out_dist = torch.mean(torch.abs(x_noise[:x_private.size(0), :] - x_noise[x_private.size(0):, :]))
-            g_noise_z_dist = torch.mean(torch.abs(z[:x_private.size(0), :] - z[x_private.size(0):, :]).view(x_private.size(0),-1),dim=1)
-            noise_w = 50
-            g_noise = torch.mean( g_noise_out_dist / g_noise_z_dist ) * noise_w
-            if "reverse_grad" in self.regularization_option:
-                total_loss += g_noise
+        if "cmi" in self.regularization_option:
+            if x_private.size(0) != self.batch_size:
+                pass
             else:
-                total_loss -= g_noise
-        
+                global_feature = z_private.detach().view(x_private.size(0), -1)
+                with torch.no_grad():
+                    local_feature = self.model.local_list[client_id](x_fake_local).view(x_private.size(0), -1)
+                cached_feature, _ = self.mem_bank.get_data(self.n_neg)
+                cached_local_feature, cached_global_feature = torch.chunk(cached_feature.cuda(), chunks=2, dim=1)
+                proj_feature = self.head( torch.cat([local_feature, cached_local_feature, global_feature, cached_global_feature], dim=0) )
+                proj_local_feature, proj_global_feature = torch.chunk(proj_feature, chunks=2, dim=0)
+                # A naive implementation of contrastive loss
+                cr_logits = torch.mm(proj_local_feature, proj_global_feature.detach().T) / self.cr_T # (N + N') x (N + N')
+                cr_labels = torch.arange(start=0, end=len(cr_logits), device="cuda:0")
+                loss_cr = F.cross_entropy( cr_logits, cr_labels, reduction='none')  #(N + N')
+                if self.mem_bank.n_updates>0:
+                    loss_cr = loss_cr[:x_private.size(0)].mean() + loss_cr[x_private.size(0):].mean()
+                else:
+                    loss_cr = loss_cr.mean()
+
+                total_loss += self.cr * loss_cr
+                self.mem_bank.add( torch.cat([local_feature.data, global_feature.data], dim=1).data )
+
+
         if "D2GAN" in self.regularization_option:
-            if "half_half" in self.regularization_option:
-                d2gan_loss = torch.mean(-self.D1(x_fake[:x_private.size(0)//2, :, :, :]) + self.d2_beta * torch.log(self.D2(x_fake[:x_private.size(0)//2, :, :, :])))
-                total_loss += self.d2_strength * d2gan_loss
-                # d2_loss = self.D2(x_fake[x_private.size(0)//2:, :, :, :].detach()) - beta * torch.log(self.D2(x_fake[:x_private.size(0)//2, :, :, :].detach()))
+            d2gan_loss = torch.mean(-self.D1(x_fake[:x_private.size(0)//2, :, :, :]) + self.d2_beta * torch.log(self.D2(x_fake[:x_private.size(0)//2, :, :, :])))
+            total_loss += self.d2_strength * d2gan_loss
         elif "normalGAN" in self.regularization_option:
-            if "half_half" in self.regularization_option:
-                # normalgan_loss = torch.mean(-self.D1(x_fake[:x_private.size(0)//2, :, :, :]))
-                normalgan_loss = torch.mean(torch.log(self.D1(x_fake[:x_private.size(0)//2, :, :, :])))
-                total_loss += self.d_strength * normalgan_loss
-        if "reverse_grad" in self.regularization_option: 
-            def noise_hook(grad):
-                return torch.multiply(grad, -1 * torch.ones_like(grad).cuda())
-            h = x_fake.register_hook(noise_hook)
+            normalgan_loss = torch.mean(torch.log(self.D1(x_fake[:x_private.size(0)//2, :, :, :])))
+            total_loss += self.d_strength * normalgan_loss
+        
+        if "reg" in self.regularization_option:
+            lambda_TV = 6e-3
+            lambda_l2 = 1.5e-5
+            total_loss += lambda_TV * TV(x_fake)
+            total_loss += lambda_l2 * l2loss(x_fake)
         
         if "gradient_noise" in self.regularization_option:
             def noise_hook(grad):
@@ -1011,28 +1292,152 @@ class Trainer:
             h = x_fake.register_hook(noise_hook)
         
         self.generator_optimizer.zero_grad()
-        total_loss.backward()
+        if "cmi" in self.regularization_option:
+            self.optimizer_head.zero_grad()
+        
+        if "adversary" in self.regularization_option or "GM" in self.regularization_option:
+            total_loss.backward(retain_graph=True)
+        else:
+            total_loss.backward()
         self.generator_optimizer.step()
-        # collect images and labels
+        
+        
+        
+        if "cmi" in self.regularization_option:
+            self.optimizer_head.step()
 
 
         if "gradient_noise" in self.regularization_option: #TODO: test this
             h.remove()
-        if "reverse_grad" in self.regularization_option: #TODO: test this
-            h.remove()
+        
         
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
 
+        if "surrogate" in self.regularization_option:
+            self.surrogate_model.local.eval()
+            self.surrogate_model.cloud.train()
+
+
+            if "fast_meta" in self.regularization_option:
+                self.data_pool.add(x_fake.data.cpu(), label_private.data.cpu())
+                dst = self.data_pool.get_dataset(transform=self.transform)
+                loader = torch.utils.data.DataLoader(
+                    dst, batch_size=self.batch_size, shuffle=True,
+                    num_workers=4, pin_memory=True, sampler=None)
+                self.data_iter = DataIter(loader)
+
+                for _ in range(self.kd_step):
+                    syns_image, syns_label = self.data_iter.next()
+                    syns_image = syns_image.cuda()
+                    syns_label = syns_label.cuda()
+                    with torch.no_grad():
+                        suro_act = self.surrogate_model.local(syns_image.detach())
+                    suro_output = self.surrogate_model.cloud(suro_act)
+                    suro_loss = criterion(suro_output, syns_label)
+                    self.suro_optimizer.zero_grad()
+                    suro_loss.backward()
+                    self.suro_optimizer.step()
+
+            else:
+            
+                with torch.no_grad():
+                    suro_act = self.surrogate_model.local(x_fake.detach())
+                suro_output = self.surrogate_model.cloud(suro_act)
+                suro_loss = criterion(suro_output, label_private)
+
+                self.suro_optimizer.zero_grad()
+                suro_loss.backward()
+                self.suro_optimizer.step()
+
+            # if "GM" in self.regularization_option:
+            #     target_grad = z_private.grad.detach()
+
+            #     with torch.no_grad():
+            #         suro_act = self.surrogate_model.local(x_fake.detach())
+            #     suro_act.requires_grad = True
+                
+                
+            #     suro_output = self.surrogate_model.cloud(suro_act)
+            #     suro_loss = criterion(suro_output, label_private)
+
+            #     grad_approx = torch.autograd.grad(suro_loss, suro_act, create_graph = True)[0]
+
+            #     grad_loss = ((target_grad - grad_approx).norm(dim=1, p =2)).mean()
+
+            #     self.suro_optimizer.zero_grad()
+
+            #     grad_loss.backward()
+
+            #     self.suro_optimizer.step()
+
+            
+            if "adversary" in self.regularization_option:
+                
+                # adversarial generate hard samples
+                self.generator_optimizer.zero_grad()
+                
+                # generator get reverse
+                with torch.no_grad():
+                    suro_z_private = self.surrogate_model.local(x_fake)
+                suro_output = self.surrogate_model.cloud(suro_z_private)
+
+                suro_loss = criterion(suro_output, label_private)
+
+                adversary_loss = - 2.0 * suro_loss # maximize this loss.
+                
+                if "GM" in self.regularization_option:
+                    adversary_loss.backward(retain_graph=True) # this only affect generator
+                else:
+                    adversary_loss.backward()
+                
+                self.generator_optimizer.step()
+
+                # print(f"adversarial loss is {adversary_loss.item()}")
+
+                del adversary_loss
+            
+            if "GM" in self.regularization_option:
+                target_grad = z_private.grad.detach()
+
+                # adversarial gradient matching
+                self.generator_optimizer.zero_grad()
+                
+                # generator get reverse
+                with torch.no_grad():
+                    suro_z_private = self.surrogate_model.local(x_fake)
+                suro_z_private.requires_grad = True
+                suro_output = self.surrogate_model.cloud(suro_z_private)
+
+                suro_loss = criterion(suro_output, label_private)
+
+                gradient_loss_style = "l2"
+                grad_approx = torch.autograd.grad(suro_loss, suro_z_private, create_graph = True)[0]
+                if gradient_loss_style == "l2":
+                    grad_loss = - ((target_grad - grad_approx).norm(dim=1, p =2)).mean()
+                elif gradient_loss_style == "l1":
+                    grad_loss = - ((target_grad - grad_approx).norm(dim=1, p =1)).mean()
+                elif gradient_loss_style == "cosine":
+                    grad_loss = - torch.mean(1 - F.cosine_similarity(grad_approx, target_grad, dim=1))
+                
+                grad_loss.backward() # this only affect generator
+                
+                self.generator_optimizer.step()
+
+                del grad_loss
+                
+
+            del suro_loss
+        
+        
+
+        if "EMA" in self.regularization_option:
+            with torch.no_grad():
+                for online, target in zip(self.generator.parameters(), self.slow_generator.parameters()):
+                    target.data = 0.95 * target.data + 0.05 * online.data
+        
         return total_losses, f_losses
-
-
-
-    
-
-
-
 
     def save_model(self, epoch, is_best=False):
         if is_best:
@@ -1040,7 +1445,11 @@ class Trainer:
         torch.save(self.model.local_list[0].state_dict(), self.save_dir + 'checkpoint_client_{}.tar'.format(epoch))
         torch.save(self.model.cloud.state_dict(), self.save_dir + 'checkpoint_cloud_{}.tar'.format(epoch))
 
-    
+    def save_surrogate(self, epoch, is_best=False):
+        if is_best:
+            epoch = "best"
+        torch.save(self.surrogate_model.local.state_dict(), self.save_dir + 'checkpoint_surrogate_client_{}.tar'.format(epoch))
+        torch.save(self.surrogate_model.cloud.state_dict(), self.save_dir + 'checkpoint_surrogate_cloud_{}.tar'.format(epoch))
 
     def get_data_MEA_client(self, client_iterator_list, client_id, epoch, dl_transforms):
 

@@ -887,37 +887,39 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
                 save_label.append(log_prob.cpu().clone())
         return save_images, save_grad, save_label
     
-    elif attack_style == "Generator_option":
-        # try:
-        #     nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
-        # except:
-        nz = 512
-        print(f"latent vector dim: {nz}")
-        generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
-        '''GAN_ME, data-free model extraction, train a conditional GAN, train-time option: use 'gan_train' in regularization_option'''
-        train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = False)
-        return generator
-    
-    elif attack_style == "Generator_option_resume":
+    elif attack_style == "Generator_option" or attack_style == "Generator_option_resume":
         print(save_dir)
-        # try:
-        #     nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
-        # except:
         nz = 512
         print(f"latent vector dim: {nz}")
-        generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
+        
+        if "multiGAN" not in regularization:
+            if "unconditional" not in regularization:
+                generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
+            else:
+                generator = architectures.GeneratorD(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
+        else:
+            if "unconditional" not in regularization:
+                generator = architectures.GeneratorC_mult(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
+            else:
+                generator = architectures.GeneratorD_mult(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
         # get prototypical data using GAN, training generator consumes grad query.
         train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = True)
         return generator
     
     elif attack_style == "Generator_assist_option_resume" or attack_style == "Generator_assist_option_resume_cleandata": #TODO: add a offline MEA version here
         print(save_dir)
-        # try:
-        #     nz = int(float(save_dir.split("step")[-1].split("-")[0]) * 512)
-        # except:
         nz = 512
         print(f"latent vector dim: {nz}")
-        generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
+        if "multiGAN" not in regularization:
+            if "unconditional" not in regularization:
+                generator = architectures.GeneratorC(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
+            else:
+                generator = architectures.GeneratorD(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
+        else:
+            if "unconditional" not in regularization:
+                generator = architectures.GeneratorC_mult(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
+            else:
+                generator = architectures.GeneratorD_mult(nz=nz, num_classes = num_class, ngf=128, nc=image_shape[0], img_size=image_shape[-1])
         # get prototypical data using GAN, training generator consumes grad query.
         train_generator(logger, save_dir, target_model, generator, target_dataset_name, num_class, num_query, nz, resume = True, assist = True)
         
@@ -1358,26 +1360,32 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
                 # get images and labels from dl,
 
                 if "cleandata" not in attack_style:
-                    z = torch.randn((image.size(0), nz)).cuda()
+                    z = torch.randn((image.size(0)//2, nz)).cuda()
 
-                    random_mask = torch.randint(low=0, high=2, size = [image.size(0), ]).cuda()
+                    # random_mask = torch.randint(low=0, high=2, size = [image.size(0), ]).cuda()
 
-                    noise = generator(z, label)
+                    noise = generator(z, label[:image.size(0)//2])
 
-                    fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
+                    fake_input = torch.cat([regularization_strength * noise + (1 - regularization_strength) * image[:image.size(0)//2, :, :, :], image[image.size(0)//2:, :, :, :]], dim = 0)
+
+                    # print(fake_input.size())
+                    # print(label.size())
+                    # fake_input = random_mask.unsqueeze(1).unsqueeze(2).unsqueeze(3) * noise   + image
                 
                 else:
                     fake_input = image
 
                 #Save images to file
                 if epoch == 1:
-                    noise = noise.clone()
-                    fake_input = torch.clip((noise - torch.mean(noise)) / torch.std(noise), -1, 1)
+                    # noise = noise.clone()
+                    # fake_input = torch.clip((noise - torch.mean(noise)) / torch.std(noise), -1, 1)
                     imgGen = fake_input.clone()
                     imgGen = denormalize(imgGen, target_dataset_name)
                     if not os.path.isdir(test_output_path + "/{}".format(epoch)):
                         os.mkdir(test_output_path + "/{}".format(epoch))
                     torchvision.utils.save_image(imgGen, test_output_path + '/{}/out_{}.jpg'.format(epoch, idx * image.size(0) + image.size(0)))
+                
+                
                 suro_optimizer.zero_grad()
 
                 output = surrogate_model(fake_input)
