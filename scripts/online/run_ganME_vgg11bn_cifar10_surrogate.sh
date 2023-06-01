@@ -13,12 +13,7 @@ learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.003
 attack_epochs=200
 attack_client=0
-#because ganME is to train a model, we sweep the start epoch (training the generator)
-# regularization_list="gan_train_ME_start160 gan_train_ME_start180 gan_train_ME_start190"
-# regularization_list="gan_train_ME_start180"
-
-# regularization_list="gan_train_ME_noreg_surrogate_start0 gan_train_ME_noreg_multiGAN_surrogate_start0"
-regularization_list="gan_train_ME_noreg_multiGAN_surrogate_matching_start0"
+regularization_list="gan_train_ME_noreg_multiGAN_surrogate_start0"
 cutlayer_list="10"
 regularization_strength_list="1.0"
 num_client_list="5"

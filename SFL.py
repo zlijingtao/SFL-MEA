@@ -380,7 +380,8 @@ class Trainer:
         self.logger.debug(f"Perform {self.regularization_option}, total query: {num_query}, starting at {self.attack_start_epoch} epoch, {extra_txt}")
 
         best_avg_accu = 0.0
-        
+        if "surrogate" in self.regularization_option:
+            best_avg_surro_accu = 0.0
         if not self.call_resume:
             LOG = np.zeros((self.n_epochs * self.num_batches, self.num_client))
 
@@ -563,7 +564,8 @@ class Trainer:
                 if "surrogate" in self.regularization_option:
                     surro_accu, loss = self.validate_surrogate()
                     wandb.log({f"surrogate_acc": surro_accu, "surrogate_val_loss": loss})
-
+                    if surro_accu > best_avg_surro_accu:
+                        best_avg_surro_accu = surro_accu
                 
                 # Save the best model
                 if avg_accu > best_avg_accu:
@@ -577,7 +579,13 @@ class Trainer:
                         self.save_surrogate(epoch)
                     if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
                         torch.save(self.generator.state_dict(), self.save_dir + 'checkpoint_generator_{}.tar'.format(epoch))
-        
+                # Report Final Accuracy
+                if epoch == self.n_epochs:
+                    self.logger.debug("Final Target Validation Accuracy is {}".format(avg_accu))
+                    wandb.run.summary["Final-Val-Accuracy"] = avg_accu
+                    if "surrogate" in self.regularization_option:
+                        self.logger.debug("Final Surrogate Validation Accuracy is {}".format(surro_accu))
+                    wandb.run.summary["Final-Surrogate-Accuracy"] = surro_accu
         #save final images for gan_train_ME generator.
         if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
             self.generator.cuda()
@@ -606,8 +614,11 @@ class Trainer:
             torch.save(self.generator.state_dict(), self.save_dir + 'checkpoint_generator_{}.tar'.format(epoch))
 
         if not self.call_resume:
-            self.logger.debug("Best Average Validation Accuracy is {}".format(best_avg_accu))
+            self.logger.debug("Best Target Validation Accuracy is {}".format(best_avg_accu))
             wandb.run.summary["Best-Val-Accuracy"] = best_avg_accu
+            if "surrogate" in self.regularization_option:
+                self.logger.debug("Best Surrogate Validation Accuracy is {}".format(best_avg_surro_accu))
+            wandb.run.summary["Best-Surrogate-Accuracy"] = best_avg_surro_accu
         else:
             LOG = None
             avg_accu = 0
@@ -810,23 +821,8 @@ class Trainer:
                 total_loss = total_loss + l2_regularization
             
             if "gradient_noise" in self.regularization_option and self.arch != "ViT":
-                def noise_hook(grad):
-                    return torch.add(grad, 0.01 * torch.rand_like(grad).cuda())
-                h = z_private.register_hook(noise_hook)
-            # hook activation gradient and add noise to it.
-
-
-            # if "gradient_noise_cloud" in self.regularization_option:
-            #     for i, p in enumerate(self.model.cloud.parameters()):
-            #         p.register_hook(lambda grad: torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda()))
-            # if "gradient_noise_local" in self.regularization_option:
-            #     for i, p in enumerate(self.model.local_list[0].parameters()):
-            #         p.register_hook(lambda grad: torch.add(grad, self.regularization_strength * torch.rand_like(grad).cuda()))
-
-            # if "gradient_clipping" in self.regularization_option:
-            #     for i, p in enumerate(self.model.local_list[0].parameters()):
-            #         p.register_hook(lambda grad: torch.clip(grad, -self.regularization_strength, self.regularization_strength))
-
+                h = z_private.register_hook(lambda grad: grad + 2e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
+        
         total_loss.backward()
 
         if not skip_regularization:
@@ -1056,10 +1052,8 @@ class Trainer:
 
         total_loss = f_loss
 
-        if "gradient_noise" in self.regularization_option: #TODO: test this
-            def noise_hook(grad):
-                return torch.add(grad, 0.01 * torch.rand_like(grad).cuda())
-            h = x_private.register_hook(noise_hook)
+        if "gradient_noise" in self.regularization_option:
+            h = z_private.register_hook(lambda grad: grad + 2e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
 
         if "adversary" in self.regularization_option:
             total_loss.backward(retain_graph = True)
@@ -1070,7 +1064,7 @@ class Trainer:
         
         zeroing_grad(self.model.local_list[client_id])
 
-        if "gradient_noise" in self.regularization_option: #TODO: test this
+        if "gradient_noise" in self.regularization_option:
             h.remove()
 
         total_losses = total_loss.detach().cpu().numpy()
@@ -1203,6 +1197,9 @@ class Trainer:
         # enable half-half style by default
         x_fake = torch.cat([self.regularization_strength * x_noise + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
         
+        # apply diffaug during the training to allow more variation to the input images.
+        if "diffallaug" in self.regularization_option:
+            x_fake = DiffAugment.DiffAugment(x_fake, 'color,translation,cutout') # a parameterized augmentation module.
 
 
         #augmentation:
@@ -1210,6 +1207,11 @@ class Trainer:
             x_fake = self.aug(x_fake)
         elif "cmi" in self.regularization_option:
             x_fake, x_fake_local = self.aug(x_fake)
+
+
+
+
+
 
         if "D2GAN" in self.regularization_option:
             if batch // 2 == 0:
@@ -1241,8 +1243,7 @@ class Trainer:
         if "GM" in self.regularization_option:
             z_private.retain_grad()
         output = self.model.cloud(z_private)
-
-
+        
         criterion = torch.nn.CrossEntropyLoss()
 
         f_loss = criterion(output, label_private)
@@ -1287,10 +1288,9 @@ class Trainer:
             total_loss += lambda_l2 * l2loss(x_fake)
         
         if "gradient_noise" in self.regularization_option:
-            def noise_hook(grad):
-                return torch.add(grad, 0.01 * torch.rand_like(grad).cuda())
-            h = x_fake.register_hook(noise_hook)
-        
+            # see https://medium.com/analytics-vidhya/pytorch-hooks-5909c7636fb
+            h = z_private.register_hook(lambda grad: grad + 2e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
+
         self.generator_optimizer.zero_grad()
         if "cmi" in self.regularization_option:
             self.optimizer_head.zero_grad()
@@ -1302,12 +1302,11 @@ class Trainer:
         self.generator_optimizer.step()
         
         
-        
         if "cmi" in self.regularization_option:
             self.optimizer_head.step()
 
 
-        if "gradient_noise" in self.regularization_option: #TODO: test this
+        if "gradient_noise" in self.regularization_option:
             h.remove()
         
         
