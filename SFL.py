@@ -31,7 +31,6 @@ class Trainer:
         self.arch = arch
         self.batch_size = batch_size
         self.lr = learning_rate
-        self.finetune_freeze_bn = finetune_freeze_bn
         self.client_sample_ratio = client_sample_ratio
         self.noniid_ratio = noniid
         self.n_epochs = n_epochs
@@ -215,20 +214,7 @@ class Trainer:
                 self.slow_generator = copy.deepcopy(self.generator)
                 for param_t in self.slow_generator.parameters():
                     param_t.requires_grad = False  # not update by gradient
-            if "D2GAN" in self.regularization_option:
-                # https://github.com/tund/D2GAN/tree/master
-                self.d1_alpha = 1.0
-                self.d2_beta = 1.0
-                self.d2_strength = 0.1
-                self.D1 = architectures.D2GAN_discriminator(self.image_shape)
-                self.D2 = architectures.D2GAN_discriminator(self.image_shape)
-                d_params = list(self.D1.parameters()) + list(self.D1.parameters())
-                self.d2_optimizer = torch.optim.Adam(d_params, lr=2e-4, betas=(0.5, 0.999))
-                # self.d2_optimizer = torch.optim.Adam(d_params, lr=2e-4)
-            elif "normalGAN" in self.regularization_option:
-                self.d_strength = 0.5
-                self.D1 = architectures.D2GAN_discriminator(self.image_shape)
-                self.d_optimizer = torch.optim.Adam(list(self.D1.parameters()), lr=2e-4, betas=(0.5, 0.999))
+        
         # setup optimizers
         self.optimizer = torch.optim.SGD(self.params, lr=self.lr, momentum=0.9, weight_decay=5e-4)
         
@@ -408,17 +394,7 @@ class Trainer:
                     epoch_save_list[i] = int(epoch_save_list[i] /self.client_sample_ratio)
             #Main Training
             
-            dl_transforms = torch.nn.Sequential(
-                transforms.RandomCrop(self.image_shape[-1], padding=4),
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomRotation(15))
-
-            if self.arch == "ViT":
-                dl_transforms = torch.nn.Sequential(
-                    transforms.RandomResizedCrop(224),
-                    transforms.RandomHorizontalFlip(),
-                    transforms.RandomRotation(15)
-            )
+            
             if "GM_train_ME" in self.regularization_option:
                 if self.GM_data_proportion == 0.0:
                     print("TO use GM_train_option, Must have some data available")
@@ -447,11 +423,10 @@ class Trainer:
 
             self.logger.debug("Start SFL training")
             for epoch in range(1, self.n_epochs+1):
-                if epoch > self.warm:
-                    self.scheduler_step(epoch)
-                    if "surrogate" in self.regularization_option:
-                        self.suro_scheduler.step(epoch)
                 
+                
+                
+                # idxs_users stores a list of client_id. [0, 1, 2, 3, 4]
                 if self.client_sample_ratio  == 1.0:
                     idxs_users = range(self.num_client)
                 else:
@@ -459,11 +434,11 @@ class Trainer:
                     
                 # sample num_client for parapllel training from actual number of users, take their iterator as well.
                 client_iterator_list = []
-                for client_id in range(self.num_client):
-                    if ("gan_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option) and idxs_users[client_id] == self.attacker_client_id:
+                for client_id in idxs_users:
+                    if ("gan_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option) and client_id == self.attacker_client_id:
                         client_iterator_list.append(None)
                     else:
-                        client_iterator_list.append(saved_iterator_list[idxs_users[client_id]])
+                        client_iterator_list.append(saved_iterator_list[client_id])
 
                 
                 if Grad_staleness_visual:
@@ -488,22 +463,22 @@ class Trainer:
                                 idxs_users.remove(self.attacker_client_id)
                     
                     
-                    for client_id in idxs_users:
-                        # Get data TODO: solve this fatal error
+                    for id, client_id in enumerate(idxs_users): # id is the position in client_iterator_list, client_id is the actual client id.
+                        # Get data
+                        # print(f"id is {id}, client_id is {client_id}")
                         if client_id != self.attacker_client_id: # if current client is not the attack client (default is the last one)
                             try:
-                                images, labels = next(client_iterator_list[client_id])
+                                images, labels = next(client_iterator_list[id])
                                 if images.size(0) != self.batch_size:
-                                    client_iterator_list[client_id] = iter(self.client_dataloader[client_id])
-                                    images, labels = next(client_iterator_list[client_id])
+                                    client_iterator_list[id] = iter(self.client_dataloader[client_id])
+                                    images, labels = next(client_iterator_list[id])
                             except StopIteration:
-                                client_iterator_list[client_id] = iter(self.client_dataloader[client_id])
-                                images, labels = next(client_iterator_list[client_id])
+                                client_iterator_list[id] = iter(self.client_dataloader[client_id])
+                                images, labels = next(client_iterator_list[id])
 
-                            if dl_transforms is not None:
-                                images = dl_transforms(images)
+                            
                         else: # if the client is the attacker client:
-                            images, labels = self.get_data_MEA_client(client_iterator_list, client_id, epoch, dl_transforms)
+                            images, labels = self.get_data_MEA_client(client_iterator_list, id, client_id, epoch)
                         
                         if self.scheme == "V2":
                             self.optimizer_zero_grad()
@@ -511,28 +486,27 @@ class Trainer:
                         
                         if client_id != self.attacker_client_id:
                             # Train step (client/server)
-                            train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch)
+                            train_loss, f_loss = self.train_target_step(images, labels, id, epoch, batch, attack = False, skip_regularization = False)
                         else: 
                             # MEA client, perform training, collecting gradients using the adv data
-                            if epoch > self.attack_start_epoch:
-                                
+                            if epoch > self.attack_start_epoch: # after the attack starts
                                 if "craft_train_ME" in self.regularization_option:
-                                    train_loss, f_loss = self.craft_train_target_step(client_id, epoch, batch)
+                                    train_loss, f_loss = self.craft_train_target_step(id, epoch, batch)
                                 elif "gan_train_ME" in self.regularization_option:
-                                    train_loss, f_loss = self.gan_train_target_step(client_id, self.batch_size, epoch, batch)
+                                    train_loss, f_loss = self.gan_train_target_step(id, self.batch_size, epoch, batch)
                                 elif "gan_assist_train_ME" in self.regularization_option:
-                                    train_loss, f_loss = self.gan_assist_train_target_step(images, labels, client_id, epoch, batch)
+                                    train_loss, f_loss = self.gan_assist_train_target_step(images, labels, id, epoch, batch)
                                 elif "GM_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option:
-                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch, save_grad = True, skip_regularization=True) # adv clients won't comply to the defense
+                                    train_loss, f_loss = self.train_target_step(images, labels, id, epoch, batch, attack = True, skip_regularization=True) # adv clients won't comply to the defense
                                 else:
-                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch)
-                            else:
+                                    train_loss, f_loss = self.train_target_step(images, labels, id, epoch, batch, attack = False, skip_regularization = False)
+                            else: # before the attack starts
                                 if "gan_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option or "craft_train_ME" in self.regularization_option:
                                     pass # do nothing prior to the starting epoch   
                                 elif "soft_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option: # adv clients won't comply to the defense
-                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch, skip_regularization=True)
+                                    train_loss, f_loss = self.train_target_step(images, labels, id, epoch, batch, attack = False, skip_regularization=False)
                                 else:
-                                    train_loss, f_loss = self.train_target_step(images, labels, client_id, epoch, batch)
+                                    train_loss, f_loss = self.train_target_step(images, labels, id, epoch, batch, attack = False, skip_regularization = False)
 
                         if self.scheme == "V2":
                             self.optimizer_step()
@@ -552,10 +526,7 @@ class Trainer:
                 # model synchronization
                 self.sync_client()
                     
-                # Step the warmup scheduler
-                if epoch <= self.warm:
-                    self.scheduler_step(warmup=True)
-
+                
                 # Validate and get average accu among clients
                 avg_accu = 0
                 avg_accu, loss = self.validate_target(client_id=0)
@@ -585,7 +556,16 @@ class Trainer:
                     wandb.run.summary["Final-Val-Accuracy"] = avg_accu
                     if "surrogate" in self.regularization_option:
                         self.logger.debug("Final Surrogate Validation Accuracy is {}".format(surro_accu))
-                    wandb.run.summary["Final-Surrogate-Accuracy"] = surro_accu
+                        wandb.run.summary["Final-Surrogate-Accuracy"] = surro_accu
+        
+                # Step the warmup scheduler
+                if epoch <= self.warm:
+                    self.scheduler_step(warmup=True)
+                else:
+                    self.scheduler_step(epoch)
+                    if "surrogate" in self.regularization_option:
+                        self.suro_scheduler.step(epoch)
+                
         #save final images for gan_train_ME generator.
         if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
             self.generator.cuda()
@@ -618,7 +598,7 @@ class Trainer:
             wandb.run.summary["Best-Val-Accuracy"] = best_avg_accu
             if "surrogate" in self.regularization_option:
                 self.logger.debug("Best Surrogate Validation Accuracy is {}".format(best_avg_surro_accu))
-            wandb.run.summary["Best-Surrogate-Accuracy"] = best_avg_surro_accu
+                wandb.run.summary["Best-Surrogate-Accuracy"] = best_avg_surro_accu
         else:
             LOG = None
             avg_accu = 0
@@ -737,14 +717,30 @@ class Trainer:
     
     
     
-    def train_target_step(self, x_private, label_private, client_id, epoch, batch, save_grad = False, skip_regularization = False):
+    def train_target_step(self, x_private, label_private, client_id, epoch, batch, attack = False, skip_regularization = False):
+
+        dl_transforms = torch.nn.Sequential(
+            transforms.RandomCrop(self.image_shape[-1], padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15))
+
+        if self.arch == "ViT":
+            dl_transforms = torch.nn.Sequential(
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation(15)
+        )
+        
+        if dl_transforms is not None:
+            x_private = dl_transforms(x_private)
+        
         self.model.cloud.train()
         self.model.local_list[client_id].train()
         
-        if save_grad and "diffaug" in self.regularization_option:
+        if attack and "diffaug" in self.regularization_option:
             x_private = torch.cat([DiffAugment.DiffAugment(x_private[:x_private.size(0)//2, :, :, :], 'color,translation,cutout'), x_private[x_private.size(0)//2:, :, :, :]], dim = 0) # a parameterized augmentation module.
 
-        if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
+        if attack: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
             # collect gradient
             if not os.path.isdir(self.save_dir + "/saved_grads"):
                 os.makedirs(self.save_dir + "/saved_grads")
@@ -759,13 +755,13 @@ class Trainer:
                     torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
                     torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
 
-        if save_grad and "randomnoise" in self.regularization_option: # add a random noise of norm value = regularization_strength to the input.
+        if attack and "randomnoise" in self.regularization_option: # add a random noise of norm value = regularization_strength to the input.
             
             x_private = x_private + self.regularization_strength * torch.randn_like(x_private)
 
         
         
-        if save_grad and "advnoise" in self.regularization_option:
+        if attack and "advnoise" in self.regularization_option:
             if os.path.isfile(self.save_dir + f"/pool_advs/lastest_batch.pt"):
                 adv_sample = torch.load(self.save_dir + f"/pool_advs/img_lastest_batch.pt")
                 adv_sample_label = torch.load(self.save_dir + f"/pool_advs/label_lastest_batch.pt")
@@ -775,27 +771,19 @@ class Trainer:
         x_private = x_private.cuda()
         label_private = label_private.cuda()
 
-        if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
+        if attack: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
             if "advnoise" in self.regularization_option:
                 # x_private = torch.Tensor(x_private)
                 x_private.requires_grad_(True)
-        # Option to Freeze batchnorm parameter of the client-side model.
-        if self.load_from_checkpoint and self.finetune_freeze_bn:
-            freeze_model_bn(self.model.local_list[client_id])
-        
 
-        # define the hook function 
-        # def get_activation_gradient(grads, name):
-        #     def hook(model, input, output):
-        #         grads[name] = output.grad
-        #     return hook
-        # grads = {}
-        # self.model.first_cloud_layer.register_backward_hook(get_activation_gradient(grads, 'first_cloud_layer'))
-        
         if self.arch != "ViT":
             # Final Prediction Logits (complete forward pass)
             z_private = self.model.local_list[client_id](x_private)
-            z_private.retain_grad()
+            if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
+                z_private = z_private.detach()
+            else:
+                
+                z_private.retain_grad()
             output = self.model.cloud(z_private)
         else:
             output = self.model(x_private)
@@ -821,7 +809,7 @@ class Trainer:
                 total_loss = total_loss + l2_regularization
             
             if "gradient_noise" in self.regularization_option and self.arch != "ViT":
-                h = z_private.register_hook(lambda grad: grad + 2e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
+                h = z_private.register_hook(lambda grad: grad + 1e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
         
         total_loss.backward()
 
@@ -829,7 +817,7 @@ class Trainer:
             if "gradient_noise" in self.regularization_option and self.arch != "ViT":
                 h.remove()
 
-        if save_grad: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
+        if attack: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
             if "naive_train_ME" in self.regularization_option:
                 pass
             else:
@@ -858,44 +846,43 @@ class Trainer:
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
         
-        
-        if "surrogate" in self.regularization_option and "naive_train_ME" in self.regularization_option:
-            self.surrogate_model.local.eval()
-            self.surrogate_model.cloud.train()
-            with torch.no_grad():
-                suro_act = self.surrogate_model.local(x_private.detach())
-            suro_output = self.surrogate_model.cloud(suro_act)
-            suro_loss = criterion(suro_output, label_private)
-            self.suro_optimizer.zero_grad()
-            suro_loss.backward()
-            self.suro_optimizer.step()
-            del suro_loss
-        elif "surrogate" in self.regularization_option and "GM_train_ME" in self.regularization_option:
-            self.surrogate_model.local.eval()
-            self.surrogate_model.cloud.train()
-            with torch.no_grad():
-                suro_act = self.surrogate_model.local(x_private.detach())
-            suro_act.requires_grad = True
-            suro_output = self.surrogate_model.cloud(suro_act)
-            suro_loss = criterion(suro_output, label_private)
+        if attack:
+            if "surrogate" in self.regularization_option and "naive_train_ME" in self.regularization_option:
+                # print(f"train surrogate model by client {client_id}")
+                self.surrogate_model.local.eval()
+                self.surrogate_model.cloud.train()
+                with torch.no_grad():
+                    suro_act = self.surrogate_model.local(x_private.detach())
+                suro_output = self.surrogate_model.cloud(suro_act)
+                suro_loss = criterion(suro_output, label_private)
+                self.suro_optimizer.zero_grad()
+                suro_loss.backward()
+                self.suro_optimizer.step()
+                del suro_loss
+            elif "surrogate" in self.regularization_option and "GM_train_ME" in self.regularization_option:
+                self.surrogate_model.local.eval()
+                self.surrogate_model.cloud.train()
+                with torch.no_grad():
+                    suro_act = self.surrogate_model.local(x_private.detach())
+                suro_act.requires_grad = True
+                suro_output = self.surrogate_model.cloud(suro_act)
+                suro_loss = criterion(suro_output, label_private)
 
-            gradient_loss_style = "l2"
-            grad_lambda = 1.0
-            grad_approx = torch.autograd.grad(suro_loss, suro_act, create_graph = True)[0]
-            if gradient_loss_style == "l2":
-                grad_loss = ((z_private.grad.detach() - grad_approx).norm(dim=1, p =2)).mean()
-            elif gradient_loss_style == "l1":
-                grad_loss = ((z_private.grad.detach() - grad_approx).norm(dim=1, p =1)).mean()
-            elif gradient_loss_style == "cosine":
-                grad_loss = torch.mean(1 - F.cosine_similarity(grad_approx, z_private.grad.detach(), dim=1))
-            suro_grad_loss = grad_loss * grad_lambda
-            self.suro_optimizer.zero_grad()
+                gradient_loss_style = "l2"
+                grad_lambda = 1.0
+                grad_approx = torch.autograd.grad(suro_loss, suro_act, create_graph = True)[0]
+                if gradient_loss_style == "l2":
+                    grad_loss = ((z_private.grad.detach() - grad_approx).norm(dim=1, p =2)).mean()
+                elif gradient_loss_style == "l1":
+                    grad_loss = ((z_private.grad.detach() - grad_approx).norm(dim=1, p =1)).mean()
+                elif gradient_loss_style == "cosine":
+                    grad_loss = torch.mean(1 - F.cosine_similarity(grad_approx, z_private.grad.detach(), dim=1))
+                suro_grad_loss = grad_loss * grad_lambda
+                self.suro_optimizer.zero_grad()
 
-            suro_grad_loss.backward()
+                suro_grad_loss.backward()
 
-
-            # suro_loss.backward()
-            self.suro_optimizer.step()
+                self.suro_optimizer.step()
         return total_losses, f_losses
     
     def craft_train_target_step(self, client_id, epoch, batch):
@@ -1026,10 +1013,7 @@ class Trainer:
             self.slow_generator.eval()
             x_private_slow = self.slow_generator(z, label_private).detach()
 
-
             x_private = torch.cat([x_private[:x_private.size(0)//2, :, :, :], x_private_slow[x_private.size(0)//2:, :, :, :]], dim = 0)
-            # if batch % 2 == 1:
-            #     x_private = x_private_slow
 
         if poison_option and batch % 2 == 1: #poison step
             label_private = torch.randint(low=0, high=self.num_class, size = [self.batch_size, ]).cuda()
@@ -1044,6 +1028,10 @@ class Trainer:
                                                                                             batch * self.batch_size + self.batch_size))
         
         z_private = self.model.local_list[client_id](x_private)
+
+        if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1: # server will skip sending back gradients, once per two steps
+            z_private = z_private.detach()
+        
         output = self.model.cloud(z_private)
         
         criterion = torch.nn.CrossEntropyLoss()
@@ -1053,15 +1041,16 @@ class Trainer:
         total_loss = f_loss
 
         if "gradient_noise" in self.regularization_option:
-            h = z_private.register_hook(lambda grad: grad + 2e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
+            h = z_private.register_hook(lambda grad: grad + 1e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
 
         if "adversary" in self.regularization_option:
             total_loss.backward(retain_graph = True)
         else:
             total_loss.backward()
-            
+        
         self.generator_optimizer.step()
         
+        # zero out local model gradients to avoid unecessary poisoning effect
         zeroing_grad(self.model.local_list[client_id])
 
         if "gradient_noise" in self.regularization_option:
@@ -1083,29 +1072,26 @@ class Trainer:
             suro_loss.backward()
             self.suro_optimizer.step()
 
+            if not ("reduce_grad_freq" in self.regularization_option and batch % 2 == 1):
+                if "adversary" in self.regularization_option:
+                    self.generator_optimizer.zero_grad()
 
-            if "adversary" in self.regularization_option:
-                self.generator_optimizer.zero_grad()
-                # generator get reverse
-                with torch.no_grad():
-                    suro_z_private = self.surrogate_model.local(x_private)
+                    # generator get reverse
+                    with torch.no_grad():
+                        suro_z_private = self.surrogate_model.local(x_private)
+                    
+                    suro_output = self.surrogate_model.cloud(suro_z_private)
+
+                    suro_loss = criterion(suro_output, label_private)
+
+                    adversary_loss = - 2.0 * suro_loss # maximize this loss.
+
+                    adversary_loss.backward() # this only affect generator
+                    
+                    self.generator_optimizer.step()
+
+                    del adversary_loss
                 
-                suro_output = self.surrogate_model.cloud(suro_z_private)
-
-                suro_loss = criterion(suro_output, label_private)
-
-                adversary_loss = - 2.0 * suro_loss # maximize this loss.
-
-                adversary_loss.backward() # this only affect generator
-                
-                self.generator_optimizer.step()
-
-                # print(f"adversarial loss is {adversary_loss.item()}")
-
-                del adversary_loss
-                
-                
-
 
             del suro_loss
 
@@ -1118,22 +1104,32 @@ class Trainer:
         return total_losses, f_losses
 
     def gan_assist_train_target_step(self, x_private, label_private, client_id, epoch, batch):
+        
+        dl_transforms = torch.nn.Sequential(
+            transforms.RandomCrop(self.image_shape[-1], padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15))
 
+        if self.arch == "ViT":
+            dl_transforms = torch.nn.Sequential(
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation(15)
+        )
+        
+        if dl_transforms is not None:
+            x_private = dl_transforms(x_private)
+        
+        # apply diffaug during the training to allow more variation to the input images.
+        if "diffaug" in self.regularization_option:
+            x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
+        
         #if enable poison option
         self.model.cloud.train()
         self.model.local_list[client_id].train()
         self.generator.cuda()
         self.generator.train()
         
-
-        if "D2GAN" in self.regularization_option:
-            self.D1.cuda()
-            self.D2.cuda()
-            self.D1.train()
-            self.D2.train()
-        elif "normalGAN" in self.regularization_option:
-            self.D1.cuda()
-            self.D1.train()
         x_private = x_private.cuda()
         label_private = label_private.cuda()
 
@@ -1149,11 +1145,9 @@ class Trainer:
                 torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
                 torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
 
-        # apply diffaug during the training to allow more variation to the input images.
-        if "diffaug" in self.regularization_option:
-            x_private = DiffAugment.DiffAugment(x_private, 'color,translation,cutout') # a parameterized augmentation module.
-
         
+
+        # Use fast meta
         if "fast_meta" in self.regularization_option:
             self.z = torch.randn(size=(self.batch_size, self.nz), device="cuda:0").requires_grad_() 
             self.generator_optimizer = torch.optim.Adam([
@@ -1168,15 +1162,13 @@ class Trainer:
             x_noise = self.generator(self.z[:x_private.size(0)//2, :], label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
             
         
+        # Use CMI
         elif "cmi" in self.regularization_option:
-            # self.z = torch.randn(size=(self.batch_size, self.nz), device="cuda:0").requires_grad_() 
             self.generator_optimizer = torch.optim.Adam([
                 {'params': self.generator.parameters()}
             ], lr=5e-3, betas=[0.5, 0.999])
             if epoch == 120 and batch == 0:
                 reset_l0(self.generator)
-            # if epoch % 5 == 0:
-            #     self.data_pool.reset()
             z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
             x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
         else:
@@ -1185,19 +1177,17 @@ class Trainer:
             x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
 
 
+        # Use EMA
         if "EMA" in self.regularization_option: # if enable EMA, then alternating G and slow G
             self.slow_generator.cuda()
             self.slow_generator.eval()
             x_noise_slow = self.slow_generator(z, label_private[:x_private.size(0)//2]).detach()
-
-            # if batch % 2 == 1:
-            #     x_noise = x_noise_slow
             x_noise = torch.cat([x_noise[:x_noise.size(0)//2, :, :, :], x_noise_slow[x_noise.size(0)//2:, :, :, :]], dim = 0)
 
-        # enable half-half style by default
+        # Mixup noise and training images
         x_fake = torch.cat([self.regularization_strength * x_noise + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
         
-        # apply diffaug during the training to allow more variation to the input images.
+        # apply diffaug after the mixup to allow more variation to the input images.
         if "diffallaug" in self.regularization_option:
             x_fake = DiffAugment.DiffAugment(x_fake, 'color,translation,cutout') # a parameterized augmentation module.
 
@@ -1207,29 +1197,6 @@ class Trainer:
             x_fake = self.aug(x_fake)
         elif "cmi" in self.regularization_option:
             x_fake, x_fake_local = self.aug(x_fake)
-
-
-
-
-
-
-        if "D2GAN" in self.regularization_option:
-            if batch // 2 == 0:
-                self.d2_optimizer.zero_grad()
-                
-                d1_loss = torch.mean(-self.d1_alpha * torch.log(self.D1(x_fake[x_private.size(0)//2:, :, :, :].detach())) + self.D1(x_fake[:x_private.size(0)//2, :, :, :].detach()))
-                d2_loss = torch.mean(self.D2(x_fake[x_private.size(0)//2:, :, :, :].detach()) - self.d2_beta * torch.log(self.D2(x_fake[:x_private.size(0)//2, :, :, :].detach())))
-                d_loss = d1_loss + d2_loss
-                d_loss.backward()
-                self.d2_optimizer.step()
-        elif "normalGAN" in self.regularization_option:
-            if batch // 2 == 0:
-                self.d_optimizer.zero_grad()
-                
-                # d_loss = torch.mean(-torch.log(self.D1(x_fake[x_private.size(0)//2:, :, :, :].detach())) + self.D1(x_fake[:x_private.size(0)//2, :, :, :].detach()))
-                d_loss = torch.mean(self.D1(x_fake[x_private.size(0)//2:, :, :, :].detach()) -  torch.log(self.D1(x_fake[:x_private.size(0)//2, :, :, :].detach())))
-                d_loss.backward()
-                self.d_optimizer.step()
         
         if epoch % 5 == 0 and batch == 0:
             imgGen = x_noise.clone()
@@ -1240,7 +1207,9 @@ class Trainer:
         
 
         z_private = self.model.local_list[client_id](x_fake)
-        if "GM" in self.regularization_option:
+        if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
+            z_private = z_private.detach()
+        elif "GM" in self.regularization_option:
             z_private.retain_grad()
         output = self.model.cloud(z_private)
         
@@ -1273,14 +1242,6 @@ class Trainer:
                 total_loss += self.cr * loss_cr
                 self.mem_bank.add( torch.cat([local_feature.data, global_feature.data], dim=1).data )
 
-
-        if "D2GAN" in self.regularization_option:
-            d2gan_loss = torch.mean(-self.D1(x_fake[:x_private.size(0)//2, :, :, :]) + self.d2_beta * torch.log(self.D2(x_fake[:x_private.size(0)//2, :, :, :])))
-            total_loss += self.d2_strength * d2gan_loss
-        elif "normalGAN" in self.regularization_option:
-            normalgan_loss = torch.mean(torch.log(self.D1(x_fake[:x_private.size(0)//2, :, :, :])))
-            total_loss += self.d_strength * normalgan_loss
-        
         if "reg" in self.regularization_option:
             lambda_TV = 6e-3
             lambda_l2 = 1.5e-5
@@ -1289,7 +1250,7 @@ class Trainer:
         
         if "gradient_noise" in self.regularization_option:
             # see https://medium.com/analytics-vidhya/pytorch-hooks-5909c7636fb
-            h = z_private.register_hook(lambda grad: grad + 2e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
+            h = z_private.register_hook(lambda grad: grad + 1e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
 
         self.generator_optimizer.zero_grad()
         if "cmi" in self.regularization_option:
@@ -1350,83 +1311,82 @@ class Trainer:
                 suro_loss.backward()
                 self.suro_optimizer.step()
 
-            # if "GM" in self.regularization_option:
-            #     target_grad = z_private.grad.detach()
-
-            #     with torch.no_grad():
-            #         suro_act = self.surrogate_model.local(x_fake.detach())
-            #     suro_act.requires_grad = True
-                
-                
-            #     suro_output = self.surrogate_model.cloud(suro_act)
-            #     suro_loss = criterion(suro_output, label_private)
-
-            #     grad_approx = torch.autograd.grad(suro_loss, suro_act, create_graph = True)[0]
-
-            #     grad_loss = ((target_grad - grad_approx).norm(dim=1, p =2)).mean()
-
-            #     self.suro_optimizer.zero_grad()
-
-            #     grad_loss.backward()
-
-            #     self.suro_optimizer.step()
-
-            
-            if "adversary" in self.regularization_option:
-                
-                # adversarial generate hard samples
-                self.generator_optimizer.zero_grad()
-                
-                # generator get reverse
-                with torch.no_grad():
-                    suro_z_private = self.surrogate_model.local(x_fake)
-                suro_output = self.surrogate_model.cloud(suro_z_private)
-
-                suro_loss = criterion(suro_output, label_private)
-
-                adversary_loss = - 2.0 * suro_loss # maximize this loss.
-                
-                if "GM" in self.regularization_option:
-                    adversary_loss.backward(retain_graph=True) # this only affect generator
-                else:
-                    adversary_loss.backward()
-                
-                self.generator_optimizer.step()
-
-                # print(f"adversarial loss is {adversary_loss.item()}")
-
-                del adversary_loss
-            
             if "GM" in self.regularization_option:
                 target_grad = z_private.grad.detach()
 
-                # adversarial gradient matching
-                self.generator_optimizer.zero_grad()
-                
-                # generator get reverse
                 with torch.no_grad():
-                    suro_z_private = self.surrogate_model.local(x_fake)
-                suro_z_private.requires_grad = True
-                suro_output = self.surrogate_model.cloud(suro_z_private)
-
+                    suro_act = self.surrogate_model.local(x_fake.detach())
+                suro_act.requires_grad = True
+                
+                
+                suro_output = self.surrogate_model.cloud(suro_act)
                 suro_loss = criterion(suro_output, label_private)
 
-                gradient_loss_style = "l2"
-                grad_approx = torch.autograd.grad(suro_loss, suro_z_private, create_graph = True)[0]
-                if gradient_loss_style == "l2":
-                    grad_loss = - ((target_grad - grad_approx).norm(dim=1, p =2)).mean()
-                elif gradient_loss_style == "l1":
-                    grad_loss = - ((target_grad - grad_approx).norm(dim=1, p =1)).mean()
-                elif gradient_loss_style == "cosine":
-                    grad_loss = - torch.mean(1 - F.cosine_similarity(grad_approx, target_grad, dim=1))
-                
-                grad_loss.backward() # this only affect generator
-                
-                self.generator_optimizer.step()
+                grad_approx = torch.autograd.grad(suro_loss, suro_act, create_graph = True)[0]
 
-                del grad_loss
-                
+                grad_loss = ((target_grad - grad_approx).norm(dim=1, p =2)).mean()
 
+                self.suro_optimizer.zero_grad()
+
+                grad_loss.backward()
+
+                self.suro_optimizer.step()
+
+            if not ("reduce_grad_freq" in self.regularization_option and batch % 2 == 1):
+                if "adversary" in self.regularization_option:
+                    
+                    # adversarial generate hard samples
+                    self.generator_optimizer.zero_grad()
+                    
+                    # generator get reverse
+                    with torch.no_grad():
+                        suro_z_private = self.surrogate_model.local(x_fake)
+                    suro_output = self.surrogate_model.cloud(suro_z_private)
+
+                    suro_loss = criterion(suro_output, label_private)
+
+                    adversary_loss = - 2.0 * suro_loss # maximize this loss.
+                    
+                    if "GM" in self.regularization_option:
+                        adversary_loss.backward(retain_graph=True) # this only affect generator
+                    else:
+                        adversary_loss.backward()
+                    
+                    self.generator_optimizer.step()
+
+                    # print(f"adversarial loss is {adversary_loss.item()}")
+
+                    del adversary_loss
+                
+                    if "GM" in self.regularization_option:
+                        target_grad = z_private.grad.detach()
+
+                        # adversarial gradient matching
+                        self.generator_optimizer.zero_grad()
+                        
+                        # generator get reverse
+                        with torch.no_grad():
+                            suro_z_private = self.surrogate_model.local(x_fake)
+                        suro_z_private.requires_grad = True
+                        suro_output = self.surrogate_model.cloud(suro_z_private)
+
+                        suro_loss = criterion(suro_output, label_private)
+
+                        gradient_loss_style = "l2"
+                        grad_approx = torch.autograd.grad(suro_loss, suro_z_private, create_graph = True)[0]
+                        if gradient_loss_style == "l2":
+                            grad_loss = - ((target_grad - grad_approx).norm(dim=1, p =2)).mean()
+                        elif gradient_loss_style == "l1":
+                            grad_loss = - ((target_grad - grad_approx).norm(dim=1, p =1)).mean()
+                        elif gradient_loss_style == "cosine":
+                            grad_loss = - torch.mean(1 - F.cosine_similarity(grad_approx, target_grad, dim=1))
+                        
+                        grad_loss.backward() # this only affect generator
+                        
+                        self.generator_optimizer.step()
+
+                        del grad_loss
+                
             del suro_loss
         
         
@@ -1450,7 +1410,7 @@ class Trainer:
         torch.save(self.surrogate_model.local.state_dict(), self.save_dir + 'checkpoint_surrogate_client_{}.tar'.format(epoch))
         torch.save(self.surrogate_model.cloud.state_dict(), self.save_dir + 'checkpoint_surrogate_cloud_{}.tar'.format(epoch))
 
-    def get_data_MEA_client(self, client_iterator_list, client_id, epoch, dl_transforms):
+    def get_data_MEA_client(self, client_iterator_list, id, client_id, epoch):
 
         self.old_image = None
         self.old_label = None
@@ -1464,19 +1424,17 @@ class Trainer:
             if self.rotate_label == self.num_class or (self.query_image_id == 0 and self.rotate_label == 0):
                 
                 if (self.query_image_id == 0 and self.rotate_label == 0):
-                    client_iterator_list[client_id] = iter(self.client_dataloader[client_id])
+                    client_iterator_list[id] = iter(self.client_dataloader[client_id])
                 
                 if self.rotate_label == self.num_class:
                     self.rotate_label = 0
                     self.query_image_id += 1
                 
                 try:
-                    self.old_images, self.old_labels = next(client_iterator_list[client_id])
-                    self.old_images = dl_transforms(self.old_images)
+                    self.old_images, self.old_labels = next(client_iterator_list[id])
                 except StopIteration:
-                    client_iterator_list[client_id] = iter(self.client_dataloader[client_id])
-                    self.old_images, self.old_labels = next(client_iterator_list[client_id])
-                    self.old_images = dl_transforms(self.old_images)
+                    client_iterator_list[id] = iter(self.client_dataloader[client_id])
+                    self.old_images, self.old_labels = next(client_iterator_list[id])
                 
                 if "GM_train_ME" in self.regularization_option:
                     # self.old_labels = (torch.randint_like(self.old_labels, low = 0, high = 10) + int(self.rotate_label)) % self.num_class
@@ -1497,17 +1455,14 @@ class Trainer:
                 return None, None
 
             try:
-                images, labels = next(client_iterator_list[client_id])
+                images, labels = next(client_iterator_list[id])
                 if images.size(0) != self.batch_size:
-                    client_iterator_list[client_id] = iter(self.client_dataloader[client_id])
-                    images, labels = next(client_iterator_list[client_id])
+                    client_iterator_list[id] = iter(self.client_dataloader[client_id])
+                    images, labels = next(client_iterator_list[id])
             except StopIteration:
-                client_iterator_list[client_id] = iter(self.client_dataloader[client_id])
-                images, labels = next(client_iterator_list[client_id])
+                client_iterator_list[id] = iter(self.client_dataloader[client_id])
+                images, labels = next(client_iterator_list[id])
 
-            if dl_transforms is not None:
-                images = dl_transforms(images)
-            
             if epoch > self.n_epochs - 10:
                 if ("gan_assist_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option):
                     self.query_image_id += 1
