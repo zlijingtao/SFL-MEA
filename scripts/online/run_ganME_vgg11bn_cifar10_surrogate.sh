@@ -10,10 +10,10 @@ random_seed_list="123"
 scheme=V2
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
-learning_rate_MEA=0.005
+learning_rate_MEA=0.01
 attack_epochs=200
 attack_client=0
-regularization_list="gan_train_ME_noreg_multiGAN_surrogate_adversary_start0 gan_train_ME_noreg_surrogate_adversary_start0 gan_train_ME_noreg_surrogate_start0"
+regularization_list="gan_train_ME_noreg_multiGAN_surrogate_adversary_start0 gan_train_ME_noreg_surrogate_start0"
 cutlayer_list="10"
 regularization_strength_list="1.0"
 num_client_list="5"
@@ -26,7 +26,7 @@ for random_seed in $random_seed_list; do
                                 for regularization in $regularization_list; do
                                         for regularization_strength in $regularization_strength_list; do
                                         
-                                                folder_name="saves/final-highlr-0.005"
+                                                folder_name="saves/final-highlr-0.01"
                                                 filename="vgg11-cifar10-$regularization-step$regularization_strength-cut$cutlayer-client$num_client-noniid$noniid_ratio"
                                                 CUDA_VISIBLE_DEVICES=$GPU_id python main_steal_online.py   --arch=$arch --cutlayer=$cutlayer --batch_size=$batch_size \
                                                         --folder $folder_name --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \

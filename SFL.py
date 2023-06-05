@@ -24,7 +24,7 @@ class Trainer:
     def __init__(self, arch, cutting_layer, batch_size, n_epochs, scheme="V2", num_client=2, dataset="cifar10",
                  logger=None, save_dir=None, regularization_option="None", regularization_strength=0, learning_rate=0.1, 
                  random_seed=123, load_from_checkpoint = False, attack_confidence_score = False, num_freeze_layer = 0,
-                 finetune_freeze_bn = False, load_from_checkpoint_server = False, source_task = "cifar100", client_sample_ratio = 1.0,
+                 load_from_checkpoint_server = False, source_task = "cifar100", client_sample_ratio = 1.0,
                  save_activation_tensor = False, noniid = 1.0, last_client_fix_amount = -1, attacker_querying_budget_num_step = -1):
         torch.manual_seed(random_seed)
         np.random.seed(random_seed)
@@ -125,7 +125,7 @@ class Trainer:
             self.surrogate_model.cloud.apply(init_weights)
 
             # let them be the same model
-            self.surrogate_model.local = self.model.local_list[self.attacker_client_id]
+            self.surrogate_model.local = self.model.local_list[-1]
             self.surrogate_model.cloud.cuda()
             self.surrogate_model.cloud.train()
             self.suro_optimizer = torch.optim.SGD(self.surrogate_model.cloud.parameters(), lr=self.lr, momentum=0.9, weight_decay=5e-4)
@@ -544,7 +544,7 @@ class Trainer:
                     best_avg_accu = avg_accu
 
                 # Save Model regularly
-                if epoch % 50 == 0 or epoch == self.n_epochs or epoch in epoch_save_list:  # save model
+                if epoch == self.n_epochs or epoch in epoch_save_list:  # save model
                     self.save_model(epoch)
                     if "surrogate" in self.regularization_option:
                         self.save_surrogate(epoch)
@@ -742,18 +742,19 @@ class Trainer:
 
         if attack: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
             # collect gradient
-            if not os.path.isdir(self.save_dir + "/saved_grads"):
-                os.makedirs(self.save_dir + "/saved_grads")
-            
             if "advnoise" in self.regularization_option:
                 if not os.path.isdir(self.save_dir + "/pool_advs"):
                     os.makedirs(self.save_dir + "/pool_advs")
-            # collect image/label
-            if epoch > self.n_epochs - 10 and self.rotate_label == 0:
-                max_allow_image_id = 500 # 500 times batch size is a considerable amount.
-                if self.query_image_id <= max_allow_image_id:
-                    torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
-                    torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
+            
+            if "surrogate" not in self.regularization_option:
+                if not os.path.isdir(self.save_dir + "/saved_grads"):
+                    os.makedirs(self.save_dir + "/saved_grads")
+                # collect image/label
+                if epoch > self.n_epochs - 10 and self.rotate_label == 0:
+                    max_allow_image_id = 500 # 500 times batch size is a considerable amount.
+                    if self.query_image_id <= max_allow_image_id:
+                        torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
+                        torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
 
         if attack and "randomnoise" in self.regularization_option: # add a random noise of norm value = regularization_strength to the input.
             
@@ -818,14 +819,15 @@ class Trainer:
                 h.remove()
 
         if attack: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
-            if "naive_train_ME" in self.regularization_option:
-                pass
-            else:
+            
+            if "naive_train_ME" not in self.regularization_option:
                 zeroing_grad(self.model.local_list[client_id])
-                torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
+                if "surrogate" not in self.regularization_option:
+                    torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
             
             if "GM_train_ME" in self.regularization_option:
-                torch.save(z_private.detach().cpu(), self.save_dir + f"/saved_grads/act_{self.query_image_id}_label{self.rotate_label}.pt")
+                if "surrogate" not in self.regularization_option:
+                    torch.save(z_private.detach().cpu(), self.save_dir + f"/saved_grads/act_{self.query_image_id}_label{self.rotate_label}.pt")
             
             if "advnoise" in self.regularization_option:
                 # gradient = torch.autograd.grad(outputs=f_loss, inputs=x_private, grad_outputs=torch.ones_like(f_loss), retain_graph=True)
@@ -952,14 +954,15 @@ class Trainer:
         zeroing_grad(self.model.local_list[client_id])
 
         craft_optimizer.step()
-
-        torch.save(fake_image.detach().cpu(), image_save_path + f'image_{self.craft_image_id}.pt')
-        torch.save(fake_label.cpu(), image_save_path + f'label_{self.craft_image_id}.pt')
-        torch.save(z_private.grad.detach().cpu(), image_save_path + f'grad_{self.craft_image_id}.pt')
+        if "surrogate" not in self.regularization_option:
+            torch.save(fake_image.detach().cpu(), image_save_path + f'image_{self.craft_image_id}.pt')
+            torch.save(fake_label.cpu(), image_save_path + f'label_{self.craft_image_id}.pt')
+            torch.save(z_private.grad.detach().cpu(), image_save_path + f'grad_{self.craft_image_id}.pt')
 
         self.craft_step_count += 1
 
         if "surrogate" in self.regularization_option:
+            self.surrogate_model.local = self.model.local_list[client_id]
             self.surrogate_model.local.eval()
             self.surrogate_model.cloud.train()
             
@@ -1019,13 +1022,16 @@ class Trainer:
             label_private = torch.randint(low=0, high=self.num_class, size = [self.batch_size, ]).cuda()
             x_private = x_private.detach()
         
-        if epoch % 5 == 0 and batch == 0:
+        # record generator_output during training
+        if epoch % 50 == 0 and batch == 0:
             imgGen = x_private.clone()
             imgGen = denormalize(imgGen, self.dataset)
             if not os.path.isdir(train_output_path + "/{}".format(epoch)):
                 os.mkdir(train_output_path + "/{}".format(epoch))
-            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch,
-                                                                                            batch * self.batch_size + self.batch_size))
+            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
+        
+        
+        
         
         z_private = self.model.local_list[client_id](x_private)
 
@@ -1061,6 +1067,7 @@ class Trainer:
         del total_loss, f_loss
 
         if "surrogate" in self.regularization_option:
+            self.surrogate_model.local = self.model.local_list[client_id]
             self.surrogate_model.local.eval()
             self.surrogate_model.cloud.train()
             with torch.no_grad():
@@ -1133,17 +1140,18 @@ class Trainer:
         x_private = x_private.cuda()
         label_private = label_private.cuda()
 
-        train_output_path = self.save_dir + "assisted_generator_train"
+        train_output_path = self.save_dir + "generator_train"
         if not os.path.isdir(train_output_path):
             os.makedirs(train_output_path)
         
-        if epoch > self.n_epochs - 10 and self.rotate_label == 0:
-            max_allow_image_id = 500 # 500 times batch size is a considerable amount.
-            if self.query_image_id <= max_allow_image_id:
-                if not os.path.isdir(self.save_dir + "/saved_grads"):
-                    os.makedirs(self.save_dir + "/saved_grads")
-                torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
-                torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
+        if "surrogate" not in self.regularization_option:
+            if epoch > self.n_epochs - 10 and self.rotate_label == 0:
+                max_allow_image_id = 500 # 500 times batch size is a considerable amount.
+                if self.query_image_id <= max_allow_image_id:
+                    if not os.path.isdir(self.save_dir + "/saved_grads"):
+                        os.makedirs(self.save_dir + "/saved_grads")
+                    torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
+                    torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
 
         
 
@@ -1198,7 +1206,8 @@ class Trainer:
         elif "cmi" in self.regularization_option:
             x_fake, x_fake_local = self.aug(x_fake)
         
-        if epoch % 5 == 0 and batch == 0:
+        # record generator_output during training
+        if epoch % 50 == 0 and batch == 0:
             imgGen = x_noise.clone()
             imgGen = denormalize(imgGen, self.dataset)
             if not os.path.isdir(train_output_path + "/{}".format(epoch)):
@@ -1276,6 +1285,7 @@ class Trainer:
         del total_loss, f_loss
 
         if "surrogate" in self.regularization_option:
+            self.surrogate_model.local = self.model.local_list[client_id]
             self.surrogate_model.local.eval()
             self.surrogate_model.cloud.train()
 
