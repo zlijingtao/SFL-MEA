@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import models.architectures_torch as architectures
 from models.architectures_torch import init_weights
 from models.fast_meta import ImagePool, DataIter, reset_l0
-from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, TV, l2loss, zeroing_grad
+from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, TV, l2loss, zeroing_grad, fidelity
 from utils import freeze_model_bn, average_weights
 import logging
 import torchvision
@@ -104,6 +104,8 @@ class Trainer:
         
         if self.attacker_querying_budget_num_step != -1: # if this is set (then querying budget is not self.num_batches)
             print(f"Querying budget for the attacking client (client-{self.attacker_client_id}) is ", self.attacker_querying_budget_num_step)
+        else:
+            print(f"Querying budget for the attacking client (client-{self.attacker_client_id}) is not set, but gets capped at {self.num_batches}")
 
         self.model = get_model(self.arch, self.cutting_layer, self.num_client, self.num_class, num_freeze_layer)
         self.model.merge_classifier_cloud()
@@ -285,6 +287,8 @@ class Trainer:
 
             self.validate_surrogate()
 
+            self.fidelity_test()
+
     def sync_client(self, idxs_users = None):
         
         if idxs_users is not None:
@@ -429,9 +433,9 @@ class Trainer:
                 
                 # idxs_users stores a list of client_id. [0, 1, 2, 3, 4]
                 if self.client_sample_ratio  == 1.0:
-                    idxs_users = range(self.num_client)
+                    idxs_users = list(range(self.num_client))
                 else:
-                    idxs_users = np.random.choice(range(self.actual_num_users), self.num_client, replace=False) # 10 out of 1000
+                    idxs_users = np.random.choice(range(self.actual_num_users), self.num_client, replace=False).tolist() # 10 out of 1000
                     
                 # sample num_client for parapllel training from actual number of users, take their iterator as well.
                 client_iterator_list = []
@@ -455,18 +459,19 @@ class Trainer:
                     if self.scheme == "V1":
                         self.optimizer_zero_grad()
                     
-                    # if the attacker clients have less data
-                    if self.attacker_querying_budget_num_step != -1:
-                        # if batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the beginning of the epoch
-                        if self.num_batches - batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the end of the epoch
-                            # search for attacker_client_id in current user pool and delete it:
-                            if self.attacker_client_id in idxs_users:
-                                idxs_users.remove(self.attacker_client_id)
+                    
                     
                     
                     for id, client_id in enumerate(idxs_users): # id is the position in client_iterator_list, client_id is the actual client id.
+
+                        if self.attacker_querying_budget_num_step != -1:
+                            # if batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the beginning of the epoch
+                            if self.num_batches - batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the end of the epoch
+                                # skip attacking client in this step
+                                if client_id == self.attacker_client_id:
+                                    continue
+                        
                         # Get data
-                        # print(f"id is {id}, client_id is {client_id}")
                         if client_id != self.attacker_client_id: # if current client is not the attack client (default is the last one)
                             try:
                                 images, labels = next(client_iterator_list[id])
@@ -513,10 +518,10 @@ class Trainer:
                             self.optimizer_step()
                         
                         # Logging
-                        if verbose and batch % self.num_batches == 0:
+                        if verbose and batch == self.num_batches -1:
                             self.logger.debug(
                                 "log--[{}/{}][{}/{}][client-{}] train loss: {:1.4f} cross-entropy loss: {:1.4f}".format(
-                                    epoch, self.n_epochs, batch, self.num_batches, client_id, train_loss, f_loss))
+                                    epoch, self.n_epochs, batch + 1, self.num_batches, client_id, train_loss, f_loss))
                             wandb.log({f"client{client_id}-train-loss": train_loss})
                         # increment rotate_label
                         if ("soft_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option) and epoch > self.attack_start_epoch and idxs_users[client_id] == self.attacker_client_id:  # SoftTrain, rotate labels
@@ -558,7 +563,7 @@ class Trainer:
                     if "surrogate" in self.regularization_option:
                         self.logger.debug("Final Surrogate Validation Accuracy is {}".format(surro_accu))
                         wandb.run.summary["Final-Surrogate-Accuracy"] = surro_accu
-        
+                        
                 # Step the warmup scheduler
                 if epoch <= self.warm:
                     self.scheduler_step(warmup=True)
@@ -568,33 +573,18 @@ class Trainer:
                         self.suro_scheduler.step(epoch)
                 
                 gc.collect()
-        #save final images for gan_train_ME generator.
-        if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
-            self.generator.cuda()
-            self.generator.eval()
-            z = torch.randn((10, self.nz)).cuda()
-            train_output_path = "{}/generator_final".format(self.save_dir)
-            for i in range(self.num_class):
-                labels = i * torch.ones([10, ]).long().cuda()
-                
-                #Get fake image from generator
-                if "multiGAN" not in self.regularization_option:
-                    fake = self.generator(z, labels) # pre_x returns the output of G before applying the activation
-                else:
-                    fake_list = []
-                    for j in range(len(self.generator.generator_list)):
-                        fake_list.append(self.generator.generator_list[j](z, labels))
-                    fake = torch.cat(fake_list, dim = 0)
+        
+        #evaluate final images for gan_train_ME generator.
+        mean_var = self.generator_eval()
+        self.logger.debug("Final-Generator_VAR".format(fidel_score))
+        wandb.run.summary["Final-Generator_VAR"] = mean_var
 
-                imgGen = fake.clone()
-                imgGen = denormalize(imgGen, self.dataset)
-                if not os.path.isdir(train_output_path):
-                    os.mkdir(train_output_path)
-                if not os.path.isdir(train_output_path + "/{}".format(self.n_epochs)):
-                    os.mkdir(train_output_path + "/{}".format(self.n_epochs))
-                torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(self.n_epochs,"final_label{}".format(i)))
-            torch.save(self.generator.state_dict(), self.save_dir + 'checkpoint_generator_{}.tar'.format(epoch))
-
+        #evaluate final MEA performance (fidelity test).
+        if "surrogate" in self.regularization_option:
+            fidel_score = self.fidelity_test()
+            self.logger.debug("Final Surrogate Fidelity Score is {}".format(fidel_score))
+            wandb.run.summary["Final-Surrogate-Fidelity"] = fidel_score
+        
         if not self.call_resume:
             self.logger.debug("Best Target Validation Accuracy is {}".format(best_avg_accu))
             wandb.run.summary["Best-Val-Accuracy"] = best_avg_accu
@@ -607,6 +597,7 @@ class Trainer:
             avg_accu, _ = self.validate_target(client_id=0)
             self.logger.debug("Best Average Validation Accuracy is {}".format(avg_accu))
             wandb.run.summary["Best-Val-Accuracy"] = avg_accu
+        
         wandb.finish()
         return LOG
 
@@ -1409,6 +1400,101 @@ class Trainer:
                     target.data = 0.95 * target.data + 0.05 * online.data
         
         return total_losses, f_losses
+    
+    def fidelity_test(self, client_id = 0):
+        """
+        Run fidelity evaluation
+        """
+        fidel_score = AverageMeter()
+        val_loader = self.pub_dataloader
+        if self.arch == "ViT":
+            dl_transforms = torch.nn.Sequential(
+                transforms.Resize(224),
+                transforms.CenterCrop(224))
+        else:
+            dl_transforms = None
+
+        self.model.local_list[client_id].cuda()
+        self.model.local_list[client_id].eval()
+        self.model.cloud.cuda()
+        self.model.cloud.eval()
+        self.surrogate_model.local.cuda()
+        self.surrogate_model.local.eval()
+        self.surrogate_model.cloud.cuda()
+        self.surrogate_model.cloud.eval()
+        
+        for i, (input, target) in enumerate(val_loader):
+            if dl_transforms is not None:
+                input = dl_transforms(input)
+            input = input.cuda()
+            target = target.cuda()
+            # compute output
+            with torch.no_grad():
+
+                output = self.surrogate_model(input)
+                output_target = self.model(input)
+
+            output = output.float()
+            output_target = output_target.float()
+
+            # measure accuracy and record loss
+            fidel = fidelity(output.data, output_target.data)[0]
+            fidel_score.update(fidel.item(), input.size(0))
+        self.logger.debug('Test (surrogate):\t' 'Fidelity {top1.val:.3f} ({top1.avg:.3f})'.format(top1=fidel_score))
+        self.logger.debug(' * Fidelity {top1.avg:.3f}'.format(top1=fidel_score))
+        return fidel_score.avg
+
+
+    def generator_eval(self):
+        #TODO: to test the variation of generator output,
+        # low variation indicates a worse mode collapse and vice versa.
+        self.generator.eval()
+        self.generator.cuda()
+        
+        train_output_path = "{}/generator_final".format(self.save_dir)
+
+
+        image_by_class_list = []
+        # each class sample 1000 images.
+        for i in range(self.num_class):
+            if "multiGAN" not in self.regularization_option:
+                z = torch.randn((1000, self.nz)).cuda()
+                labels = i * torch.ones([1000, ]).long().cuda()
+            else:
+                z = torch.randn((1000//len(self.generator.generator_list), self.nz)).cuda()
+                labels = i * torch.ones([1000//len(self.generator.generator_list), ]).long().cuda()
+            
+            #Get fake image from generator
+            if "multiGAN" not in self.regularization_option:
+                fake = self.generator(z, labels) # pre_x returns the output of G before applying the activation
+            else:
+                fake_list = []
+                for j in range(len(self.generator.generator_list)):
+                    fake_list.append(self.generator.generator_list[j](z, labels))
+                fake = torch.cat(fake_list, dim = 0)
+
+            imgGen = fake.clone()
+            
+            imgGen = denormalize(imgGen, self.dataset)
+            
+            image_by_class_list.append(imgGen)
+            if not os.path.isdir(train_output_path):
+                os.mkdir(train_output_path)
+            if not os.path.isdir(train_output_path + "/{}".format(self.n_epochs)):
+                os.mkdir(train_output_path + "/{}".format(self.n_epochs))
+            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(self.n_epochs,"final_label{}".format(i)))
+
+        variance_by_class_list = []
+        for i in range(self.num_class):
+            pass
+            variance = torch.var(image_by_class_list[i].view(image_by_class_list[i].size(0), -1), dim = 0)
+            variance_by_class_list.append(variance)
+
+        #mean_variance_by_class
+        mean_var = torch.mean(variance_by_class_list)
+        print(f"variance_by_class_list is {variance_by_class_list}")
+        print(f"mean_var is {mean_var}")
+        return mean_var.item()
 
     def save_model(self, epoch, is_best=False):
         if is_best:

@@ -26,6 +26,7 @@ parser.add_argument('--folder', default="saves/train-ME", type=str, help='please
 parser.add_argument('--num_client', default=10, type=int, help='number of client')
 parser.add_argument('--num_epochs', default=200, type=int, help='number of epochs')
 parser.add_argument('--last_client_fix_amount', default=-1, type=int, help='last_client_fix_amount')
+parser.add_argument('--attacker_querying_budget_num_step', default=-1, type=int, help='attacker_querying_budget_num_step')
 parser.add_argument('--learning_rate', default=0.05, type=float, help='Learning Rate')
 parser.add_argument('--learning_rate_MEA', default=-1, type=float, help='Learning Rate of MEA, if not set, then set it to be the same as SFL learnign rate')
 parser.add_argument('--client_sample_ratio', default=1.0, type=float, help='client_sample_ratio')
@@ -83,7 +84,8 @@ mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epoch
                  num_client = num_client, dataset=args.dataset, save_dir=save_dir_name,
                  regularization_option=args.regularization, regularization_strength = args.regularization_strength, learning_rate = args.learning_rate,
                  load_from_checkpoint = args.load_from_checkpoint, client_sample_ratio = client_sample_ratio,
-                 source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid_ratio, last_client_fix_amount = args.last_client_fix_amount)
+                 source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid_ratio, 
+                 attacker_querying_budget_num_step = args.attacker_querying_budget_num_step, last_client_fix_amount = args.last_client_fix_amount)
 mi.logger.debug(str(args))
 
 
