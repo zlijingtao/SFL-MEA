@@ -39,7 +39,6 @@ parser.add_argument('--regularization_strength', default=0, type=float, help='re
 parser.add_argument('--load_from_checkpoint', action='store_true', default=False, help='if True, we load_from_checkpoint')
 parser.add_argument('--load_from_checkpoint_server', action='store_true', default=False, help='if True, we load_from_checkpoint for server-side model')
 parser.add_argument('--transfer_source_task', default="cifar100", type=str, help='the name of the transfer_source_task, option: cifar10, cifar100')
-parser.add_argument('--finetune_freeze_bn', action='store_true', default=False, help='if True, we finetune_freeze_bn')
 
 #training randomseed setting ()
 parser.add_argument('--random_seed', default=123, type=int, help='random_seed')
@@ -70,7 +69,7 @@ save_dir_name = "./{}/{}".format(args.folder, args.filename)
 mi = SFL.Trainer(args.arch, args.cutlayer, args.batch_size, n_epochs = args.num_epochs, scheme = args.scheme,
                  num_client = args.num_client, dataset=args.dataset, save_dir=save_dir_name,
                  regularization_option=args.regularization, regularization_strength = args.regularization_strength, learning_rate = args.learning_rate,
-                 load_from_checkpoint = args.load_from_checkpoint, num_freeze_layer = args.num_freeze_layer, finetune_freeze_bn = args.finetune_freeze_bn, client_sample_ratio = args.client_sample_ratio,
+                 load_from_checkpoint = args.load_from_checkpoint, num_freeze_layer = args.num_freeze_layer, client_sample_ratio = args.client_sample_ratio,
                  source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid)
 mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, args.num_epochs))
 

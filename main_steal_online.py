@@ -41,7 +41,6 @@ parser.add_argument('--regularization_strength', default=0, type=float, help='re
 parser.add_argument('--load_from_checkpoint', action='store_true', default=False, help='if True, we load_from_checkpoint')
 parser.add_argument('--load_from_checkpoint_server', action='store_true', default=False, help='if True, we load_from_checkpoint for server-side model')
 parser.add_argument('--transfer_source_task', default="cifar100", type=str, help='the name of the transfer_source_task, option: cifar10, cifar100')
-parser.add_argument('--finetune_freeze_bn', action='store_true', default=False, help='if True, we finetune_freeze_bn')
 
 #training randomseed setting ()
 parser.add_argument('--random_seed', default=123, type=int, help='random_seed')
@@ -65,11 +64,7 @@ num_client = args.num_client
 save_dir_name = "./{}/{}".format(args.folder, args.filename)
 
 if args.scheme == "V1":
-    if num_client == 100:
-        batch_size = 4
-    elif num_client == 50:
-        batch_size = 8
-    elif num_client == 20:
+    if num_client >= 20:
         batch_size = 16
     elif num_client == 10:
         batch_size = 32
@@ -78,8 +73,8 @@ if args.scheme == "V1":
     elif num_client == 2:
         batch_size = 128
 
-if num_client > 20:
-    client_sample_ratio = 20. /num_client
+if num_client > 10:
+    client_sample_ratio = 10. /num_client
     args.num_epochs = int(200 / client_sample_ratio)
 else:
     client_sample_ratio = 1.0
@@ -87,7 +82,7 @@ else:
 mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epochs, scheme = args.scheme,
                  num_client = num_client, dataset=args.dataset, save_dir=save_dir_name,
                  regularization_option=args.regularization, regularization_strength = args.regularization_strength, learning_rate = args.learning_rate,
-                 load_from_checkpoint = args.load_from_checkpoint, finetune_freeze_bn = args.finetune_freeze_bn, client_sample_ratio = client_sample_ratio,
+                 load_from_checkpoint = args.load_from_checkpoint, client_sample_ratio = client_sample_ratio,
                  source_task = args.transfer_source_task, load_from_checkpoint_server = args.load_from_checkpoint_server, noniid = args.noniid_ratio, last_client_fix_amount = args.last_client_fix_amount)
 mi.logger.debug(str(args))
 
@@ -95,37 +90,39 @@ mi.logger.debug(str(args))
 
 if not os.path.isfile(f"./{args.folder}/{args.filename}/checkpoint_client_{args.num_epochs}.tar"):
     mi.train(verbose=True)
+
+
+
+if "surrogate" not in args.regularization: # do offline surrogate model training
+
     mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, args.num_epochs))
-else:
-    mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, args.num_epochs))
 
+    train_clas_layer = mi.model.get_num_of_cloud_layer()
 
-train_clas_layer = mi.model.get_num_of_cloud_layer()
+    if "craft_train" in args.regularization:
+        attack_style = "Craft_option_resume"
+    elif "GM_train" in args.regularization:
+        attack_style = "GM_option_resume"
+    elif "gan_train" in args.regularization:
+        attack_style = "Generator_option_resume"
+    elif "soft_train" in args.regularization:
+        attack_style = "SoftTrain_option_resume"
+    elif "gan_assist_train" in args.regularization:
+        if "cleandata" in args.regularization:
+            attack_style = "Generator_assist_option_resume_cleandata"
+        else:
+            attack_style = "Generator_assist_option_resume"
+    elif "naive_train" in args.regularization:
+        attack_style = "NaiveTrain_option_resume"
 
-if "craft_train" in args.regularization:
-    attack_style = "Craft_option_resume"
-elif "GM_train" in args.regularization:
-    attack_style = "GM_option_resume"
-elif "gan_train" in args.regularization:
-    attack_style = "Generator_option_resume"
-elif "soft_train" in args.regularization:
-    attack_style = "SoftTrain_option_resume"
-elif "gan_assist_train" in args.regularization:
-    if "cleandata" in args.regularization:
-        attack_style = "Generator_assist_option_resume_cleandata"
-    else:
-        attack_style = "Generator_assist_option_resume"
-elif "naive_train" in args.regularization:
-    attack_style = "NaiveTrain_option_resume"
+    if args.learning_rate_MEA == -1:
+        args.learning_rate_MEA = args.learning_rate
 
-if args.learning_rate_MEA == -1:
-    args.learning_rate_MEA = args.learning_rate
-
-steal_attack(save_dir_name, args.arch, args.cutlayer, mi.num_class, mi.model, args.dataset, mi.pub_dataloader,
-             args.aux_dataset, args.batch_size, args.learning_rate_MEA, 50, args.attack_epochs,
-             args.attack_client, attack_style, args.regularization, args.regularization_strength,
-             1.0, args.noniid_ratio, 
-             train_clas_layer, args.surrogate_arch, args.adversairal_attack, args.last_n_batch)
+    steal_attack(save_dir_name, args.arch, args.cutlayer, mi.num_class, mi.model, args.dataset, mi.pub_dataloader,
+                args.aux_dataset, args.batch_size, args.learning_rate_MEA, 50, args.attack_epochs,
+                args.attack_client, attack_style, args.regularization, args.regularization_strength,
+                1.0, args.noniid_ratio, 
+                train_clas_layer, args.surrogate_arch, args.adversairal_attack, args.last_n_batch)
 
 
 # %%
