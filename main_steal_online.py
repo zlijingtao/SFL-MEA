@@ -64,11 +64,7 @@ num_client = args.num_client
 save_dir_name = "./{}/{}".format(args.folder, args.filename)
 
 if args.scheme == "V1":
-    if num_client == 100:
-        batch_size = 4
-    elif num_client == 50:
-        batch_size = 8
-    elif num_client == 20:
+    if num_client >= 20:
         batch_size = 16
     elif num_client == 10:
         batch_size = 32

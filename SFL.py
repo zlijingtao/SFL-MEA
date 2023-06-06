@@ -19,6 +19,7 @@ from tools import DiffAugment
 from kornia import augmentation # differentiable augmentation
 import wandb
 import tqdm
+import gc
 
 class Trainer:
     def __init__(self, arch, cutting_layer, batch_size, n_epochs, scheme="V2", num_client=2, dataset="cifar10",
@@ -566,6 +567,7 @@ class Trainer:
                     if "surrogate" in self.regularization_option:
                         self.suro_scheduler.step(epoch)
                 
+                gc.collect()
         #save final images for gan_train_ME generator.
         if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
             self.generator.cuda()

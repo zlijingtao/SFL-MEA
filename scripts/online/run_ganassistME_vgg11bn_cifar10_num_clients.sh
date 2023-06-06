@@ -30,7 +30,7 @@ for random_seed in $random_seed_list; do
                                         for last_client_fix_amount in $last_client_fix_amount_list; do
                                                 for regularization_strength in $regularization_strength_list; do
                                         
-                                                folder_name="saves/final"
+                                                folder_name="saves/V2"
                                                 filename="vgg11-cifar10-$regularization-str$regularization_strength-cut$cutlayer-client$num_client-noniid$noniid_ratio--data$last_client_fix_amount"
                                                 CUDA_VISIBLE_DEVICES=$GPU_id python main_steal_online.py   --arch=$arch --cutlayer=$cutlayer --batch_size=$batch_size \
                                                         --folder $folder_name --filename=$filename --num_client=$num_client --num_epochs=$num_epochs \
