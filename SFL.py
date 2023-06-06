@@ -5,7 +5,7 @@ import torchvision.transforms as transforms
 import torch.nn.functional as F
 import models.architectures_torch as architectures
 from models.architectures_torch import init_weights
-from models.fast_meta import ImagePool, DataIter, reset_l0
+# from models.fast_meta import ImagePool, DataIter, reset_l0
 from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, TV, l2loss, zeroing_grad
 from utils import freeze_model_bn, average_weights
 import logging
@@ -16,7 +16,7 @@ from shutil import rmtree
 from datasets import get_dataset, denormalize, get_image_shape
 from models import get_model
 from tools import DiffAugment
-from kornia import augmentation # differentiable augmentation
+# from kornia import augmentation # differentiable augmentation
 import wandb
 import tqdm
 
@@ -156,56 +156,56 @@ class Trainer:
             
             self.generator.cuda()
             
-            if "fast_meta" in self.regularization_option:
-                self.data_pool = ImagePool(root=self.save_dir + "/run/")
-                CIFAR10_TRAIN_MEAN = (0.4914, 0.4822, 0.4465)
-                CIFAR10_TRAIN_STD = (0.247, 0.243, 0.261)
-                self.transform = transforms.Compose([
-                    transforms.RandomCrop(32, padding=4),
-                    transforms.RandomHorizontalFlip(),
-                    transforms.RandomRotation(15),
-                    transforms.ToTensor(),
-                    transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD)
-                ])
-                self.aug = transforms.Compose([ 
-                    augmentation.RandomCrop(size=[self.image_shape[-2], self.image_shape[-1]], padding=4),
-                    augmentation.RandomHorizontalFlip(),
-                    transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD),
-                ])
-                # num of steps to train the surrogate model
+            # if "fast_meta" in self.regularization_option:
+            #     self.data_pool = ImagePool(root=self.save_dir + "/run/")
+            #     CIFAR10_TRAIN_MEAN = (0.4914, 0.4822, 0.4465)
+            #     CIFAR10_TRAIN_STD = (0.247, 0.243, 0.261)
+            #     self.transform = transforms.Compose([
+            #         transforms.RandomCrop(32, padding=4),
+            #         transforms.RandomHorizontalFlip(),
+            #         transforms.RandomRotation(15),
+            #         transforms.ToTensor(),
+            #         transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD)
+            #     ])
+            #     self.aug = transforms.Compose([ 
+            #         augmentation.RandomCrop(size=[self.image_shape[-2], self.image_shape[-1]], padding=4),
+            #         augmentation.RandomHorizontalFlip(),
+            #         transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD),
+            #     ])
+            #     # num of steps to train the surrogate model
 
-                self.kd_step = 5
+            #     self.kd_step = 5
                 
-            if "cmi" in self.regularization_option:
-                # self.data_pool = ImagePool(root=self.save_dir + "/run/")
-                from models.cmi import MemoryBank, MLPHead, MultiTransform
-                self.bank_size = 40960
-                self.mem_bank = MemoryBank('cpu', max_size=self.bank_size, dim_feat=2 * np.prod(self.model.get_smashed_data_size())) # local + global
+            # if "cmi" in self.regularization_option:
+            #     # self.data_pool = ImagePool(root=self.save_dir + "/run/")
+            #     from models.cmi import MemoryBank, MLPHead, MultiTransform
+            #     self.bank_size = 40960
+            #     self.mem_bank = MemoryBank('cpu', max_size=self.bank_size, dim_feat=2 * np.prod(self.model.get_smashed_data_size())) # local + global
 
-                self.head = MLPHead(np.prod(self.model.get_smashed_data_size()), 128).cuda().train()
-                self.optimizer_head = torch.optim.Adam(self.head.parameters(), lr=0.1)
-                CIFAR10_TRAIN_MEAN = (0.4914, 0.4822, 0.4465)
-                CIFAR10_TRAIN_STD = (0.247, 0.243, 0.261)
-                self.aug = MultiTransform([
-                    # global view
-                    transforms.Compose([
-                        augmentation.RandomCrop(size=[self.image_shape[-2], self.image_shape[-1]], padding=4),
-                        augmentation.RandomHorizontalFlip(),
-                        transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD),
-                    ]),
-                    # local view
-                    transforms.Compose([
-                        augmentation.RandomResizedCrop(size=[self.image_shape[-2], self.image_shape[-1]], scale=[0.25, 1.0]),
-                        augmentation.RandomHorizontalFlip(),
-                        transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD),
-                    ]),
-                ])
-                self.n_neg = 4096
-                self.cr_T = 0.1
-                self.cr = 0.8
+            #     self.head = MLPHead(np.prod(self.model.get_smashed_data_size()), 128).cuda().train()
+            #     self.optimizer_head = torch.optim.Adam(self.head.parameters(), lr=0.1)
+            #     CIFAR10_TRAIN_MEAN = (0.4914, 0.4822, 0.4465)
+            #     CIFAR10_TRAIN_STD = (0.247, 0.243, 0.261)
+            #     self.aug = MultiTransform([
+            #         # global view
+            #         transforms.Compose([
+            #             augmentation.RandomCrop(size=[self.image_shape[-2], self.image_shape[-1]], padding=4),
+            #             augmentation.RandomHorizontalFlip(),
+            #             transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD),
+            #         ]),
+            #         # local view
+            #         transforms.Compose([
+            #             augmentation.RandomResizedCrop(size=[self.image_shape[-2], self.image_shape[-1]], scale=[0.25, 1.0]),
+            #             augmentation.RandomHorizontalFlip(),
+            #             transforms.Normalize(CIFAR10_TRAIN_MEAN, CIFAR10_TRAIN_STD),
+            #         ]),
+            #     ])
+            #     self.n_neg = 4096
+            #     self.cr_T = 0.1
+            #     self.cr = 0.8
                 
-                # num of steps to train the surrogate model
-                self.kd_step = 40
+            #     # num of steps to train the surrogate model
+            #     self.kd_step = 40
 
             self.generator_optimizer = torch.optim.Adam(list(self.generator.parameters()), lr=2e-4, betas=(0.5, 0.999))
             # self.generator_optimizer = torch.optim.Adam(list(self.generator.parameters()), lr=5e-5)
@@ -1148,33 +1148,35 @@ class Trainer:
         
 
         # Use fast meta
-        if "fast_meta" in self.regularization_option:
-            self.z = torch.randn(size=(self.batch_size, self.nz), device="cuda:0").requires_grad_() 
-            self.generator_optimizer = torch.optim.Adam([
-                {'params': self.generator.parameters()},
-                {'params': [self.z], 'lr': 0.015}
-            ], lr=5e-3, betas=[0.5, 0.999])
-            if epoch == 120 and batch == 0:
-                reset_l0(self.generator)
+        # if "fast_meta" in self.regularization_option:
+        #     self.z = torch.randn(size=(self.batch_size, self.nz), device="cuda:0").requires_grad_() 
+        #     self.generator_optimizer = torch.optim.Adam([
+        #         {'params': self.generator.parameters()},
+        #         {'params': [self.z], 'lr': 0.015}
+        #     ], lr=5e-3, betas=[0.5, 0.999])
+        #     if epoch == 120 and batch == 0:
+        #         reset_l0(self.generator)
             
-            if epoch % 5 == 0:
-                self.data_pool.reset()
-            x_noise = self.generator(self.z[:x_private.size(0)//2, :], label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
+        #     if epoch % 5 == 0:
+        #         self.data_pool.reset()
+        #     x_noise = self.generator(self.z[:x_private.size(0)//2, :], label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
             
         
         # Use CMI
-        elif "cmi" in self.regularization_option:
-            self.generator_optimizer = torch.optim.Adam([
-                {'params': self.generator.parameters()}
-            ], lr=5e-3, betas=[0.5, 0.999])
-            if epoch == 120 and batch == 0:
-                reset_l0(self.generator)
-            z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
-            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
-        else:
-            #Get class-dependent noise, adding to x_private lately
-            z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
-            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
+        # elif "cmi" in self.regularization_option:
+        #     self.generator_optimizer = torch.optim.Adam([
+        #         {'params': self.generator.parameters()}
+        #     ], lr=5e-3, betas=[0.5, 0.999])
+        #     if epoch == 120 and batch == 0:
+        #         reset_l0(self.generator)
+        #     z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
+        #     x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
+        # else:
+        
+        
+        #Get class-dependent noise, adding to x_private lately
+        z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
+        x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
 
 
         # Use EMA
@@ -1193,10 +1195,10 @@ class Trainer:
 
 
         #augmentation:
-        if "fast_meta" in self.regularization_option:
-            x_fake = self.aug(x_fake)
-        elif "cmi" in self.regularization_option:
-            x_fake, x_fake_local = self.aug(x_fake)
+        # if "fast_meta" in self.regularization_option:
+        #     x_fake = self.aug(x_fake)
+        # elif "cmi" in self.regularization_option:
+        #     x_fake, x_fake_local = self.aug(x_fake)
         
         if epoch % 5 == 0 and batch == 0:
             imgGen = x_noise.clone()
@@ -1219,28 +1221,28 @@ class Trainer:
 
         total_loss = f_loss
 
-        if "cmi" in self.regularization_option:
-            if x_private.size(0) != self.batch_size:
-                pass
-            else:
-                global_feature = z_private.detach().view(x_private.size(0), -1)
-                with torch.no_grad():
-                    local_feature = self.model.local_list[client_id](x_fake_local).view(x_private.size(0), -1)
-                cached_feature, _ = self.mem_bank.get_data(self.n_neg)
-                cached_local_feature, cached_global_feature = torch.chunk(cached_feature.cuda(), chunks=2, dim=1)
-                proj_feature = self.head( torch.cat([local_feature, cached_local_feature, global_feature, cached_global_feature], dim=0) )
-                proj_local_feature, proj_global_feature = torch.chunk(proj_feature, chunks=2, dim=0)
-                # A naive implementation of contrastive loss
-                cr_logits = torch.mm(proj_local_feature, proj_global_feature.detach().T) / self.cr_T # (N + N') x (N + N')
-                cr_labels = torch.arange(start=0, end=len(cr_logits), device="cuda:0")
-                loss_cr = F.cross_entropy( cr_logits, cr_labels, reduction='none')  #(N + N')
-                if self.mem_bank.n_updates>0:
-                    loss_cr = loss_cr[:x_private.size(0)].mean() + loss_cr[x_private.size(0):].mean()
-                else:
-                    loss_cr = loss_cr.mean()
+        # if "cmi" in self.regularization_option:
+        #     if x_private.size(0) != self.batch_size:
+        #         pass
+        #     else:
+        #         global_feature = z_private.detach().view(x_private.size(0), -1)
+        #         with torch.no_grad():
+        #             local_feature = self.model.local_list[client_id](x_fake_local).view(x_private.size(0), -1)
+        #         cached_feature, _ = self.mem_bank.get_data(self.n_neg)
+        #         cached_local_feature, cached_global_feature = torch.chunk(cached_feature.cuda(), chunks=2, dim=1)
+        #         proj_feature = self.head( torch.cat([local_feature, cached_local_feature, global_feature, cached_global_feature], dim=0) )
+        #         proj_local_feature, proj_global_feature = torch.chunk(proj_feature, chunks=2, dim=0)
+        #         # A naive implementation of contrastive loss
+        #         cr_logits = torch.mm(proj_local_feature, proj_global_feature.detach().T) / self.cr_T # (N + N') x (N + N')
+        #         cr_labels = torch.arange(start=0, end=len(cr_logits), device="cuda:0")
+        #         loss_cr = F.cross_entropy( cr_logits, cr_labels, reduction='none')  #(N + N')
+        #         if self.mem_bank.n_updates>0:
+        #             loss_cr = loss_cr[:x_private.size(0)].mean() + loss_cr[x_private.size(0):].mean()
+        #         else:
+        #             loss_cr = loss_cr.mean()
 
-                total_loss += self.cr * loss_cr
-                self.mem_bank.add( torch.cat([local_feature.data, global_feature.data], dim=1).data )
+        #         total_loss += self.cr * loss_cr
+        #         self.mem_bank.add( torch.cat([local_feature.data, global_feature.data], dim=1).data )
 
         if "reg" in self.regularization_option:
             lambda_TV = 6e-3
@@ -1253,8 +1255,8 @@ class Trainer:
             h = z_private.register_hook(lambda grad: grad + 1e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
 
         self.generator_optimizer.zero_grad()
-        if "cmi" in self.regularization_option:
-            self.optimizer_head.zero_grad()
+        # if "cmi" in self.regularization_option:
+        #     self.optimizer_head.zero_grad()
         
         if "adversary" in self.regularization_option or "GM" in self.regularization_option:
             total_loss.backward(retain_graph=True)
@@ -1263,8 +1265,8 @@ class Trainer:
         self.generator_optimizer.step()
         
         
-        if "cmi" in self.regularization_option:
-            self.optimizer_head.step()
+        # if "cmi" in self.regularization_option:
+        #     self.optimizer_head.step()
 
 
         if "gradient_noise" in self.regularization_option:
@@ -1280,36 +1282,36 @@ class Trainer:
             self.surrogate_model.cloud.train()
 
 
-            if "fast_meta" in self.regularization_option:
-                self.data_pool.add(x_fake.data.cpu(), label_private.data.cpu())
-                dst = self.data_pool.get_dataset(transform=self.transform)
-                loader = torch.utils.data.DataLoader(
-                    dst, batch_size=self.batch_size, shuffle=True,
-                    num_workers=4, pin_memory=True, sampler=None)
-                self.data_iter = DataIter(loader)
+            # if "fast_meta" in self.regularization_option:
+            #     self.data_pool.add(x_fake.data.cpu(), label_private.data.cpu())
+            #     dst = self.data_pool.get_dataset(transform=self.transform)
+            #     loader = torch.utils.data.DataLoader(
+            #         dst, batch_size=self.batch_size, shuffle=True,
+            #         num_workers=4, pin_memory=True, sampler=None)
+            #     self.data_iter = DataIter(loader)
 
-                for _ in range(self.kd_step):
-                    syns_image, syns_label = self.data_iter.next()
-                    syns_image = syns_image.cuda()
-                    syns_label = syns_label.cuda()
-                    with torch.no_grad():
-                        suro_act = self.surrogate_model.local(syns_image.detach())
-                    suro_output = self.surrogate_model.cloud(suro_act)
-                    suro_loss = criterion(suro_output, syns_label)
-                    self.suro_optimizer.zero_grad()
-                    suro_loss.backward()
-                    self.suro_optimizer.step()
+            #     for _ in range(self.kd_step):
+            #         syns_image, syns_label = self.data_iter.next()
+            #         syns_image = syns_image.cuda()
+            #         syns_label = syns_label.cuda()
+            #         with torch.no_grad():
+            #             suro_act = self.surrogate_model.local(syns_image.detach())
+            #         suro_output = self.surrogate_model.cloud(suro_act)
+            #         suro_loss = criterion(suro_output, syns_label)
+            #         self.suro_optimizer.zero_grad()
+            #         suro_loss.backward()
+            #         self.suro_optimizer.step()
 
-            else:
+            # else:
             
-                with torch.no_grad():
-                    suro_act = self.surrogate_model.local(x_fake.detach())
-                suro_output = self.surrogate_model.cloud(suro_act)
-                suro_loss = criterion(suro_output, label_private)
+            with torch.no_grad():
+                suro_act = self.surrogate_model.local(x_fake.detach())
+            suro_output = self.surrogate_model.cloud(suro_act)
+            suro_loss = criterion(suro_output, label_private)
 
-                self.suro_optimizer.zero_grad()
-                suro_loss.backward()
-                self.suro_optimizer.step()
+            self.suro_optimizer.zero_grad()
+            suro_loss.backward()
+            self.suro_optimizer.step()
 
             if "GM" in self.regularization_option:
                 target_grad = z_private.grad.detach()
