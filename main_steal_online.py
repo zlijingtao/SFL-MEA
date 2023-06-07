@@ -92,13 +92,12 @@ mi.logger.debug(str(args))
 
 if not os.path.isfile(f"./{args.folder}/{args.filename}/checkpoint_client_{args.num_epochs}.tar"):
     mi.train(verbose=True)
-
+else:
+    mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, args.num_epochs))
 
 
 if "surrogate" not in args.regularization: # do offline surrogate model training
-
-    mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, args.num_epochs))
-
+    
     train_clas_layer = mi.model.get_num_of_cloud_layer()
 
     if "craft_train" in args.regularization:

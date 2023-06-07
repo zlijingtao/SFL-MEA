@@ -287,6 +287,17 @@ class Trainer:
             self.validate_surrogate()
 
             self.fidelity_test()
+        
+        if "gan_train_ME" in self.regularization_option or "gan_assist_train_ME" in self.regularization_option:
+            
+            print("load generator")
+            checkpoint = torch.load(self.save_dir + "checkpoint_generator_{}.tar".format(self.n_epochs))
+            self.generator.cuda()
+            self.generator.load_state_dict(checkpoint, strict = False)
+
+            mean_var = self.generator_eval()
+        
+            self.logger.debug("Final-Generator_VAR: {}".format(mean_var))
 
     def sync_client(self, idxs_users = None):
         
@@ -462,13 +473,15 @@ class Trainer:
                     
                     
                     for id, client_id in enumerate(idxs_users): # id is the position in client_iterator_list, client_id is the actual client id.
-
-                        if self.attacker_querying_budget_num_step != -1:
-                            # if batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the beginning of the epoch
-                            if self.num_batches - batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the end of the epoch
-                                # skip attacking client in this step
-                                if client_id == self.attacker_client_id:
-                                    continue
+                        
+                        # for gan_train_ME, we skip the attacker_client if we set the attacker_querying_budget_num_step
+                        if "gan_train_ME" in self.regularization_option:
+                            if self.attacker_querying_budget_num_step != -1:
+                                # if batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the beginning of the epoch
+                                if self.num_batches - batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the end of the epoch
+                                    # skip attacking client in this step
+                                    if client_id == self.attacker_client_id:
+                                        continue
                         
                         # Get data
                         if client_id != self.attacker_client_id: # if current client is not the attack client (default is the last one)
@@ -498,9 +511,17 @@ class Trainer:
                                 if "craft_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.craft_train_target_step(id, epoch, batch)
                                 elif "gan_train_ME" in self.regularization_option:
+
                                     train_loss, f_loss = self.gan_train_target_step(id, self.batch_size, epoch, batch)
+
                                 elif "gan_assist_train_ME" in self.regularization_option:
-                                    train_loss, f_loss = self.gan_assist_train_target_step(images, labels, id, epoch, batch)
+
+                                    # for gan_train_ME, we change to normal training if we set the attacker_querying_budget_num_step, to keep the other variants the same
+                                    if self.attacker_querying_budget_num_step != -1 and self.num_batches - batch > self.attacker_querying_budget_num_step:
+                                        train_loss, f_loss = self.train_target_step(images, labels, id, epoch, batch, attack = True, skip_regularization=True)
+                                        # if batch > self.attacker_querying_budget_num_step: # train num_steps on attackers data at the beginning of the epoch
+                                    else:
+                                        train_loss, f_loss = self.gan_assist_train_target_step(images, labels, id, epoch, batch)
                                 elif "GM_train_ME" in self.regularization_option or "soft_train_ME" in self.regularization_option or "naive_train_ME" in self.regularization_option:
                                     train_loss, f_loss = self.train_target_step(images, labels, id, epoch, batch, attack = True, skip_regularization=True) # adv clients won't comply to the defense
                                 else:
@@ -575,7 +596,7 @@ class Trainer:
         
         #evaluate final images for gan_train_ME generator.
         mean_var = self.generator_eval()
-        self.logger.debug("Final-Generator_VAR".format(fidel_score))
+        self.logger.debug("Final-Generator_VAR: {}".format(mean_var))
         wandb.run.summary["Final-Generator_VAR"] = mean_var
 
         #evaluate final MEA performance (fidelity test).
@@ -986,9 +1007,8 @@ class Trainer:
         
         self.generator_optimizer.zero_grad()
         train_output_path = self.save_dir + "generator_train"
-        if os.path.isdir(train_output_path):
-            rmtree(train_output_path)
-        os.makedirs(train_output_path)
+        if not os.path.isdir(train_output_path):
+            os.makedirs(train_output_path)
 
 
         #Sample Random Noise
@@ -1015,12 +1035,12 @@ class Trainer:
             x_private = x_private.detach()
         
         # record generator_output during training
-        if epoch % 50 == 0 and batch == 0:
+        if epoch % 20 == 0 and batch == 0:
             imgGen = x_private.clone()
             imgGen = denormalize(imgGen, self.dataset)
             if not os.path.isdir(train_output_path + "/{}".format(epoch)):
                 os.mkdir(train_output_path + "/{}".format(epoch))
-            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
+            torchvision.utils.save_image(imgGen, train_output_path + '/{}/gout_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
         
         
         
@@ -1201,12 +1221,15 @@ class Trainer:
         #     x_fake, x_fake_local = self.aug(x_fake)
         
         # record generator_output during training
-        if epoch % 50 == 0 and batch == 0:
+        if epoch % 20 == 0 and batch == 0:
             imgGen = x_noise.clone()
             imgGen = denormalize(imgGen, self.dataset)
+            imgGen1 = x_fake.clone()
+            imgGen1 = denormalize(imgGen1, self.dataset)
             if not os.path.isdir(train_output_path + "/{}".format(epoch)):
                 os.mkdir(train_output_path + "/{}".format(epoch))
-            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
+            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_gout_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
+            torchvision.utils.save_image(imgGen1, train_output_path + '/{}/out_finalout_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
         
 
         z_private = self.model.local_list[client_id](x_fake)
@@ -1447,7 +1470,7 @@ class Trainer:
 
 
     def generator_eval(self):
-        #TODO: to test the variation of generator output,
+        # test the variation of generator output,
         # low variation indicates a worse mode collapse and vice versa.
         self.generator.eval()
         self.generator.cuda()
@@ -1456,45 +1479,59 @@ class Trainer:
 
 
         image_by_class_list = []
-        # each class sample 1000 images.
+        # each class sample 100 images. for 10 times total
+        n_rounds = 10
         for i in range(self.num_class):
-            if "multiGAN" not in self.regularization_option:
-                z = torch.randn((1000, self.nz)).cuda()
-                labels = i * torch.ones([1000, ]).long().cuda()
-            else:
-                z = torch.randn((1000//len(self.generator.generator_list), self.nz)).cuda()
-                labels = i * torch.ones([1000//len(self.generator.generator_list), ]).long().cuda()
-            
-            #Get fake image from generator
-            if "multiGAN" not in self.regularization_option:
-                fake = self.generator(z, labels) # pre_x returns the output of G before applying the activation
-            else:
-                fake_list = []
-                for j in range(len(self.generator.generator_list)):
-                    fake_list.append(self.generator.generator_list[j](z, labels))
-                fake = torch.cat(fake_list, dim = 0)
 
-            imgGen = fake.clone()
+            imgGen_list = []
+            for j in range(n_rounds):
+                if "multiGAN" not in self.regularization_option:
+                    z = torch.randn((100, self.nz)).cuda()
+                    labels = i * torch.ones([100, ]).long().cuda()
+                else:
+                    z = torch.randn((100//len(self.generator.generator_list), self.nz)).cuda()
+                    labels = i * torch.ones([100//len(self.generator.generator_list), ]).long().cuda()
+                
+                #Get fake image from generator
+                with torch.no_grad():
+                    if "multiGAN" not in self.regularization_option:
+                        fake = self.generator(z, labels).cpu() # pre_x returns the output of G before applying the activation
+                    else:
+                        fake_list = []
+                        for j in range(len(self.generator.generator_list)):
+                            fake_list.append(self.generator.generator_list[j](z, labels))
+                        fake = torch.cat(fake_list, dim = 0).cpu()
+                    # fake = fake * self.regularization_strength
+                fake = denormalize(fake, self.dataset)
             
-            imgGen = denormalize(imgGen, self.dataset)
+                if j == 0:
+                    if not os.path.isdir(train_output_path):
+                        os.mkdir(train_output_path)
+                    if not os.path.isdir(train_output_path + "/{}".format(self.n_epochs)):
+                        os.mkdir(train_output_path + "/{}".format(self.n_epochs))
+                    torchvision.utils.save_image(fake, train_output_path + '/{}/out_{}.jpg'.format(self.n_epochs,"final_label{}".format(i)))
+                
+                imgGen_list.append(fake)
+            
+            imgGen = torch.cat(imgGen_list, dim = 0).clone()
             
             image_by_class_list.append(imgGen)
-            if not os.path.isdir(train_output_path):
-                os.mkdir(train_output_path)
-            if not os.path.isdir(train_output_path + "/{}".format(self.n_epochs)):
-                os.mkdir(train_output_path + "/{}".format(self.n_epochs))
-            torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_{}.jpg'.format(self.n_epochs,"final_label{}".format(i)))
 
+        
+        
+        
         variance_by_class_list = []
         for i in range(self.num_class):
             pass
-            variance = torch.var(image_by_class_list[i].view(image_by_class_list[i].size(0), -1), dim = 0)
+            variance = torch.var(image_by_class_list[i].view(image_by_class_list[i].size(0), -1), dim = 1)
+            # print(variance.size())
+            variance = torch.mean(variance)
             variance_by_class_list.append(variance)
 
         #mean_variance_by_class
-        mean_var = torch.mean(variance_by_class_list)
+        mean_var = np.mean(variance_by_class_list)
         print(f"variance_by_class_list is {variance_by_class_list}")
-        print(f"mean_var is {mean_var}")
+        # print(f"mean_var is {mean_var}")
         return mean_var.item()
 
     def save_model(self, epoch, is_best=False):
