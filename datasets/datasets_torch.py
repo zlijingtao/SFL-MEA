@@ -112,36 +112,53 @@ def noniid_unlabel(dataset, num_users, label_rate, noniid_ratio = 0.2, num_class
 
     return dict_users_labeled, dict_users_unlabeled
 
-def noniid_alllabel(dataset, num_users, noniid_ratio = 0.2, num_class = 10):
+def noniid_alllabel(dataset, num_users, noniid_ratio = 0.2, num_class = 10, last_client_fix_amount = -1):
+    #derive a list of indices to divide the dataset, into desired non-iid_ratio.
     num_class_per_client = int(noniid_ratio * num_class)
-    num_shards, num_imgs = num_class_per_client * num_users, int(len(dataset)/num_users/num_class_per_client)
+    if last_client_fix_amount == -1:
+        num_shards, num_imgs = num_class_per_client * num_users, int(len(dataset)/num_users/num_class_per_client)
+    else:
+        num_shards, num_imgs = num_class_per_client * (num_users-1), int((len(dataset) - last_client_fix_amount)/(num_users-1)/num_class_per_client)
+
+
+
     idx_shard = [i for i in range(num_shards)]
     dict_users_labeled = {i: np.array([], dtype='int64') for i in range(num_users)}
     idxs = np.arange(len(dataset))
     labels = np.arange(len(dataset))  
     
-
+    # get label
     for i in range(len(dataset)):
         labels[i] = dataset[i][1]
-        
-    num_items = int(len(dataset)/num_users)
 
-    # sort labels
+    # sort labels, idxs will store the original indices
     idxs_labels = np.vstack((idxs, labels))
     idxs_labels = idxs_labels[:,idxs_labels[1,:].argsort()]#索引值
+
+    # set aside idxs for the last client - assume dataset has equal number of classes
+    if last_client_fix_amount != -1:
+        num_img_per_class_fix_amount = last_client_fix_amount//num_class_per_client
+        class_set = set(np.random.choice(np.arange(num_class), num_class_per_client, replace=False))
+        for cls in class_set:
+            dict_users_labeled[num_users-1] = np.concatenate((dict_users_labeled[num_users-1], idxs_labels[0, cls*(len(dataset)//num_class):cls*(len(dataset)//num_class) + num_img_per_class_fix_amount]), axis=0)
+            idxs_labels = np.delete(idxs_labels, list(range(cls*(len(dataset)//num_class), (cls*(len(dataset)//num_class) + num_img_per_class_fix_amount))), axis=1)
+        #resort
+        idxs_labels = idxs_labels[:,idxs_labels[1,:].argsort()]#索引值
+    
     idxs = idxs_labels[0,:]
 
     # divide and assign
     for i in range(num_users):
-        rand_set = set(np.random.choice(idx_shard, num_class_per_client, replace=False))
-        idx_shard = list(set(idx_shard) - rand_set)
+        if last_client_fix_amount != -1 and i == num_users - 1:
+            continue
+        rand_set = set(np.random.choice(idx_shard, num_class_per_client, replace=False)) # randomly pick num_class_per_client shards
+        idx_shard = list(set(idx_shard) - rand_set) # remove the shard availability
         for rand in rand_set:
             dict_users_labeled[i] = np.concatenate((dict_users_labeled[i], idxs[rand*num_imgs:(rand+1)*num_imgs]), axis=0)
     
     for i in range(num_users):
 
         dict_users_labeled[i] = set(dict_users_labeled[i])
-
 
     return dict_users_labeled
 
@@ -308,7 +325,7 @@ def split_training_data_to_training_loader(training_data, num_client, batch_size
         training_loader_list = []
 
         if noniid_ratio < 1.0:
-            noniid_training_subset_list = noniid_alllabel(training_data, num_client, noniid_ratio, num_class)
+            noniid_training_subset_list = noniid_alllabel(training_data, num_client, noniid_ratio, num_class, last_client_fix_amount)
 
         for i in range(num_client):
 
@@ -316,8 +333,17 @@ def split_training_data_to_training_loader(training_data, num_client, batch_size
                 training_subset = torch.utils.data.Subset(training_data, subset_split_list[i])
             else:
                 training_subset = DatasetSplit(training_data, noniid_training_subset_list[i])
-            
-            print(f"length of datasplit {i} is {len(subset_split_list[i])}")
+
+                # print out first 100 labels
+                label_statistics = {}
+                for j in range(len(training_subset)):
+                    image, label = training_subset.dataset[training_subset.idxs[j]]
+                    if label not in label_statistics:
+                        label_statistics[label] = 1
+                    else:
+                        label_statistics[label] += 1
+                print(f"client {i} - label statistics: {label_statistics}")
+            print(f"length of client {i} is {len(training_subset)}")
             if len(subset_split_list[i]) < batch_size:
                 subset_training_loader = DataLoader(training_subset, shuffle=shuffle, num_workers=num_workers, batch_size=len(subset_split_list[i]))
             else:
