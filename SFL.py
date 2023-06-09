@@ -142,11 +142,12 @@ class Trainer:
             else:
                 self.generator = architectures.GeneratorD(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
             if "multiGAN" in self.regularization_option:
+                num_generator = 10
+                self.logger.debug(f"Use multiGAN with number of generator {num_generator}")
                 if "unconditional" not in self.regularization_option:
-                    self.generator = architectures.GeneratorC_mult(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
+                    self.generator = architectures.GeneratorC_mult(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_generator = num_generator)
                 else:
-                    self.generator = architectures.GeneratorD_mult(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2])
-                print(self.generator)
+                    self.generator = architectures.GeneratorD_mult(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_generator = num_generator)
             if "dynamicGAN_A" in self.regularization_option:
                 self.generator = architectures.GeneratorDynamic_A(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_heads = 50)
             if "dynamicGAN_B" in self.regularization_option:
@@ -157,10 +158,6 @@ class Trainer:
             self.generator.cuda()
 
             self.generator_optimizer = torch.optim.Adam(list(self.generator.parameters()), lr=2e-4, betas=(0.5, 0.999))
-            if "EMA" in self.regularization_option:
-                self.slow_generator = copy.deepcopy(self.generator)
-                for param_t in self.slow_generator.parameters():
-                    param_t.requires_grad = False  # not update by gradient
         
         # setup optimizers
         self.optimizer = torch.optim.SGD(self.params, lr=self.lr, momentum=0.9, weight_decay=5e-4)
@@ -953,7 +950,6 @@ class Trainer:
         label_private = torch.stack([labels_l, labels_r]).view(-1)
         
 
-
         #Get fake image from generator
         x_private = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
 
@@ -969,8 +965,6 @@ class Trainer:
 
         if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1: # server will skip sending back gradients, once per two steps
             z_private = z_private.detach()
-        elif "GM" in self.regularization_option:
-            z_private.retain_grad()
         output = self.model.cloud(z_private)
         
         criterion = torch.nn.CrossEntropyLoss()
@@ -1004,62 +998,6 @@ class Trainer:
             self.suro_optimizer.zero_grad()
             suro_loss.backward()
             self.suro_optimizer.step()
-            
-            if not ("reduce_grad_freq" in self.regularization_option and batch % 2 == 1):
-                if "GM" in self.regularization_option: # matching surrogate model grads with target model
-                    target_grad = z_private.grad.detach()
-
-                    # adversarial gradient matching
-                    self.suro_optimizer.zero_grad()
-
-                    # generator get reverse
-                    with torch.no_grad():
-                        suro_z_private = self.surrogate_model.local(x_private.detach())
-                    suro_z_private.requires_grad = True
-                    suro_output = self.surrogate_model.cloud(suro_z_private)
-
-                    suro_loss = criterion(suro_output, label_private)
-
-                    gradient_loss_style = "l2"
-                    grad_approx = torch.autograd.grad(suro_loss, suro_z_private, create_graph = True)[0]
-                    if gradient_loss_style == "l2":
-                        grad_loss = ((target_grad - grad_approx).norm(dim=1, p =2)).mean()
-                    elif gradient_loss_style == "l1":
-                        grad_loss = ((target_grad - grad_approx).norm(dim=1, p =1)).mean()
-                    elif gradient_loss_style == "cosine":
-                        grad_loss = torch.mean(1 - F.cosine_similarity(grad_approx, target_grad, dim=1))
-                    
-                    grad_loss.backward() # this only affect generator
-                    
-                    self.suro_optimizer.step()
-
-                    del grad_loss
-
-            if not ("reduce_grad_freq" in self.regularization_option and batch % 2 == 1):
-                if "adversary" in self.regularization_option:
-                    #Get fake image from generator
-                    
-                    self.generator_optimizer.zero_grad()
-                    x_private = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
-
-                    # generator get reverse
-                    # with torch.no_grad():
-                    suro_z_private = self.surrogate_model.local(x_private)
-                    
-                    suro_output = self.surrogate_model.cloud(suro_z_private)
-
-                    suro_loss = criterion(suro_output, label_private)
-
-                    adversary_loss = - 2.0 * suro_loss # maximize this loss.
-
-                    adversary_loss.backward() # this only affect generator
-                    
-                    self.generator_optimizer.step()
-
-                    del adversary_loss
-                
-
-                    del suro_loss
 
         # zero out local model gradients to avoid unecessary poisoning effect
         zeroing_grad(self.model.local_list[client_id])
@@ -1106,10 +1044,26 @@ class Trainer:
         
         #Get class-dependent noise, adding to x_private lately
         z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
-        x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
 
-        # Mixup noise and training images
-        x_fake = torch.cat([self.regularization_strength * x_noise + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+        if "randommix" not in self.regularization_option:
+            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
+
+            # Mixup noise and training images
+            x_fake = torch.cat([self.regularization_strength * x_noise + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+        else: 
+            # Random mixup, mixup with random images, to force the generated images become strong backdoor
+            x_noise = self.generator(z, label_private[x_private.size(0)//2:]) # pre_x returns the output of G before applying the activation
+            # Mixup noise and training images
+            x_fake = torch.cat([torch.clip(self.regularization_strength * x_noise + x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            
+            # x_fake_full = torch.cat([x_noise + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+
+            label_private = torch.cat([label_private[x_private.size(0)//2:], label_private[x_private.size(0)//2:]], dim = 0)
+        
+        
+
+
+
 
         # record generator_output during training
         if epoch % 20 == 0 and batch == 0:
@@ -1126,8 +1080,7 @@ class Trainer:
         z_private = self.model.local_list[client_id](x_fake)
         if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
             z_private = z_private.detach()
-        elif "GM" in self.regularization_option:
-            z_private.retain_grad()
+        
         output = self.model.cloud(z_private)
         
         criterion = torch.nn.CrossEntropyLoss()
@@ -1135,12 +1088,6 @@ class Trainer:
         f_loss = criterion(output, label_private)
 
         total_loss = f_loss
-
-        # if "reg" in self.regularization_option:
-        #     lambda_TV = 6e-3
-        #     lambda_l2 = 1.5e-5
-        #     total_loss += lambda_TV * TV(x_fake)
-        #     total_loss += lambda_l2 * l2loss(x_fake)
         
         if "gradient_noise" in self.regularization_option:
             # see https://medium.com/analytics-vidhya/pytorch-hooks-5909c7636fb
@@ -1171,59 +1118,15 @@ class Trainer:
             self.suro_optimizer.zero_grad()
             suro_loss.backward()
             self.suro_optimizer.step()
-            if not ("reduce_grad_freq" in self.regularization_option and batch % 2 == 1):
-                if "GM" in self.regularization_option:
-                    target_grad = z_private.grad.detach()
 
-                    with torch.no_grad():
-                        suro_act = self.surrogate_model.local(x_fake.detach())
-                    suro_act.requires_grad = True
-                    
-                    
-                    suro_output = self.surrogate_model.cloud(suro_act)
-                    suro_loss = criterion(suro_output, label_private)
-
-                    grad_approx = torch.autograd.grad(suro_loss, suro_act, create_graph = True)[0]
-
-                    grad_loss = ((target_grad - grad_approx).norm(dim=1, p =2)).mean()
-
-                    self.suro_optimizer.zero_grad()
-
-                    grad_loss.backward()
-
-                    self.suro_optimizer.step()
-
-            if not ("reduce_grad_freq" in self.regularization_option and batch % 2 == 1):
-                if "adversary" in self.regularization_option:
-                    
-                    # adversarial generate hard samples
-                    self.generator_optimizer.zero_grad()
-                    
-                    x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
-
-                    # Mixup noise and training images
-                    x_fake = torch.cat([self.regularization_strength * x_noise + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-
-                    # generator get reverse
-                    suro_z_private = self.surrogate_model.local(x_fake)
-                    
-                    suro_output = self.surrogate_model.cloud(suro_z_private)
-
-                    suro_loss = criterion(suro_output, label_private)
-
-                    adversary_loss = - 2.0 * suro_loss # maximize this loss.
-                    
-                    adversary_loss.backward()
-                    
-                    self.generator_optimizer.step()
-
-                    del adversary_loss
-                    zeroing_grad(self.surrogate_model.cloud)  
             del suro_loss
         
         
         # zero out local model gradients to avoid unecessary poisoning effect
-        zeroing_grad(self.model.local_list[client_id])   
+
+
+        if "randommix" not in self.regularization_option:
+            zeroing_grad(self.model.local_list[client_id])   
          
         
         return total_losses, f_losses

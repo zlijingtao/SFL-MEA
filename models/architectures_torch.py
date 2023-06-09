@@ -1165,21 +1165,22 @@ class GeneratorC_mult(nn.Module):
     '''
     Conditional Generator
     '''
-    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32):
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32, num_generator = 10):
         super(GeneratorC_mult, self).__init__()
         self.num_classes = num_classes
         self.generator_list = []
+        self.num_generator = num_generator
         self.count = 0
-        for i in range(num_classes):
+        for i in range(self.num_generator):
             self.generator_list.append(GeneratorC(nz, num_classes, ngf, nc, img_size))
             self.add_module(f"gen_{i}", self.generator_list[i])
             self.generator_list[i].apply(init_weights)
 
     def forward(self, z, label):
         # print(self.count % 10)
-        img = self.generator_list[self.count % 10](z, label)
+        img = self.generator_list[self.count % self.num_generator](z, label)
         self.count += 1
-        if self.count == 10:
+        if self.count == self.num_generator:
             self.count = 0
         return img
 
@@ -1232,20 +1233,21 @@ class GeneratorD_mult(nn.Module):
     '''
     Un-conditional Generator
     '''
-    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32):
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32, num_generator = 10):
         super(GeneratorD_mult, self).__init__()
         self.generator_list = []
+        self.num_generator = num_generator
         self.count = 0
-        for i in range(num_classes):
+        for i in range(self.num_generator):
             self.generator_list.append(GeneratorD(nz, num_classes, ngf, nc, img_size))
             self.add_module(f"gen_{i}", self.generator_list[i])
             self.generator_list[i].apply(init_weights)
 
     def forward(self, z, label):
         # print(self.count % 10)
-        img = self.generator_list[self.count % 10](z, label)
+        img = self.generator_list[self.count % self.num_generator](z, label)
         self.count += 1
-        if self.count == 10:
+        if self.count == self.num_generator:
             self.count = 0
         return img
 
