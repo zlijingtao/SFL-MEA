@@ -1135,8 +1135,8 @@ class Trainer:
         # zero out local model gradients to avoid unecessary poisoning effect
 
 
-        if "randommix" not in self.regularization_option:
-            zeroing_grad(self.model.local_list[client_id])   
+        # if "randommix" not in self.regularization_option:
+        #     zeroing_grad(self.model.local_list[client_id])   
          
         
         return total_losses, f_losses
