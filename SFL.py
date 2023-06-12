@@ -951,8 +951,17 @@ class Trainer:
         
 
         #Get fake image from generator
-        x_private = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
+        if "randommix" not in self.regularization_option:
+            x_private = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
 
+        else: 
+            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
+            # Mixup noise and training images
+            x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * torch.randn_like(x_noise[:x_noise.size(0)//2, :, :, :],).cuda(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+            
+            # x_fake_full = torch.cat([x_noise + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+
+            # label_private = torch.cat([label_private[x_private.size(0)//2:], label_private[x_private.size(0)//2:]], dim = 0)
         # record generator_output during training
         if epoch % 20 == 0 and batch == 0:
             imgGen = x_private.clone()
@@ -1000,7 +1009,8 @@ class Trainer:
             self.suro_optimizer.step()
 
         # zero out local model gradients to avoid unecessary poisoning effect
-        zeroing_grad(self.model.local_list[client_id])
+        if "randommix" not in self.regularization_option:
+            zeroing_grad(self.model.local_list[client_id])
         
         return total_losses, f_losses
 
