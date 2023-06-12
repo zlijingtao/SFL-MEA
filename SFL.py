@@ -1064,7 +1064,7 @@ class Trainer:
             # Random mixup, mixup with random images, to force the generated images become strong backdoor
             x_noise = self.generator(z, label_private[x_private.size(0)//2:]) # pre_x returns the output of G before applying the activation
             # Mixup noise and training images
-            x_fake = torch.cat([torch.clip(self.regularization_strength * x_noise + x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
             
             # x_fake_full = torch.cat([x_noise + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
 

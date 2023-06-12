@@ -120,6 +120,8 @@ def noniid_alllabel(dataset, num_users, noniid_ratio = 0.2, num_class = 10, last
     else:
         num_shards, num_imgs = num_class_per_client * (num_users-1), int((len(dataset) - last_client_fix_amount)/(num_users-1)/num_class_per_client)
 
+    # FIXME: comment: if last_client_fix_amount is not None, it disrupts the noniid distribution and cause inaccurate non-iid degree, mostly less non-iid.
+    # We can do three kinds of non-iid: as it is; benign client non-iid, attacker iid; benign client iid, attacker non-iid, 
 
 
     idx_shard = [i for i in range(num_shards)]
