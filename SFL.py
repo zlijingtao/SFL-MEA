@@ -1008,9 +1008,10 @@ class Trainer:
             suro_loss.backward()
             self.suro_optimizer.step()
 
-        # zero out local model gradients to avoid unecessary poisoning effect
-        if "randommix" not in self.regularization_option:
-            zeroing_grad(self.model.local_list[client_id])
+        # zero out local model gradients to avoid unecessary poisoning effect #It turns out the poisoning effect helps accelerate the attack.
+
+        # if "randommix" not in self.regularization_option:
+        #     zeroing_grad(self.model.local_list[client_id])
         
         return total_losses, f_losses
 
