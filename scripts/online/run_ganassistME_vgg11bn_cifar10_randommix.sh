@@ -8,7 +8,7 @@ num_epochs=200
 # random_seed_list="123 124 125"
 random_seed_list="123"
 
-scheme_list="V1 V2"
+scheme_list="V1"
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.01
@@ -16,7 +16,7 @@ attack_epochs=50
 attack_client=0
 regularization_list="gan_assist_train_ME_multiGAN_surrogate_randommix_start0"
 cutlayer_list="10"
-regularization_strength_list="0.8 0.5"
+regularization_strength_list="0.8 0.5 0.3"
 num_client_list="5"
 noniid_ratio_list="1.0"
 last_client_fix_amount_list="50"
