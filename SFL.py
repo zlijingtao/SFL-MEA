@@ -943,17 +943,17 @@ class Trainer:
         #Sample Random Noise
         z = torch.randn((batch_size, self.nz)).cuda()
         
-        B = batch_size// 2
+        # B = batch_size// 2
 
-        labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
-        labels_r = copy.deepcopy(labels_l).cuda()
-        label_private = torch.stack([labels_l, labels_r]).view(-1)
+        # labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
+        # labels_r = copy.deepcopy(labels_l).cuda()
+        # label_private = torch.stack([labels_l, labels_r]).view(-1)
         
-
+        label_private = torch.randint(low=0, high=self.num_class, size = [batch_size, ]).cuda()
         #Get fake image from generator
         if "randommix" not in self.regularization_option:
-            x_private = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
-
+            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
+            x_private = x_noise
         else: 
             x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
             # Mixup noise and random images
@@ -964,12 +964,22 @@ class Trainer:
             
         # record generator_output during training
         if epoch % 20 == 0 and batch == 0:
-            imgGen = x_private.clone()
-            imgGen = denormalize(imgGen, self.dataset)
             if not os.path.isdir(train_output_path + "/{}".format(epoch)):
                 os.mkdir(train_output_path + "/{}".format(epoch))
+            
+            imgGen = x_noise.clone()
+            imgGen = denormalize(imgGen, self.dataset)
             torchvision.utils.save_image(imgGen, train_output_path + '/{}/gout_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
-        
+
+            if "randommix" in self.regularization_option:
+                imgGen2 = (self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach()).clone()
+                imgGen2 = denormalize(imgGen2, self.dataset)
+                torchvision.utils.save_image(imgGen2, train_output_path + '/{}/out_randomix_additive_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
+
+            imgGen1 = x_private.clone()
+            imgGen1 = denormalize(imgGen1, self.dataset)
+            torchvision.utils.save_image(imgGen1, train_output_path + '/{}/out_finalout_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
+
         z_private = self.model.local_list[client_id](x_private)
 
         if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1: # server will skip sending back gradients, once per two steps
@@ -1078,15 +1088,24 @@ class Trainer:
 
         # record generator_output during training
         if epoch % 20 == 0 and batch == 0:
-            imgGen = x_noise.clone()
-            imgGen = denormalize(imgGen, self.dataset)
-            imgGen1 = x_fake.clone()
-            imgGen1 = denormalize(imgGen1, self.dataset)
             if not os.path.isdir(train_output_path + "/{}".format(epoch)):
                 os.mkdir(train_output_path + "/{}".format(epoch))
+            imgGen = x_noise.clone()
+            imgGen = denormalize(imgGen, self.dataset)
             torchvision.utils.save_image(imgGen, train_output_path + '/{}/out_gout_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
+
+            if "randommix" in self.regularization_option:
+                imgGen2 = (self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :]).clone()
+                imgGen2 = denormalize(imgGen2, self.dataset)
+                torchvision.utils.save_image(imgGen2, train_output_path + '/{}/out_randomix_additive_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
+
+            imgGen1 = x_fake.clone()
+            imgGen1 = denormalize(imgGen1, self.dataset)
             torchvision.utils.save_image(imgGen1, train_output_path + '/{}/out_finalout_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
-        
+
+            imgGen3 = x_private.clone()
+            imgGen3 = denormalize(imgGen3, self.dataset)
+            torchvision.utils.save_image(imgGen3, train_output_path + '/{}/out_trainimg_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
 
         z_private = self.model.local_list[client_id](x_fake)
         if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
