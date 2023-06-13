@@ -769,9 +769,10 @@ class Trainer:
                 h.remove()
 
         if attack: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
+            if "nopoison" in self.regularization_option:
+                zeroing_grad(self.model.local_list[client_id])
             
             if "naive_train_ME" not in self.regularization_option:
-                zeroing_grad(self.model.local_list[client_id])
                 if "surrogate" not in self.regularization_option:
                     torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/saved_grads/grad_image{self.query_image_id}_label{self.rotate_label}.pt")
             
@@ -900,8 +901,9 @@ class Trainer:
         totalLoss = featureLoss + lambda_TV * TVLoss + lambda_l2 * normLoss
 
         totalLoss.backward()
-
-        zeroing_grad(self.model.local_list[client_id])
+        
+        if "nopoison" in self.regularization_option:
+            zeroing_grad(self.model.local_list[client_id])
 
         craft_optimizer.step()
         if "surrogate" not in self.regularization_option:
@@ -943,25 +945,36 @@ class Trainer:
         #Sample Random Noise
         z = torch.randn((batch_size, self.nz)).cuda()
         
-        # B = batch_size// 2
-
-        # labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
-        # labels_r = copy.deepcopy(labels_l).cuda()
-        # label_private = torch.stack([labels_l, labels_r]).view(-1)
         
-        label_private = torch.randint(low=0, high=self.num_class, size = [batch_size, ]).cuda()
+
+        
+        if "randommix" in self.regularization_option and "test4" in self.regularization_option: # Mixup with images from the correct class
+            B = batch_size// 2
+            labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
+            labels_r = copy.deepcopy(labels_l).cuda()
+            label_private = torch.stack([labels_l, labels_r]).view(-1)
+        else:
+            label_private = torch.randint(low=0, high=self.num_class, size = [batch_size, ]).cuda()
+        
         #Get fake image from generator
-        if "randommix" not in self.regularization_option:
+        if "randommix" in self.regularization_option:
+            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
+            if "test1" in self.regularization_option:
+                # Mixup g_out and g_out from random classes, reverse the strength position, send mixture together with normal g_out
+                x_private = torch.cat([torch.clip(self.regularization_strength * x_noise[:x_noise.size(0)//2, :, :, :] + x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+            elif "test2" in self.regularization_option:
+                # Mixup g_out and random images, send mixture together with normal g_out
+                x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * torch.randn_like(x_noise[:x_noise.size(0)//2, :, :, :]).cuda(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+            elif "test3" in self.regularization_option: # default option but removing clipping
+                x_private = torch.cat([x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+            else: # default option
+                # Mixup g_out and g_out from random classes, send mixture together with normal g_out
+                x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+        else:
             x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
             x_private = x_noise
-        else: 
-            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
-            # Mixup noise and random images
-            # x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * torch.randn_like(x_noise[:x_noise.size(0)//2, :, :, :],).cuda(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
-            
-            # Mixup g_out with g_out
-            x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
-            
+        
+        
         # record generator_output during training
         if epoch % 20 == 0 and batch == 0:
             if not os.path.isdir(train_output_path + "/{}".format(epoch)):
@@ -1019,9 +1032,8 @@ class Trainer:
             self.suro_optimizer.step()
 
         # zero out local model gradients to avoid unecessary poisoning effect #It turns out the poisoning effect helps accelerate the attack.
-
-        # if "randommix" not in self.regularization_option:
-        #     zeroing_grad(self.model.local_list[client_id])
+        if "nopoison" in self.regularization_option:
+            zeroing_grad(self.model.local_list[client_id])
         
         return total_losses, f_losses
 
@@ -1066,21 +1078,27 @@ class Trainer:
         #Get class-dependent noise, adding to x_private lately
         z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
 
-        if "randommix" not in self.regularization_option:
-            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
-
-            # Mixup noise and training images
-            x_fake = torch.cat([self.regularization_strength * x_noise + (1 - self.regularization_strength) * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-        else: 
+        if "randommix" in self.regularization_option:
             # Random mixup, mixup with random images, to force the generated images become strong backdoor
             x_noise = self.generator(z, label_private[x_private.size(0)//2:]) # pre_x returns the output of G before applying the activation
-            # Mixup noise and training images
-            x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-            
-            # x_fake_full = torch.cat([x_noise + x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-
+            if "test1" in self.regularization_option:
+                # Mixup noise and training images, reverse the strength position, send mixture together with training images
+                x_fake = torch.cat([torch.clip(self.regularization_strength * x_noise + x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            elif "test2" in self.regularization_option:
+                # Mixup noise and random images, send mixture together with training images
+                x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * torch.randn_like(x_noise).cuda(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            elif "test3" in self.regularization_option: # default option but removing clipping
+                x_fake = torch.cat([x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            else: # default option
+                # Mixup noise and training images, send mixture together with training images
+                x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+                
             label_private = torch.cat([label_private[x_private.size(0)//2:], label_private[x_private.size(0)//2:]], dim = 0)
-        
+        else:
+            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
+
+            # send both noise and training images
+            x_fake = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
         
 
 
@@ -1153,10 +1171,8 @@ class Trainer:
         
         
         # zero out local model gradients to avoid unecessary poisoning effect
-
-
-        # if "randommix" not in self.regularization_option:
-        #     zeroing_grad(self.model.local_list[client_id])   
+        if "nopoison" in self.regularization_option:
+            zeroing_grad(self.model.local_list[client_id])   
          
         
         return total_losses, f_losses
