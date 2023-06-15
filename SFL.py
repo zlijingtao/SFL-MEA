@@ -1022,15 +1022,23 @@ class Trainer:
         if "surrogate" in self.regularization_option:
             self.surrogate_model.local = self.model.local_list[client_id]
             self.surrogate_model.cloud.train()
+
+            if "test5" in self.regularization_option:
+                surrogate_input = torch.cat([x_noise[:x_noise.size(0)//2, :, :, :], torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+                surrogate_label = torch.cat([label_private[:x_private.size(0)//2], label_private], dim = 0)
+            else:
+                surrogate_input = x_private
+                surrogate_label = label_private
+            
             with torch.no_grad():
-                suro_act = self.surrogate_model.local(x_private.detach())
+                suro_act = self.surrogate_model.local(surrogate_input.detach())
             suro_output = self.surrogate_model.cloud(suro_act)
-            suro_loss = criterion(suro_output, label_private)
+            suro_loss = criterion(suro_output, surrogate_label)
             
             self.suro_optimizer.zero_grad()
             suro_loss.backward()
             self.suro_optimizer.step()
-
+        
         # zero out local model gradients to avoid unecessary poisoning effect #It turns out the poisoning effect helps accelerate the attack.
         if "nopoison" in self.regularization_option:
             zeroing_grad(self.model.local_list[client_id])
@@ -1077,10 +1085,10 @@ class Trainer:
         
         #Get class-dependent noise, adding to x_private lately
         z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
-
+        x_noise = self.generator(z, label_private[x_private.size(0)//2:]) # pre_x returns the output of G before applying the activation
         if "randommix" in self.regularization_option:
             # Random mixup, mixup with random images, to force the generated images become strong backdoor
-            x_noise = self.generator(z, label_private[x_private.size(0)//2:]) # pre_x returns the output of G before applying the activation
+            
             if "test1" in self.regularization_option:
                 # Mixup noise and training images, reverse the strength position, send mixture together with training images
                 x_fake = torch.cat([torch.clip(self.regularization_strength * x_noise + x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
@@ -1089,14 +1097,21 @@ class Trainer:
                 x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * torch.randn_like(x_noise).cuda(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
             elif "test3" in self.regularization_option: # default option but removing clipping
                 x_fake = torch.cat([x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            elif "test4" in self.regularization_option or "test7" in self.regularization_option or "test8" in self.regularization_option: # All mix
+
+                #num of gout mix with training:
+                num_mix1 = x_private.size(0)//4
+                #number of gout mix with gout*
+                num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
+
+                x_fake = torch.cat([torch.clip(x_noise[:num_mix1, :, :, :] + self.regularization_strength * x_private[:num_mix1, :, :, :], -1, 1), torch.clip(x_noise[num_mix1:, :, :, :] + self.regularization_strength * x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+
             else: # default option
                 # Mixup noise and training images, send mixture together with training images
                 x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
                 
             label_private = torch.cat([label_private[x_private.size(0)//2:], label_private[x_private.size(0)//2:]], dim = 0)
         else:
-            x_noise = self.generator(z, label_private[:x_private.size(0)//2]) # pre_x returns the output of G before applying the activation
-
             # send both noise and training images
             x_fake = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
         
@@ -1158,10 +1173,33 @@ class Trainer:
             self.surrogate_model.local = self.model.local_list[client_id]
             self.surrogate_model.cloud.train()
             
+            if "test7" in self.regularization_option: # All mix  train surrogate using gout, train_img and mixture
+                #num of gout mix with training:
+                num_mix1 = x_private.size(0)//4
+                #number of gout mix with gout*
+                num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
+
+                surrogate_input = torch.cat([x_noise, torch.clip(x_noise[:num_mix1, :, :, :] + self.regularization_strength * x_private[:num_mix1, :, :, :], -1, 1), torch.clip(x_noise[num_mix1:, :, :, :] + self.regularization_strength * x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+                surrogate_label = torch.cat([label_private[:x_private.size(0)//2], label_private], dim = 0)
+            elif "test8" in self.regularization_option: # All mix  train surrogate using gout, train_img without mixture
+                surrogate_input = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+                surrogate_label = label_private
+            
+            elif "test6" in self.regularization_option: # proper mix train surrogate using gout, train_img without mixture.
+                surrogate_input = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+                surrogate_label = label_private
+            elif "test5" in self.regularization_option: # proper mix train surrogate using gout, train_img and mixture.
+                surrogate_input = torch.cat([x_noise, torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+                surrogate_label = torch.cat([label_private[:x_private.size(0)//2], label_private], dim = 0)
+            else:
+                surrogate_input = x_fake
+                surrogate_label = label_private
+
+
             with torch.no_grad():
-                suro_act = self.surrogate_model.local(x_fake.detach())
+                suro_act = self.surrogate_model.local(surrogate_input.detach())
             suro_output = self.surrogate_model.cloud(suro_act)
-            suro_loss = criterion(suro_output, label_private)
+            suro_loss = criterion(suro_output, surrogate_label)
 
             self.suro_optimizer.zero_grad()
             suro_loss.backward()
