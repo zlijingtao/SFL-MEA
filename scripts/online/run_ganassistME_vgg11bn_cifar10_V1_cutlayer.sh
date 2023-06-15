@@ -13,12 +13,12 @@ learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.01
 attack_epochs=50
 attack_client=0
-regularization_list="gan_assist_train_ME_multiGAN_surrogate_randommix_test3_start0"
-cutlayer_list="10"
+regularization_list="gan_assist_train_ME_multiGAN_surrogate_randommix_start0"
+cutlayer_list="9 8 7"
 regularization_strength_list="0.5"
 num_client_list="5"
 noniid_ratio_list="1.0"
-last_client_fix_amount_list="100 200"
+last_client_fix_amount_list="50"
 attacker_querying_budget_num_step_list="-1"
 for random_seed in $random_seed_list; do
         for scheme in $scheme_list; do
