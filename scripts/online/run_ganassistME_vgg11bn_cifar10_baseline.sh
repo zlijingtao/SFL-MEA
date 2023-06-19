@@ -7,7 +7,7 @@ batch_size=128
 num_epochs=200
 random_seed_list="123"
 
-scheme_list="V1 V2"
+scheme_list="V1"
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.01
