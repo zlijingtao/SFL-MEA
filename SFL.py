@@ -242,6 +242,10 @@ class Trainer:
         
             self.logger.debug("Final-Generator_VAR: {}".format(mean_var))
 
+            mean_margin = self.generator_margin_eval()
+        
+            self.logger.debug("Final-Generator_MEAN_MARGIN: {}".format(mean_margin))
+
     def sync_client(self, idxs_users = None):
         
         if idxs_users is not None:
@@ -541,6 +545,10 @@ class Trainer:
             mean_var = self.generator_eval()
             self.logger.debug("Final-Generator_VAR: {}".format(mean_var))
             wandb.run.summary["Final-Generator_VAR"] = mean_var
+
+        mean_margin = self.generator_margin_eval()
+        self.logger.debug("Final-Generator_MEAN_MARGIN: {}".format(mean_margin))
+        wandb.run.summary["Final-Generator_MEAN_MARGIN"] = mean_margin
 
         #evaluate final MEA performance (fidelity test).
         if "surrogate" in self.regularization_option:
@@ -1106,7 +1114,13 @@ class Trainer:
                 num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
 
                 x_fake = torch.cat([torch.clip(x_noise[:num_mix1, :, :, :] + self.regularization_strength * x_private[:num_mix1, :, :, :], -1, 1), torch.clip(x_noise[num_mix1:, :, :, :] + self.regularization_strength * x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            elif "test9" in self.regularization_option:
+                #num of gout mix with training:
+                num_mix1 = x_private.size(0)//4
+                #number of gout mix with gout*
+                num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
 
+                x_fake = torch.cat([torch.clip(self.regularization_strength * x_noise[:num_mix1, :, :, :] + x_private[:num_mix1, :, :, :], -1, 1), torch.clip(self.regularization_strength * x_noise[num_mix1:, :, :, :] + x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
             else: # default option
                 # Mixup noise and training images, send mixture together with training images
                 x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
@@ -1185,7 +1199,14 @@ class Trainer:
             elif "test8" in self.regularization_option: # All mix  train surrogate using gout, train_img without mixture
                 surrogate_input = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
                 surrogate_label = label_private
-            
+            elif "test9" in self.regularization_option: # All mix  train surrogate using gout, train_img and mixture
+                #num of gout mix with training:
+                num_mix1 = x_private.size(0)//4
+                #number of gout mix with gout*
+                num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
+
+                surrogate_input = torch.cat([x_noise, torch.clip(x_noise[:num_mix1, :, :, :] + 0.5 * x_private[:num_mix1, :, :, :], -1, 1), torch.clip(x_noise[num_mix1:, :, :, :] + 0.5 * x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+                surrogate_label = torch.cat([label_private[:x_private.size(0)//2], label_private], dim = 0)
             elif "test6" in self.regularization_option: # proper mix train surrogate using gout, train_img without mixture.
                 surrogate_input = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
                 surrogate_label = label_private
@@ -1259,6 +1280,77 @@ class Trainer:
         self.logger.debug(' * Fidelity {top1.avg:.3f}'.format(top1=fidel_score))
         return fidel_score.avg
 
+
+    def generator_margin_eval(self, using_surrogate_if_available = False):
+        #Distance to Decision Boundary Metrics: 
+        #Various metrics exist to estimate the distance between a sample and the decision boundary of a model. 
+        #One popular method is to compute the margin:
+        #which measures the difference between the scores of the predicted class and the second-highest scoring class. 
+        mean_margin = 0.0
+        self.generator.eval()
+        self.generator.cuda()
+
+        self.model.local_list[0].eval()
+        self.model.cloud.eval()
+
+        if "surrogate" in self.regularization_option:
+            self.surrogate_model.eval()
+        
+        margin_by_class_list = []
+        # each class sample 100 images. for 10 times total
+        n_rounds = 10
+        for i in range(self.num_class):
+
+            total_margin = 0.0
+            for j in range(n_rounds):
+                if "multiGAN" not in self.regularization_option:
+                    z = torch.randn((100, self.nz)).cuda()
+                    labels = i * torch.ones([100, ]).long().cuda()
+                else:
+                    z = torch.randn((100//len(self.generator.generator_list), self.nz)).cuda()
+                    labels = i * torch.ones([100//len(self.generator.generator_list), ]).long().cuda()
+                
+                
+                with torch.no_grad():
+                    #Get fake image from generator
+                    if "multiGAN" not in self.regularization_option:
+                        fake = self.generator(z, labels) # pre_x returns the output of G before applying the activation
+                    else:
+                        fake_list = []
+                        for j in range(len(self.generator.generator_list)):
+                            fake_list.append(self.generator.generator_list[j](z, labels))
+                        fake = torch.cat(fake_list, dim = 0)
+                    
+                    #Feed fake images to the classifier
+                    if "surrogate" in self.regularization_option and using_surrogate_if_available:
+                        output = self.surrogate_model(fake)
+                    else:
+                        act = self.model.local_list[0](fake)
+                        output = self.model.cloud(act)
+                    
+                    #Get the Confidence Score
+                    confidence_score_vector = F.softmax(output) # [100, 10]
+                    
+                    # Get the maximum Confidence Score Value
+
+                    top2_score_vector = torch.topk(confidence_score_vector, k = 2, dim = 1)
+                    # print(top2_score_vector)
+
+                    confidence_score_margin = torch.sum(top2_score_vector[0][:, 0] - top2_score_vector[0][:, 1]) #0.0 #[100, 1]
+                    # confidence_score_margin = top2_score_vector[0][:, 0] - top2_score_vector[0][:, 1] #0.0 #[100, 1]
+                    # print(confidence_score_margin)
+                    # Get the second maximum Confidence Score Value
+                    # second_max_confidence_score = torch.topk(confidence_score_vector, k = 2, dim = 0)
+                    
+                    # fake = fake * self.regularization_strength
+                total_margin += confidence_score_margin
+                # print(total_margin)
+            
+            margin_by_class_list.append(total_margin.item()/n_rounds/100)
+
+
+        mean_margin = sum(margin_by_class_list) / len(margin_by_class_list)
+        return mean_margin
 
     def generator_eval(self):
         # test the variation of generator output,
