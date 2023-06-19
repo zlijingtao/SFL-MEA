@@ -145,7 +145,7 @@ class ResNet(nn.Module):
 
         # self.first_cloud_layer = list(self.cloud.children())[0]
         # self.last_local_layer = list(self.local_list[0].children())[-1]
-
+        
         print("local:")
         print(self.local)
         print("cloud:")

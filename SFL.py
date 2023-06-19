@@ -196,6 +196,7 @@ class Trainer:
 
         if original_cut_layer != self.cutting_layer:
             print("WARNING: set cutting layer is not the same as in the training setting, proceed with caution.")
+            print(f"Resplit to {original_cut_layer} layers in client-side model")
             self.model.resplit(original_cut_layer, count_from_right=False)
 
         for i in range(self.num_client):
@@ -535,11 +536,11 @@ class Trainer:
                         self.suro_scheduler.step(epoch)
                 
                 gc.collect()
-        
-        #evaluate final images for gan_train_ME generator.
-        mean_var = self.generator_eval()
-        self.logger.debug("Final-Generator_VAR: {}".format(mean_var))
-        wandb.run.summary["Final-Generator_VAR"] = mean_var
+        if "gan" in self.regularization_option:
+            #evaluate final images for gan_train_ME generator.
+            mean_var = self.generator_eval()
+            self.logger.debug("Final-Generator_VAR: {}".format(mean_var))
+            wandb.run.summary["Final-Generator_VAR"] = mean_var
 
         #evaluate final MEA performance (fidelity test).
         if "surrogate" in self.regularization_option:

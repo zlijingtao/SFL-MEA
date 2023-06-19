@@ -25,4 +25,11 @@ resnet18 - N : 10 - N
 
 Mobilenet: (total layer 20, 1 x Conv2d, 17 x Block, 1 x Conv2d, 1 x FC)
 
-mobilenetv2 - N : 20 - N
+mobilenetv2
+mobilenetv2 valid cut: - 1, 4, 7 11 14 17 18 19
+
+
+VGG11 secure cut: 10
+ResNet18 secure cut: 9
+ResNet20 secure cut: 10
+mobilenetv2 secure cut: 19

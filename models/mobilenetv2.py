@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from thop import profile
+import numpy as np
 
 
 class MobView(nn.Module):
@@ -69,7 +70,7 @@ def init_weights(m):
 class MobileNet(nn.Module):
     
 
-    def __init__(self, feature, logger, num_client = 1, num_class = 10, initialize_different = False):
+    def __init__(self, feature, num_client = 1, num_class = 10, initialize_different = False):
         super(MobileNet, self).__init__()
         # NOTE: change conv1 stride 2 -> 1 for CIFAR10
         self.current_client = 0
@@ -94,7 +95,6 @@ class MobileNet(nn.Module):
 
         self.local = self.local_list[0]
         self.cloud = feature[1]
-        self.logger = logger
         self.initialize = True
 
         self.classifier = nn.Linear(1280, num_class)
@@ -175,10 +175,10 @@ class MobileNet(nn.Module):
         for i in range(self.num_client):
             total_layer = 0
             for _, module in enumerate(list_of_layers):
-                print(str(module))
+                # print(str(module))
                 if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
                     total_layer += 1
-            print("total layer is: ", total_layer)
+            # print("total layer is: ", total_layer)
             if count_from_right:
                 num_of_local_layer = (total_layer - num_of_layer)
             else:
@@ -196,7 +196,8 @@ class MobileNet(nn.Module):
             
             self.cloud = nn.Sequential(*cloud_list)
             self.local_list[i] = nn.Sequential(*local_list)
-
+            print(self.local_list[i])
+            print(self.cloud)
     def get_current_client(self):
         return self.current_client
 
@@ -406,7 +407,7 @@ def make_layers(cutting_layer, cfg, in_planes, adds_bottleneck = False, bottlene
             cloud_layer_list.append(nn.BatchNorm2d(32))
         
         for expansion, out_planes, num_blocks, stride in cfg:
-            current_layer += 1
+            current_layer += num_blocks
             strides = [stride] + [1]*(num_blocks-1)
             for stride in strides:
                 if cutting_layer > current_layer:
@@ -467,8 +468,8 @@ def make_layers(cutting_layer, cfg, in_planes, adds_bottleneck = False, bottlene
         return nn.Sequential(*local_layer_list), nn.Sequential(*cloud_layer_list)
 
 
-def MobileNetV2(cutting_layer, logger, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
-    return MobileNet(make_layers(cutting_layer,cfg, in_planes=32, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), logger, num_client = num_client, num_class = num_class, initialize_different = initialize_different)
+def MobileNetV2(cutting_layer, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
+    return MobileNet(make_layers(cutting_layer,cfg, in_planes=32, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), num_client = num_client, num_class = num_class, initialize_different = initialize_different)
 
 # def test():
 #     net = MobileNetV2(9, None)
