@@ -1277,11 +1277,6 @@ class Generator_resC(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.conv_blocks2 = nn.Sequential(
-            ResBlock(ngf*2, ngf*2, bn = True, stride=1),
-            nn.BatchNorm2d(ngf*2),
-            nn.LeakyReLU(0.2, inplace=True),
-        )
-        self.conv_blocks3 = nn.Sequential(
             nn.Conv2d(ngf*2, ngf, 3, stride=1, padding=1),
             nn.BatchNorm2d(ngf),
             nn.LeakyReLU(0.2, inplace=True),
@@ -1300,9 +1295,8 @@ class Generator_resC(nn.Module):
         img = self.conv_blocks0(out)
         img = nn.functional.interpolate(img,scale_factor=2)
         img = self.conv_blocks1(img)
-        img = self.conv_blocks2(img)
         img = nn.functional.interpolate(img,scale_factor=2)
-        img = self.conv_blocks3(img)
+        img = self.conv_blocks2(img)
         return img
 
 class Generator_resC_mult(nn.Module):

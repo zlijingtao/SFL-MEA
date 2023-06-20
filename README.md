@@ -1,12 +1,13 @@
 # SFL IP protection: a model split approach to protect IP of FL
 This repository is official pytorch repository of SFL IP protection
 
+SFL extractor, an advanced adaptive ME attack.
+Checkout 04dcce44aa2 for the old version, including five basic ME attacks
+
 ## Roadmap:
 [x] Use MIA to set a layer threshold 
-[ ] Finish sweeping all offline/online MEAs
-[ ] Improve Gan-based data-free extraction attack
-[ ] Test Gradient Clipping on defending GAN-based data-free extraction attack
-[ ] Extend both to ViT-cifar10-finetune
+[x] Finish sweeping all offline/online MEAs
+[x] Improve Gan-based data-free extraction attack
 
 ## Requirement:
 

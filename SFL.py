@@ -151,7 +151,7 @@ class Trainer:
             
             if "multiresGAN" in self.regularization_option:
                 num_generator = 10
-                self.generator = architectures.Generator_resC_mult(nz=self.nz, num_classes = self.num_class, ngf=256, nc=self.image_shape[0], img_size=self.image_shape[2], num_generator = num_generator)
+                self.generator = architectures.Generator_resC_mult(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_generator = num_generator)
             
             if "dynamicGAN_A" in self.regularization_option:
                 self.generator = architectures.GeneratorDynamic_A(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_heads = 50)
@@ -1308,7 +1308,7 @@ class Trainer:
 
             total_margin = 0.0
             for j in range(n_rounds):
-                if "multiGAN" not in self.regularization_option:
+                if "multi" not in self.regularization_option:
                     z = torch.randn((100, self.nz)).cuda()
                     labels = i * torch.ones([100, ]).long().cuda()
                 else:
@@ -1318,7 +1318,7 @@ class Trainer:
                 
                 with torch.no_grad():
                     #Get fake image from generator
-                    if "multiGAN" not in self.regularization_option:
+                    if "multi" not in self.regularization_option:
                         fake = self.generator(z, labels) # pre_x returns the output of G before applying the activation
                     else:
                         fake_list = []
@@ -1373,7 +1373,7 @@ class Trainer:
 
             imgGen_list = []
             for j in range(n_rounds):
-                if "multiGAN" not in self.regularization_option:
+                if "multi" not in self.regularization_option:
                     z = torch.randn((100, self.nz)).cuda()
                     labels = i * torch.ones([100, ]).long().cuda()
                 else:
@@ -1382,7 +1382,7 @@ class Trainer:
                 
                 #Get fake image from generator
                 with torch.no_grad():
-                    if "multiGAN" not in self.regularization_option:
+                    if "multi" not in self.regularization_option:
                         fake = self.generator(z, labels).cpu() # pre_x returns the output of G before applying the activation
                     else:
                         fake_list = []

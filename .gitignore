@@ -1,7 +1,7 @@
 *.code-workspace
 data
 __pycache__
-.vscode
+.vscode/*
 # .ipynb_checkpoints
 *.tar
 *.zip
@@ -10,6 +10,6 @@ saves/*
 !saves/baseline/vgg11-cifar10/checkpoint_client_best.tar
 !saves/baseline/vgg11-cifar10/checkpoint_cloud_best.tar
 old_saves/*
-tiny-imagenet-200/
+tiny-imagenet-200/a
 mobilenetv2_pytorch_standalone/pretrained/
 wandb/*
