@@ -355,7 +355,7 @@ class Trainer:
             self.logger.debug("Train for total {} epochs in {} style".format(self.n_epochs, self.scheme))
 
             # epoch_save_list = [1, 2 ,5 ,10 ,20 ,50 ,100]
-            epoch_save_list = [50, 100, 150, 200]
+            epoch_save_list = [200]
             if self.client_sample_ratio < 1.0:
                 for i in range(len(epoch_save_list)):
                     epoch_save_list[i] = int(epoch_save_list[i] /self.client_sample_ratio)
@@ -551,9 +551,9 @@ class Trainer:
             self.logger.debug("Final-Generator_VAR: {}".format(mean_var))
             wandb.run.summary["Final-Generator_VAR"] = mean_var
 
-        mean_margin = self.generator_margin_eval()
-        self.logger.debug("Final-Generator_MEAN_MARGIN: {}".format(mean_margin))
-        wandb.run.summary["Final-Generator_MEAN_MARGIN"] = mean_margin
+            mean_margin = self.generator_margin_eval()
+            self.logger.debug("Final-Generator_MEAN_MARGIN: {}".format(mean_margin))
+            wandb.run.summary["Final-Generator_MEAN_MARGIN"] = mean_margin
 
         #evaluate final MEA performance (fidelity test).
         if "surrogate" in self.regularization_option:
@@ -722,6 +722,8 @@ class Trainer:
                         torch.save(x_private.detach().cpu(), self.save_dir + f"/saved_grads/image_{self.query_image_id}.pt")
                         torch.save(label_private.detach().cpu(), self.save_dir + f"/saved_grads/label_{self.query_image_id}.pt")
 
+
+
         if attack and "randomnoise" in self.regularization_option: # add a random noise of norm value = regularization_strength to the input.
             
             x_private = x_private + self.regularization_strength * torch.randn_like(x_private)
@@ -740,6 +742,7 @@ class Trainer:
             if "advnoise" in self.regularization_option:
                 # x_private = torch.Tensor(x_private)
                 x_private.requires_grad_(True)
+            
 
         if self.arch != "ViT":
             # Final Prediction Logits (complete forward pass)
@@ -808,7 +811,22 @@ class Trainer:
                 else:
                     torch.save( torch.clip(x_private.detach().cpu() - self.regularization_strength * x_private.grad.detach().cpu(), -1, 1) , self.save_dir + f"/pool_advs/img_lastest_batch.pt")
                 torch.save(label_private.detach().cpu(), self.save_dir + f"/pool_advs/label_lastest_batch.pt")
+        
+        if attack:
             
+            if "print_grad_stats" in self.regularization_option and batch == 0:
+                if not os.path.isdir(self.save_dir + "/grad_stats"):
+                    os.makedirs(self.save_dir + "/grad_stats")
+                x_private = torch.load(f"./saved_tensors/test_{self.dataset}_image.pt").cuda()
+                label_private = torch.load(f"./saved_tensors/test_{self.dataset}_label.pt").cuda()
+                # x_private.requires_grad_(True)
+                z_private = self.model.local_list[client_id](x_private)
+                z_private.retain_grad()
+                output = self.model.cloud(z_private)
+                f_loss = criterion(output, label_private)
+                f_loss.backward()
+                torch.save(z_private.grad.detach().cpu(), self.save_dir + f"/grad_stats/grad_epoch_{epoch}_batch0.pt")
+
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
@@ -850,6 +868,24 @@ class Trainer:
                 suro_grad_loss.backward()
 
                 self.suro_optimizer.step()
+            
+            if "print_margin_stats"  in self.regularization_option and batch == 0:
+                if not os.path.isdir(self.save_dir + "/margin_stats"):
+                        os.makedirs(self.save_dir + "/margin_stats")
+                if "surrogate" in self.regularization_option:
+                    confidence_score_margin_surrogate = self.calculate_margin(x_private.detach(), using_surrogate_if_available=True)/x_private.size(0) # margin to the generator
+
+                    file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate.txt", "a")
+                    file1.write(f"{confidence_score_margin_surrogate}, ")
+                    file1.close()
+
+                confidence_score_margin_target = self.calculate_margin(x_private.detach(), using_surrogate_if_available=False)/x_private.size(0) # margin to the generator
+
+                file2 = open(f"{self.save_dir}/margin_stats/margin_target.txt", "a")
+                file2.write(f"{confidence_score_margin_target}, ")
+                file2.close()
+        
+        
         return total_losses, f_losses
     
     def craft_train_target_step(self, client_id, epoch, batch):
@@ -966,13 +1002,21 @@ class Trainer:
             B = batch_size// 2
             labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
             labels_r = copy.deepcopy(labels_l).cuda()
+
+            if "test7" in self.regularization_option or "test8" in self.regularization_option:
+                for t in range(B):
+                    while labels_r[t] == labels_l[t]:
+                        labels_r[t] = np.random.randint(low = 0, high = self.num_class)
+
             label_private = torch.stack([labels_l, labels_r]).view(-1)
         else:
             label_private = torch.randint(low=0, high=self.num_class, size = [batch_size, ]).cuda()
+
+        x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
         
         #Get fake image from generator
         if "randommix" in self.regularization_option:
-            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
+            
             if "test1" in self.regularization_option:
                 # Mixup g_out and g_out from random classes, reverse the strength position, send mixture together with normal g_out
                 x_private = torch.cat([torch.clip(self.regularization_strength * x_noise[:x_noise.size(0)//2, :, :, :] + x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
@@ -981,11 +1025,12 @@ class Trainer:
                 x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * torch.randn_like(x_noise[:x_noise.size(0)//2, :, :, :]).cuda(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
             elif "test3" in self.regularization_option: # default option but removing clipping
                 x_private = torch.cat([x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+            elif "test6" in self.regularization_option or "test8" in self.regularization_option:
+                x_private = torch.cat([(1 - self.regularization_strength) * x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
             else: # default option
                 # Mixup g_out and g_out from random classes, send mixture together with normal g_out
                 x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
         else:
-            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
             x_private = x_noise
         
         
@@ -1057,6 +1102,22 @@ class Trainer:
         if "nopoison" in self.regularization_option:
             zeroing_grad(self.model.local_list[client_id])
         
+        if "print_margin_stats"  in self.regularization_option and batch == 0:
+            if not os.path.isdir(self.save_dir + "/margin_stats"):
+                    os.makedirs(self.save_dir + "/margin_stats")
+            if "surrogate" in self.regularization_option:
+                confidence_score_margin_surrogate = self.calculate_margin(surrogate_input.detach(), using_surrogate_if_available=True)/surrogate_input.size(0) # margin to the generator
+                file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate.txt", "a")
+                file1.write(f"{confidence_score_margin_surrogate}, ")
+                file1.close()
+
+            confidence_score_margin_target = self.calculate_margin(x_private.detach(), using_surrogate_if_available=False)/x_private.size(0) # margin to the generator
+
+            file2 = open(f"{self.save_dir}/margin_stats/margin_target.txt", "a")
+            file2.write(f"{confidence_score_margin_target}, ")
+            file2.close()
+
+
         return total_losses, f_losses
 
     def gan_assist_train_target_step(self, x_private, label_private, client_id, epoch, batch):
@@ -1099,7 +1160,22 @@ class Trainer:
         
         #Get class-dependent noise, adding to x_private lately
         z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
-        x_noise = self.generator(z, label_private[x_private.size(0)//2:]) # pre_x returns the output of G before applying the activation
+
+        if "test12" in self.regularization_option or "test13" in self.regularization_option:
+            #change the second half of label_private, to avoid any overlap with the first half (the random images we want it to mix with):
+            
+            noise_label = label_private[x_private.size(0)//2:].clone()
+            for t in range(x_private.size(0)//2):
+                while label_private[t] == noise_label[t]:
+                    noise_label[t] = np.random.randint(low = 0, high = self.num_class)
+            # print(sum(torch.not_equal(noise_label, label_private[:x_private.size(0)//2])))
+            # print(sum(torch.not_equal(label_private[x_private.size(0)//2:], label_private[:x_private.size(0)//2])))
+            noise_label = noise_label.cuda()
+        else:
+            noise_label = label_private[x_private.size(0)//2:]
+        
+        
+        x_noise = self.generator(z, noise_label) # pre_x returns the output of G before applying the activation
         if "randommix" in self.regularization_option:
             # Random mixup, mixup with random images, to force the generated images become strong backdoor
             
@@ -1126,11 +1202,16 @@ class Trainer:
                 num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
 
                 x_fake = torch.cat([torch.clip(self.regularization_strength * x_noise[:num_mix1, :, :, :] + x_private[:num_mix1, :, :, :], -1, 1), torch.clip(self.regularization_strength * x_noise[num_mix1:, :, :, :] + x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            elif "test10" in self.regularization_option:
+                x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            elif "test11" in self.regularization_option or "test13" in self.regularization_option :
+                # Mixup noise and training images, send mixture together with training images
+                x_fake = torch.cat([(1 - self.regularization_strength) * x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
             else: # default option
                 # Mixup noise and training images, send mixture together with training images
                 x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
                 
-            label_private = torch.cat([label_private[x_private.size(0)//2:], label_private[x_private.size(0)//2:]], dim = 0)
+            label_private = torch.cat([noise_label, label_private[x_private.size(0)//2:]], dim = 0)
         else:
             # send both noise and training images
             x_fake = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
@@ -1200,7 +1281,7 @@ class Trainer:
                 num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
 
                 surrogate_input = torch.cat([x_noise, torch.clip(x_noise[:num_mix1, :, :, :] + self.regularization_strength * x_private[:num_mix1, :, :, :], -1, 1), torch.clip(x_noise[num_mix1:, :, :, :] + self.regularization_strength * x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                surrogate_label = torch.cat([label_private[:x_private.size(0)//2], label_private], dim = 0)
+                surrogate_label = torch.cat([noise_label, label_private], dim = 0)
             elif "test8" in self.regularization_option: # All mix  train surrogate using gout, train_img without mixture
                 surrogate_input = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
                 surrogate_label = label_private
@@ -1211,13 +1292,17 @@ class Trainer:
                 num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
 
                 surrogate_input = torch.cat([x_noise, torch.clip(x_noise[:num_mix1, :, :, :] + 0.5 * x_private[:num_mix1, :, :, :], -1, 1), torch.clip(x_noise[num_mix1:, :, :, :] + 0.5 * x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                surrogate_label = torch.cat([label_private[:x_private.size(0)//2], label_private], dim = 0)
+                surrogate_label = torch.cat([noise_label, label_private], dim = 0)
             elif "test6" in self.regularization_option: # proper mix train surrogate using gout, train_img without mixture.
                 surrogate_input = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
                 surrogate_label = label_private
             elif "test5" in self.regularization_option: # proper mix train surrogate using gout, train_img and mixture.
                 surrogate_input = torch.cat([x_noise, torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                surrogate_label = torch.cat([label_private[:x_private.size(0)//2], label_private], dim = 0)
+                surrogate_label = torch.cat([noise_label, label_private], dim = 0)
+            elif "test10" in self.regularization_option:
+                x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_noise], dim = 0)
+                surrogate_input = x_fake
+                surrogate_label = label_private
             else:
                 surrogate_input = x_fake
                 surrogate_label = label_private
@@ -1240,6 +1325,22 @@ class Trainer:
             zeroing_grad(self.model.local_list[client_id])   
          
         
+        if "print_margin_stats"  in self.regularization_option and batch == 0:
+            if not os.path.isdir(self.save_dir + "/margin_stats"):
+                    os.makedirs(self.save_dir + "/margin_stats")
+            if "surrogate" in self.regularization_option:
+                confidence_score_margin_surrogate = self.calculate_margin(surrogate_input.detach(), using_surrogate_if_available=True)/surrogate_input.size(0)  # margin to the generator
+
+                file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate.txt", "a")
+                file1.write(f"{confidence_score_margin_surrogate}, ")
+                file1.close()
+
+            confidence_score_margin_target = self.calculate_margin(x_fake.detach(), using_surrogate_if_available=False)/x_fake.size(0) # margin to the generator
+
+            file2 = open(f"{self.save_dir}/margin_stats/margin_target.txt", "a")
+            file2.write(f"{confidence_score_margin_target}, ")
+            file2.close()
+
         return total_losses, f_losses
     
     def fidelity_test(self, client_id = 0):
@@ -1286,6 +1387,9 @@ class Trainer:
         return fidel_score.avg
 
 
+    
+    
+    
     def generator_margin_eval(self, using_surrogate_if_available = False):
         #Distance to Decision Boundary Metrics: 
         #Various metrics exist to estimate the distance between a sample and the decision boundary of a model. 
@@ -1326,36 +1430,37 @@ class Trainer:
                             fake_list.append(self.generator.generator_list[j](z, labels))
                         fake = torch.cat(fake_list, dim = 0)
                     
-                    #Feed fake images to the classifier
-                    if "surrogate" in self.regularization_option and using_surrogate_if_available:
-                        output = self.surrogate_model(fake)
-                    else:
-                        act = self.model.local_list[0](fake)
-                        output = self.model.cloud(act)
-                    
-                    #Get the Confidence Score
-                    confidence_score_vector = F.softmax(output) # [100, 10]
-                    
-                    # Get the maximum Confidence Score Value
+                    confidence_score_margin = self.calculate_margin(fake, using_surrogate_if_available)
 
-                    top2_score_vector = torch.topk(confidence_score_vector, k = 2, dim = 1)
-                    # print(top2_score_vector)
-
-                    confidence_score_margin = torch.sum(top2_score_vector[0][:, 0] - top2_score_vector[0][:, 1]) #0.0 #[100, 1]
-                    # confidence_score_margin = top2_score_vector[0][:, 0] - top2_score_vector[0][:, 1] #0.0 #[100, 1]
-                    # print(confidence_score_margin)
-                    # Get the second maximum Confidence Score Value
-                    # second_max_confidence_score = torch.topk(confidence_score_vector, k = 2, dim = 0)
-                    
-                    # fake = fake * self.regularization_strength
                 total_margin += confidence_score_margin
                 # print(total_margin)
             
             margin_by_class_list.append(total_margin.item()/n_rounds/100)
 
-
         mean_margin = sum(margin_by_class_list) / len(margin_by_class_list)
         return mean_margin
+
+
+    def calculate_margin(self, input, using_surrogate_if_available = False):
+        #Feed fake images to the classifier
+        with torch.no_grad():
+            if "surrogate" in self.regularization_option and using_surrogate_if_available:
+                output = self.surrogate_model(input)
+            else:
+                act = self.model.local_list[0](input)
+                output = self.model.cloud(act)
+        
+        #Get the Confidence Score
+        confidence_score_vector = F.softmax(output) # [100, 10]
+        
+        # Get the maximum Confidence Score Value
+
+        top2_score_vector = torch.topk(confidence_score_vector, k = 2, dim = 1)
+        # print(top2_score_vector)
+
+        confidence_score_margin = torch.sum(top2_score_vector[0][:, 0] - top2_score_vector[0][:, 1]) #0.0 #[100, 1]
+
+        return confidence_score_margin
 
     def generator_eval(self):
         # test the variation of generator output,
