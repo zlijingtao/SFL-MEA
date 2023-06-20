@@ -355,7 +355,7 @@ class Trainer:
             self.logger.debug("Train for total {} epochs in {} style".format(self.n_epochs, self.scheme))
 
             # epoch_save_list = [1, 2 ,5 ,10 ,20 ,50 ,100]
-            epoch_save_list = [50, 100, 150, 200]
+            epoch_save_list = [200]
             if self.client_sample_ratio < 1.0:
                 for i in range(len(epoch_save_list)):
                     epoch_save_list[i] = int(epoch_save_list[i] /self.client_sample_ratio)
