@@ -148,6 +148,11 @@ class Trainer:
                     self.generator = architectures.GeneratorC_mult(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_generator = num_generator)
                 else:
                     self.generator = architectures.GeneratorD_mult(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_generator = num_generator)
+            
+            if "multiresGAN" in self.regularization_option:
+                num_generator = 10
+                self.generator = architectures.Generator_resC_mult(nz=self.nz, num_classes = self.num_class, ngf=256, nc=self.image_shape[0], img_size=self.image_shape[2], num_generator = num_generator)
+            
             if "dynamicGAN_A" in self.regularization_option:
                 self.generator = architectures.GeneratorDynamic_A(nz=self.nz, num_classes = self.num_class, ngf=128, nc=self.image_shape[0], img_size=self.image_shape[2], num_heads = 50)
             if "dynamicGAN_B" in self.regularization_option:

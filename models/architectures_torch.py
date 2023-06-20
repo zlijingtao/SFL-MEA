@@ -11,6 +11,8 @@ from torch.nn.modules.linear import Linear
 
 
 
+
+
 def get_decoder(gan_AE_type, input_nc, output_nc, input_dim, output_dim, gan_AE_activation):
     if gan_AE_type == "custom":
         decoder = custom_AE(input_nc=input_nc, output_nc=output_nc, input_dim=input_dim, output_dim=output_dim,
@@ -1172,6 +1174,8 @@ class GeneratorC_mult(nn.Module):
         self.num_generator = num_generator
         self.count = 0
         for i in range(self.num_generator):
+
+            # self.generator_list.append(get_decoder("res_normN4C64", output_nc = 3, input_dim = nz))
             self.generator_list.append(GeneratorC(nz, num_classes, ngf, nc, img_size))
             self.add_module(f"gen_{i}", self.generator_list[i])
             self.generator_list[i].apply(init_weights)
@@ -1251,6 +1255,80 @@ class GeneratorD_mult(nn.Module):
             self.count = 0
         return img
 
+
+class Generator_resC(nn.Module):
+    '''
+    Conditional Generator
+    '''
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32):
+        super(Generator_resC, self).__init__()
+        
+        self.label_emb = nn.Embedding(num_classes, nz)
+        
+        self.init_size = img_size//4
+        self.l1 = nn.Sequential(nn.Linear(nz*2, ngf*2*self.init_size**2))
+
+        self.conv_blocks0 = nn.Sequential(
+            nn.BatchNorm2d(ngf*2),
+        )
+        self.conv_blocks1 = nn.Sequential(
+            ResBlock(ngf*2, ngf*2, bn = True, stride=1),
+            nn.BatchNorm2d(ngf*2),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.conv_blocks2 = nn.Sequential(
+            ResBlock(ngf*2, ngf*2, bn = True, stride=1),
+            nn.BatchNorm2d(ngf*2),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.conv_blocks3 = nn.Sequential(
+            nn.Conv2d(ngf*2, ngf, 3, stride=1, padding=1),
+            nn.BatchNorm2d(ngf),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(ngf, nc, 3, stride=1, padding=1),
+            nn.Tanh(),
+            nn.BatchNorm2d(nc, affine=False) 
+        )
+
+    def forward(self, z, label):
+        # Concatenate label embedding and image to produce input
+        label_inp = self.label_emb(label)
+        gen_input = torch.cat((label_inp, z), -1)
+
+        out = self.l1(gen_input.view(gen_input.shape[0],-1))
+        out = out.view(out.shape[0], -1, self.init_size, self.init_size)
+        img = self.conv_blocks0(out)
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks1(img)
+        img = self.conv_blocks2(img)
+        img = nn.functional.interpolate(img,scale_factor=2)
+        img = self.conv_blocks3(img)
+        return img
+
+class Generator_resC_mult(nn.Module):
+    '''
+    Conditional Generator
+    '''
+    def __init__(self, nz=100, num_classes=10, ngf=64, nc=1, img_size=32, num_generator = 10):
+        super(Generator_resC_mult, self).__init__()
+        self.num_classes = num_classes
+        self.generator_list = []
+        self.num_generator = num_generator
+        self.count = 0
+        for i in range(self.num_generator):
+
+            # self.generator_list.append(get_decoder("res_normN4C64", output_nc = 3, input_dim = nz))
+            self.generator_list.append(Generator_resC(nz, num_classes, ngf, nc, img_size))
+            self.add_module(f"gen_{i}", self.generator_list[i])
+            self.generator_list[i].apply(init_weights)
+
+    def forward(self, z, label):
+        # print(self.count % 10)
+        img = self.generator_list[self.count % self.num_generator](z, label)
+        self.count += 1
+        if self.count == self.num_generator:
+            self.count = 0
+        return img
 
 class GeneratorDynamic_A(nn.Module):
     '''

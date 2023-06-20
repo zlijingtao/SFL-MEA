@@ -5,15 +5,8 @@
 
 vgg11: [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M', fc, fc, fc],
 
-vgg - 4:9
-vgg - 5:8
-vgg - 7:7
-vgg - 8:6
-vgg - 9:5
-vgg - 11:4
-vgg - 12:3
-vgg - 13:2
-vgg - 14:1
+vgg valid cut: 2, 4, 5, 7, 8, 10, 11, 13, fc, fc, fc
+vgg cut 1 - local 2
 
 ResNet20: (total layer 11, 1 x conv3x3, 9 x ResBasicBlock, 1 x FC)
 
