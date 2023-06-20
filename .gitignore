@@ -1,7 +1,7 @@
 *.code-workspace
 data
 __pycache__
-# .vscode
+.vscode
 # .ipynb_checkpoints
 *.tar
 *.zip

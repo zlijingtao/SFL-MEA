@@ -450,11 +450,11 @@ def get_tinyimagenet_bothloader(batch_size=16, num_workers=2, shuffle=True, num_
         transforms.Normalize(TINYIMAGENET_TRAIN_MEAN, TINYIMAGENET_TRAIN_STD)
     ])
 
-    if not os.path.isdir("./tiny-imagenet-200/train"):
+    if not os.path.isdir("./datasets/tiny-imagenet-200/train"):
         import subprocess
         subprocess.call("python prepare_tinyimagenet.py", shell=True)
-    tinyimagenet_training = datasets.ImageFolder('tiny-imagenet-200/train', transform=transform_train)
-    tinyimagenet_testing = datasets.ImageFolder('tiny-imagenet-200/val', transform=transform_test)
+    tinyimagenet_training = datasets.ImageFolder('./datasets/tiny-imagenet-200/train', transform=transform_train)
+    tinyimagenet_testing = datasets.ImageFolder('./datasets/tiny-imagenet-200/val', transform=transform_test)
 
     tinyimagenet_training_loader = split_training_data_to_training_loader(tinyimagenet_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount)
 

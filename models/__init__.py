@@ -3,7 +3,7 @@ sys.path.append("../")
 from models.resnet import ResNet18, ResNet34
 from models.resnet_cifar import ResNet20, ResNet32
 from models.mobilenetv2 import MobileNetV2
-from models.vgg import vgg11, vgg13, vgg11_bn, vgg13_bn
+from models.vgg import vgg11, vgg13, vgg11_bn, vgg13_bn, vgg19_bn
 import copy
 
 
@@ -23,6 +23,8 @@ def get_model(arch, cutting_layer, num_client, num_class, number_of_freeze_layer
         model = vgg11(cutting_layer, num_client=num_client, num_class=num_class)
     elif arch == "vgg13_bn":
         model = vgg13_bn(cutting_layer, num_client=num_client, num_class=num_class)
+    elif arch == "vgg19_bn":
+        model = vgg19_bn(cutting_layer, num_client=num_client, num_class=num_class)
     elif arch == "vgg11_bn":
         model = vgg11_bn(cutting_layer, num_client=num_client, num_class=num_class)
     elif arch == "mobilenetv2":
