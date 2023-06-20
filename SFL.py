@@ -1002,13 +1002,21 @@ class Trainer:
             B = batch_size// 2
             labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
             labels_r = copy.deepcopy(labels_l).cuda()
+
+            if "test7" in self.regularization_option or "test8" in self.regularization_option:
+                for t in range(B):
+                    while labels_r[t] == labels_l[t]:
+                        labels_r[t] = np.random.randint(low = 0, high = self.num_class)
+
             label_private = torch.stack([labels_l, labels_r]).view(-1)
         else:
             label_private = torch.randint(low=0, high=self.num_class, size = [batch_size, ]).cuda()
+
+        x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
         
         #Get fake image from generator
         if "randommix" in self.regularization_option:
-            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
+            
             if "test1" in self.regularization_option:
                 # Mixup g_out and g_out from random classes, reverse the strength position, send mixture together with normal g_out
                 x_private = torch.cat([torch.clip(self.regularization_strength * x_noise[:x_noise.size(0)//2, :, :, :] + x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
@@ -1017,11 +1025,12 @@ class Trainer:
                 x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * torch.randn_like(x_noise[:x_noise.size(0)//2, :, :, :]).cuda(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
             elif "test3" in self.regularization_option: # default option but removing clipping
                 x_private = torch.cat([x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+            elif "test6" in self.regularization_option or "test8" in self.regularization_option:
+                x_private = torch.cat([(1 - self.regularization_strength) * x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
             else: # default option
                 # Mixup g_out and g_out from random classes, send mixture together with normal g_out
                 x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
         else:
-            x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
             x_private = x_noise
         
         
@@ -1152,16 +1161,21 @@ class Trainer:
         #Get class-dependent noise, adding to x_private lately
         z = torch.randn((x_private.size(0)//2, self.nz)).cuda()
 
-        if "test12" in self.regularization_option:
+        if "test12" in self.regularization_option or "test13" in self.regularization_option:
             #change the second half of label_private, to avoid any overlap with the first half (the random images we want it to mix with):
+            
+            noise_label = label_private[x_private.size(0)//2:].clone()
             for t in range(x_private.size(0)//2):
-                while label_private[t] == label_private[x_private.size(0)//2 + t]:
-                    label_private[x_private.size(0)//2 + t] = np.random.randint(low = 0, high = self.num_class)
-            print(sum(torch.not_equal(label_private[x_private.size(0)//2:], label_private[:x_private.size(0)//2])))
+                while label_private[t] == noise_label[t]:
+                    noise_label[t] = np.random.randint(low = 0, high = self.num_class)
+            # print(sum(torch.not_equal(noise_label, label_private[:x_private.size(0)//2])))
+            # print(sum(torch.not_equal(label_private[x_private.size(0)//2:], label_private[:x_private.size(0)//2])))
+            noise_label = noise_label.cuda()
+        else:
+            noise_label = label_private[x_private.size(0)//2:]
         
         
-        
-        x_noise = self.generator(z, label_private[x_private.size(0)//2:]) # pre_x returns the output of G before applying the activation
+        x_noise = self.generator(z, noise_label) # pre_x returns the output of G before applying the activation
         if "randommix" in self.regularization_option:
             # Random mixup, mixup with random images, to force the generated images become strong backdoor
             
@@ -1190,20 +1204,14 @@ class Trainer:
                 x_fake = torch.cat([torch.clip(self.regularization_strength * x_noise[:num_mix1, :, :, :] + x_private[:num_mix1, :, :, :], -1, 1), torch.clip(self.regularization_strength * x_noise[num_mix1:, :, :, :] + x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
             elif "test10" in self.regularization_option:
                 x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-            elif "test11" in self.regularization_option:
+            elif "test11" in self.regularization_option or "test13" in self.regularization_option :
                 # Mixup noise and training images, send mixture together with training images
                 x_fake = torch.cat([(1 - self.regularization_strength) * x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-            
-            elif "test12" in self.regularization_option:
-                # Mixup noise and training images, send mixture together with training images
-                x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                
-
             else: # default option
                 # Mixup noise and training images, send mixture together with training images
                 x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
                 
-            label_private = torch.cat([label_private[x_private.size(0)//2:], label_private[x_private.size(0)//2:]], dim = 0)
+            label_private = torch.cat([noise_label, label_private[x_private.size(0)//2:]], dim = 0)
         else:
             # send both noise and training images
             x_fake = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
@@ -1273,7 +1281,7 @@ class Trainer:
                 num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
 
                 surrogate_input = torch.cat([x_noise, torch.clip(x_noise[:num_mix1, :, :, :] + self.regularization_strength * x_private[:num_mix1, :, :, :], -1, 1), torch.clip(x_noise[num_mix1:, :, :, :] + self.regularization_strength * x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                surrogate_label = torch.cat([label_private[x_private.size(0)//2:], label_private], dim = 0)
+                surrogate_label = torch.cat([noise_label, label_private], dim = 0)
             elif "test8" in self.regularization_option: # All mix  train surrogate using gout, train_img without mixture
                 surrogate_input = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
                 surrogate_label = label_private
@@ -1284,13 +1292,13 @@ class Trainer:
                 num_mix2 = x_private.size(0)//2 - x_private.size(0)//4
 
                 surrogate_input = torch.cat([x_noise, torch.clip(x_noise[:num_mix1, :, :, :] + 0.5 * x_private[:num_mix1, :, :, :], -1, 1), torch.clip(x_noise[num_mix1:, :, :, :] + 0.5 * x_noise[:num_mix2, :, :, :].detach(), -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                surrogate_label = torch.cat([label_private[x_private.size(0)//2:], label_private], dim = 0)
+                surrogate_label = torch.cat([noise_label, label_private], dim = 0)
             elif "test6" in self.regularization_option: # proper mix train surrogate using gout, train_img without mixture.
                 surrogate_input = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
                 surrogate_label = label_private
             elif "test5" in self.regularization_option: # proper mix train surrogate using gout, train_img and mixture.
                 surrogate_input = torch.cat([x_noise, torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                surrogate_label = torch.cat([label_private[x_private.size(0)//2:], label_private], dim = 0)
+                surrogate_label = torch.cat([noise_label, label_private], dim = 0)
             elif "test10" in self.regularization_option:
                 x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_noise], dim = 0)
                 surrogate_input = x_fake
