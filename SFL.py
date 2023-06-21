@@ -1055,6 +1055,10 @@ class Trainer:
 
         if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1: # server will skip sending back gradients, once per two steps
             z_private = z_private.detach()
+        
+        if "manifoldmix" in self.regularization_option:
+            z_private = torch.cat([torch.clip(z_private[:z_private.size(0)//2, :, :, :] + regularization_strength * z_private[z_private.size(0)//2:, :, :, :].detach(), -1, 1), z_private[z_private.size(0)//2:, :, :, :]], dim = 0)
+        
         output = self.model.cloud(z_private)
         
         criterion = torch.nn.CrossEntropyLoss()
@@ -1297,7 +1301,6 @@ class Trainer:
                 real_img_activation = self.model.local_list[client_id](x_private[:x_private.size(0)//2, :, :, :])
 
             z_private = torch.cat([z_private[:x_private.size(0)//2, :, :, :] + self.regularization_strength * real_img_activation.detach(), z_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-            # label_private = torch.cat([noise_label, label_private[x_private.size(0)//2:]], dim = 0)
         
         output = self.model.cloud(z_private)
         

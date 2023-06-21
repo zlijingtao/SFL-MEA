@@ -10,8 +10,9 @@ saves/*
 !saves/baseline/vgg11-cifar10/checkpoint_client_best.tar
 !saves/baseline/vgg11-cifar10/checkpoint_cloud_best.tar
 old_saves/*
-tiny-imagenet-200/a
+tiny-imagenet-200/
 mobilenetv2_pytorch_standalone/pretrained/
 wandb/*
 datasets/tiny-imagenet-200/
 datasets/facescrub-dataset/
+mobilenetv2.pytorch/
