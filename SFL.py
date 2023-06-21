@@ -1353,6 +1353,11 @@ class Trainer:
                 file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate.txt", "a")
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
+                
+                confidence_score_margin_surrogate = self.calculate_margin(x_private, using_surrogate_if_available=True)/x_private.size(0) # margin to the generator
+                file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_img.txt", "a")
+                file1.write(f"{confidence_score_margin_surrogate}, ")
+                file1.close()
 
                 confidence_score_margin_surrogate = self.calculate_margin(x_noise.detach(), using_surrogate_if_available=True)/x_noise.size(0) # margin to the generator
                 file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_noise.txt", "a")
@@ -1360,7 +1365,7 @@ class Trainer:
                 file1.close()
 
                 if "randommix" in self.regularization_option:
-                    confidence_score_margin_surrogate = self.calculate_margin(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), using_surrogate_if_available=True) / (x_noise.size(0)//2) # margin to the generator
+                    confidence_score_margin_surrogate = self.calculate_margin(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), using_surrogate_if_available=True) / x_noise.size(0) # margin to the generator
                     file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_mixture.txt", "a")
                     file1.write(f"{confidence_score_margin_surrogate}, ")
                     file1.close()
@@ -1370,13 +1375,18 @@ class Trainer:
             file2.write(f"{confidence_score_margin_target}, ")
             file2.close()
 
+            confidence_score_margin_target = self.calculate_margin(x_private, using_surrogate_if_available=False)/x_private.size(0) # margin to the generator
+            file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_img.txt", "a")
+            file2.write(f"{confidence_score_margin_target}, ")
+            file2.close()
+
             confidence_score_margin_target = self.calculate_margin(x_noise.detach(), using_surrogate_if_available=False)/x_noise.size(0) # margin to the generator
             file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_noise.txt", "a")
             file2.write(f"{confidence_score_margin_target}, ")
             file2.close()
 
             if "randommix" in self.regularization_option:
-                confidence_score_margin_target = self.calculate_margin(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), using_surrogate_if_available=False) / (x_noise.size(0)//2) # margin to the generator
+                confidence_score_margin_target = self.calculate_margin(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), using_surrogate_if_available=False) / x_noise.size(0) # margin to the generator
                 file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_mixture.txt", "a")
                 file2.write(f"{confidence_score_margin_target}, ")
                 file2.close()
