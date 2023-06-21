@@ -995,9 +995,6 @@ class Trainer:
         #Sample Random Noise
         z = torch.randn((batch_size, self.nz)).cuda()
         
-        
-
-        
         if "randommix" in self.regularization_option and "test4" in self.regularization_option: # Mixup with images from the correct class
             B = batch_size// 2
             labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
@@ -1106,16 +1103,40 @@ class Trainer:
             if not os.path.isdir(self.save_dir + "/margin_stats"):
                     os.makedirs(self.save_dir + "/margin_stats")
             if "surrogate" in self.regularization_option:
+
+                confidence_score_margin_surrogate = self.calculate_margin(x_noise.detach(), using_surrogate_if_available=True)/x_noise.size(0) # margin to the generator
+                file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_noise.txt", "a")
+                file1.write(f"{confidence_score_margin_surrogate}, ")
+                file1.close()
+
+                if "randommix" in self.regularization_option:
+                    confidence_score_margin_surrogate = self.calculate_margin(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), using_surrogate_if_available=True) / (x_noise.size(0)//2) # margin to the generator
+                    file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_mixture.txt", "a")
+                    file1.write(f"{confidence_score_margin_surrogate}, ")
+                    file1.close()
+
                 confidence_score_margin_surrogate = self.calculate_margin(surrogate_input.detach(), using_surrogate_if_available=True)/surrogate_input.size(0) # margin to the generator
                 file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate.txt", "a")
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-            confidence_score_margin_target = self.calculate_margin(x_private.detach(), using_surrogate_if_available=False)/x_private.size(0) # margin to the generator
+            confidence_score_margin_target = self.calculate_margin(x_noise.detach(), using_surrogate_if_available=False)/x_noise.size(0) # margin to the generator
+            file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_noise.txt", "a")
+            file2.write(f"{confidence_score_margin_target}, ")
+            file2.close()
 
+            if "randommix" in self.regularization_option:
+                confidence_score_margin_target = self.calculate_margin(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), using_surrogate_if_available=False) / (x_noise.size(0)//2) # margin to the generator
+                file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_mixture.txt", "a")
+                file2.write(f"{confidence_score_margin_target}, ")
+                file2.close()
+
+            confidence_score_margin_target = self.calculate_margin(x_private.detach(), using_surrogate_if_available=False)/x_private.size(0) # margin to the generator
             file2 = open(f"{self.save_dir}/margin_stats/margin_target.txt", "a")
             file2.write(f"{confidence_score_margin_target}, ")
             file2.close()
+
+
 
 
         return total_losses, f_losses
@@ -1330,16 +1351,36 @@ class Trainer:
                     os.makedirs(self.save_dir + "/margin_stats")
             if "surrogate" in self.regularization_option:
                 confidence_score_margin_surrogate = self.calculate_margin(surrogate_input.detach(), using_surrogate_if_available=True)/surrogate_input.size(0)  # margin to the generator
-
                 file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate.txt", "a")
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-            confidence_score_margin_target = self.calculate_margin(x_fake.detach(), using_surrogate_if_available=False)/x_fake.size(0) # margin to the generator
+                confidence_score_margin_surrogate = self.calculate_margin(x_noise.detach(), using_surrogate_if_available=True)/x_noise.size(0) # margin to the generator
+                file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_noise.txt", "a")
+                file1.write(f"{confidence_score_margin_surrogate}, ")
+                file1.close()
 
+                if "randommix" in self.regularization_option:
+                    confidence_score_margin_surrogate = self.calculate_margin(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), using_surrogate_if_available=True) / (x_noise.size(0)//2) # margin to the generator
+                    file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_mixture.txt", "a")
+                    file1.write(f"{confidence_score_margin_surrogate}, ")
+                    file1.close()
+
+            confidence_score_margin_target = self.calculate_margin(x_fake.detach(), using_surrogate_if_available=False)/x_fake.size(0) # margin to the generator
             file2 = open(f"{self.save_dir}/margin_stats/margin_target.txt", "a")
             file2.write(f"{confidence_score_margin_target}, ")
             file2.close()
+
+            confidence_score_margin_target = self.calculate_margin(x_noise.detach(), using_surrogate_if_available=False)/x_noise.size(0) # margin to the generator
+            file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_noise.txt", "a")
+            file2.write(f"{confidence_score_margin_target}, ")
+            file2.close()
+
+            if "randommix" in self.regularization_option:
+                confidence_score_margin_target = self.calculate_margin(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), using_surrogate_if_available=False) / (x_noise.size(0)//2) # margin to the generator
+                file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_mixture.txt", "a")
+                file2.write(f"{confidence_score_margin_target}, ")
+                file2.close()
 
         return total_losses, f_losses
     
