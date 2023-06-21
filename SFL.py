@@ -1002,15 +1002,14 @@ class Trainer:
             B = batch_size// 2
             labels_l = torch.randint(low=0, high=self.num_class, size = [B, ]).cuda()
             labels_r = copy.deepcopy(labels_l).cuda()
-
-            if "test7" in self.regularization_option or "test8" in self.regularization_option:
-                for t in range(B):
-                    while labels_r[t] == labels_l[t]:
-                        labels_r[t] = np.random.randint(low = 0, high = self.num_class)
-
             label_private = torch.stack([labels_l, labels_r]).view(-1)
         else:
             label_private = torch.randint(low=0, high=self.num_class, size = [batch_size, ]).cuda()
+
+            if "test7" in self.regularization_option or "test8" in self.regularization_option:
+                for t in range(batch_size//2):
+                    while label_private[t] == label_private[x_noise.size(0)//2 + t]:
+                        label_private[t] = np.random.randint(low = 0, high = self.num_class)
 
         x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
         
