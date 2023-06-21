@@ -13,3 +13,5 @@ old_saves/*
 tiny-imagenet-200/a
 mobilenetv2_pytorch_standalone/pretrained/
 wandb/*
+datasets/tiny-imagenet-200/
+datasets/facescrub-dataset/
