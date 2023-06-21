@@ -1111,7 +1111,8 @@ class Trainer:
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-                variance = torch.var(x_noise.detach())
+                variance = torch.var(x_noise.detach().view(x_noise.size(0), -1), dim = 1)
+                variance = torch.mean(variance)
                 file1 = open(f"{self.save_dir}/margin_stats/variance_noise.txt", "a")
                 file1.write(f"{variance}, ")
                 file1.close()
@@ -1122,7 +1123,8 @@ class Trainer:
                     file1.write(f"{confidence_score_margin_surrogate}, ")
                     file1.close()
 
-                variance = torch.var(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1))
+                variance = torch.var(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1).view(x_noise.size(0)//2, -1), dim = 1)
+                variance = torch.mean(variance)
                 file1 = open(f"{self.save_dir}/margin_stats/variance_mixture.txt", "a")
                 file1.write(f"{variance}, ")
                 file1.close()
@@ -1132,7 +1134,8 @@ class Trainer:
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-                variance = torch.var(surrogate_input.detach())
+                variance = torch.var(surrogate_input.detach().view(surrogate_input.size(0), -1), dim = 1)
+                variance = torch.mean(variance)
                 file1 = open(f"{self.save_dir}/margin_stats/variance_input.txt", "a")
                 file1.write(f"{variance}, ")
                 file1.close()
@@ -1385,7 +1388,8 @@ class Trainer:
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-                variance = torch.var(surrogate_input.detach())
+                variance = torch.var(surrogate_input.detach().view(surrogate_input.size(0), -1), dim = 1)
+                variance = torch.mean(variance)
                 file1 = open(f"{self.save_dir}/margin_stats/variance_input.txt", "a")
                 file1.write(f"{variance}, ")
                 file1.close()
@@ -1395,7 +1399,8 @@ class Trainer:
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-                variance = torch.var(x_private)
+                variance = torch.var(x_private.detach().view(x_private.size(0), -1), dim = 1)
+                variance = torch.mean(variance)
                 file1 = open(f"{self.save_dir}/margin_stats/variance_img.txt", "a")
                 file1.write(f"{variance}, ")
                 file1.close()
@@ -1405,7 +1410,8 @@ class Trainer:
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-                variance = torch.var(x_noise.detach())
+                variance = torch.var(x_noise.detach().view(x_noise.size(0), -1), dim = 1)
+                variance = torch.mean(variance)
                 file1 = open(f"{self.save_dir}/margin_stats/variance_noise.txt", "a")
                 file1.write(f"{variance}, ")
                 file1.close()
@@ -1416,7 +1422,8 @@ class Trainer:
                     file1.write(f"{confidence_score_margin_surrogate}, ")
                     file1.close()
 
-                    variance = torch.var(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1))
+                    variance = torch.var(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1).view(x_noise.size(0), -1), dim = 1)
+                    variance = torch.mean(variance)
                     file1 = open(f"{self.save_dir}/margin_stats/variance_mixture.txt", "a")
                     file1.write(f"{variance}, ")
                     file1.close()

@@ -4,6 +4,8 @@ This repository is official pytorch repository of SFL IP protection
 SFL extractor, an advanced adaptive ME attack.
 Checkout 04dcce44aa2 for the old version, including five basic ME attacks
 
+Made a mistake on Jun 15, 2023, was found and fixed on Jun 21, 2023. The mistakes affect nothing, but the margin stats of baseline methods (GAN-assist without randommix)
+
 ## Roadmap:
 [x] Use MIA to set a layer threshold 
 [x] Finish sweeping all offline/online MEAs
