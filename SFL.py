@@ -1206,14 +1206,14 @@ class Trainer:
             for t in range(x_private.size(0)//2):
                 while label_private[t] == noise_label[t]:
                     noise_label[t] = np.random.randint(low = 0, high = self.num_class)
-            # print(sum(torch.not_equal(noise_label, label_private[:x_private.size(0)//2])))
-            # print(sum(torch.not_equal(label_private[x_private.size(0)//2:], label_private[:x_private.size(0)//2])))
             noise_label = noise_label.cuda()
         else:
             noise_label = label_private[x_private.size(0)//2:]
         
         
         x_noise = self.generator(z, noise_label) # pre_x returns the output of G before applying the activation
+        label_private = torch.cat([noise_label, label_private[x_private.size(0)//2:]], dim = 0)
+        
         if "randommix" in self.regularization_option:
             # Random mixup, mixup with random images, to force the generated images become strong backdoor
             
@@ -1248,14 +1248,10 @@ class Trainer:
             else: # default option
                 # Mixup noise and training images, send mixture together with training images
                 x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                
-            label_private = torch.cat([noise_label, label_private[x_private.size(0)//2:]], dim = 0)
         elif "variablemix" in self.regularization_option:
             regularization_strength = np.random.rand() * self.regularization_strength # never pass the self.regularization_strength, anything below that
-            
+
             x_fake = torch.cat([torch.clip(x_noise + regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-            
-            label_private = torch.cat([noise_label, label_private[x_private.size(0)//2:]], dim = 0)
         else:
             # send both noise and training images
             x_fake = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
@@ -1286,8 +1282,19 @@ class Trainer:
             torchvision.utils.save_image(imgGen3, train_output_path + '/{}/out_trainimg_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
 
         z_private = self.model.local_list[client_id](x_fake)
+        
+        
         if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
             z_private = z_private.detach()
+        
+
+        if "manifoldmix" in self.regularization_option:
+            
+            with torch.no_grad():
+                real_img_activation = self.model.local_list[client_id](x_private[:x_private.size(0)//2, :, :, :])
+
+            z_private = torch.cat([z_private[:x_private.size(0)//2, :, :, :] + self.regularization_strength * real_img_activation.detach(), z_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            # label_private = torch.cat([noise_label, label_private[x_private.size(0)//2:]], dim = 0)
         
         output = self.model.cloud(z_private)
         
