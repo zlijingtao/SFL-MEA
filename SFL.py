@@ -1008,7 +1008,7 @@ class Trainer:
 
             if "test7" in self.regularization_option or "test8" in self.regularization_option:
                 for t in range(batch_size//2):
-                    while label_private[t] == label_private[x_noise.size(0)//2 + t]:
+                    while label_private[t] == label_private[batch_size//2 + t]:
                         label_private[t] = np.random.randint(low = 0, high = self.num_class)
 
         x_noise = self.generator(z, label_private) # pre_x returns the output of G before applying the activation
