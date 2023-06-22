@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import models.architectures_torch as architectures
 from models.architectures_torch import init_weights
 from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, TV, l2loss, zeroing_grad, fidelity
-from utils import average_weights
+from utils import average_weights, get_feature_distance_pairwise
 import logging
 import torchvision
 from datetime import datetime
@@ -1121,7 +1121,7 @@ class Trainer:
                 file1.write(f"{variance}, ")
                 file1.close()
 
-                if "randommix" in self.regularization_option:
+                if "randommix" in self.regularization_option or "mixup" in self.regularization_option:
                     confidence_score_margin_surrogate = self.calculate_margin(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), using_surrogate_if_available=True) / (x_noise.size(0)//2) # margin to the generator
                     file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_mixture.txt", "a")
                     file1.write(f"{confidence_score_margin_surrogate}, ")
@@ -1149,7 +1149,7 @@ class Trainer:
             file2.write(f"{confidence_score_margin_target}, ")
             file2.close()
 
-            if "randommix" in self.regularization_option:
+            if "randommix" in self.regularization_option or "mixup" in self.regularization_option:
                 confidence_score_margin_target = self.calculate_margin(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), using_surrogate_if_available=False) / (x_noise.size(0)//2) # margin to the generator
                 file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_mixture.txt", "a")
                 file2.write(f"{confidence_score_margin_target}, ")
@@ -1160,7 +1160,20 @@ class Trainer:
             file2.write(f"{confidence_score_margin_target}, ")
             file2.close()
 
+            avg_distance = self.avg_feature_distance_between_two_dataset(x_private[:x_private.size(0)//2, :, :, :].detach(), label_private[:label_private.size(0)//2], x_private[:x_private.size(0)//2, :, :, :].detach(), label_private[:label_private.size(0)//2])
+            file2 = open(f"{self.save_dir}/margin_stats/avg_distance_between_mixtures.txt", "a")
+            file2.write(f"{avg_distance}, ")
+            file2.close()
 
+            avg_distance = self.avg_feature_distance_between_two_dataset(x_private[x_private.size(0)//2:, :, :, :].detach(), label_private[label_private.size(0)//2:], x_private[x_private.size(0)//2:, :, :, :].detach(), label_private[label_private.size(0)//2:])
+            file2 = open(f"{self.save_dir}/margin_stats/avg_distance_between_noises.txt", "a")
+            file2.write(f"{avg_distance}, ")
+            file2.close()
+
+            avg_distance = self.avg_feature_distance_between_two_dataset(x_private[:x_private.size(0)//2, :, :, :].detach(), label_private[:label_private.size(0)//2], x_private[x_private.size(0)//2:, :, :, :].detach(), label_private[label_private.size(0)//2:])
+            file2 = open(f"{self.save_dir}/margin_stats/avg_distance_between_mixture_noise.txt", "a")
+            file2.write(f"{avg_distance}, ")
+            file2.close()
 
 
         return total_losses, f_losses
@@ -1391,6 +1404,13 @@ class Trainer:
         if "print_margin_stats"  in self.regularization_option and batch == 0:
             if not os.path.isdir(self.save_dir + "/margin_stats"):
                     os.makedirs(self.save_dir + "/margin_stats")
+            
+            # 
+            # torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), noise_label
+            # x_private, label_private
+            # x_noise, noise_label
+
+
             if "surrogate" in self.regularization_option:
                 confidence_score_margin_surrogate = self.calculate_margin(surrogate_input.detach(), using_surrogate_if_available=True)/surrogate_input.size(0)  # margin to the generator
                 file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate.txt", "a")
@@ -1425,7 +1445,7 @@ class Trainer:
                 file1.write(f"{variance}, ")
                 file1.close()
 
-                if "randommix" in self.regularization_option:
+                if "randommix" in self.regularization_option or "mixup" in self.regularization_option:
                     confidence_score_margin_surrogate = self.calculate_margin(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), using_surrogate_if_available=True) / x_noise.size(0) # margin to the generator
                     file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_mixture.txt", "a")
                     file1.write(f"{confidence_score_margin_surrogate}, ")
@@ -1452,13 +1472,89 @@ class Trainer:
             file2.write(f"{confidence_score_margin_target}, ")
             file2.close()
 
-            if "randommix" in self.regularization_option:
+            
+            
+            avg_distance = self.avg_feature_distance_between_two_dataset(x_fake[:x_fake.size(0)//2, :, :, :].detach(), label_private[:label_private.size(0)//2], x_fake[:x_fake.size(0)//2, :, :, :].detach(), label_private[:label_private.size(0)//2])
+            file2 = open(f"{self.save_dir}/margin_stats/avg_distance_between_fake_img.txt", "a")
+            file2.write(f"{avg_distance}, ")
+            file2.close()
+
+            avg_distance = self.avg_feature_distance_between_two_dataset(x_fake[x_fake.size(0)//2:, :, :, :].detach(), label_private[label_private.size(0)//2:], x_fake[x_fake.size(0)//2:, :, :, :].detach(), label_private[label_private.size(0)//2:])
+            file2 = open(f"{self.save_dir}/margin_stats/avg_distance_between_real_img.txt", "a")
+            file2.write(f"{avg_distance}, ")
+            file2.close()
+
+            avg_distance = self.avg_feature_distance_between_two_dataset(x_fake[:x_fake.size(0)//2, :, :, :].detach(), label_private[:label_private.size(0)//2], x_fake[x_fake.size(0)//2:, :, :, :].detach(), label_private[label_private.size(0)//2:])
+            file2 = open(f"{self.save_dir}/margin_stats/avg_distance_between_real_fake.txt", "a")
+            file2.write(f"{avg_distance}, ")
+            file2.close()
+
+            if "randommix" in self.regularization_option or "mixup" in self.regularization_option:
                 confidence_score_margin_target = self.calculate_margin(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), using_surrogate_if_available=False) / x_noise.size(0) # margin to the generator
                 file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_mixture.txt", "a")
                 file2.write(f"{confidence_score_margin_target}, ")
                 file2.close()
 
+
         return total_losses, f_losses
+    
+
+    def avg_feature_distance_between_two_dataset(self, data1, label1, data2, label2, num_samples_per_label = 5):
+        # print("Distance between Data1 and Data 2 is 0.0 for class-0")
+        
+        avg_distance_per_class_list = []
+        self.model.unmerge_classifier_cloud()
+        # iterating every label
+        for label in range(self.num_class):
+            samples_for_data1 = []
+            samples_for_data2 = []
+
+            # collecting smaples from data1
+            for i in range(data1.size(0)):
+                if label1[i].item() == label:
+                    samples_for_data1.append(data1[i, :, :, :])
+                if len(samples_for_data1) >= num_samples_per_label:
+                    break
+            
+            # collecting smaples from data2
+            for i in range(data2.size(0)):
+                if label2[i].item() == label:
+                    samples_for_data2.append(data2[i, :, :, :])
+                if len(samples_for_data2) >= num_samples_per_label:
+                    break
+            if min(len(samples_for_data1), len(samples_for_data2)) < 2:
+                # print(f"skip class-{label}")
+                continue
+            samples_for_data1 = samples_for_data1[:min(len(samples_for_data1), len(samples_for_data2))]
+            samples_for_data2 = samples_for_data2[:min(len(samples_for_data1), len(samples_for_data2))]
+            
+            samples_data1 = torch.stack(samples_for_data1, dim = 0)
+            samples_data2 = torch.stack(samples_for_data2, dim = 0)
+
+            
+            self.model.local_list[0].cuda()
+            self.model.local_list[0].eval()
+            self.model.cloud.cuda()
+            self.model.cloud.eval()
+            
+            with torch.no_grad():
+
+                activation_data1 = self.model.local_list[0](samples_data1)
+                features_data1 = self.model.cloud(activation_data1)
+
+                activation_data2 = self.model.local_list[0](samples_data2)
+                features_data2 = self.model.cloud(activation_data2)
+
+            # distance between data1 and data2:
+            avg_distance = get_feature_distance_pairwise(features_data1, features_data2)
+            # print(f"Distance between Data1 and Data 2 is {avg_distance} for class-{label}")
+            avg_distance_per_class_list.append(avg_distance)
+        
+        self.model.merge_classifier_cloud()
+        return sum(avg_distance_per_class_list) / len(avg_distance_per_class_list)
+    
+    
+    
     
     def fidelity_test(self, client_id = 0):
         """

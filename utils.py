@@ -12,6 +12,23 @@ import matplotlib.pyplot as plt
 import copy
 
 
+def get_feature_distance_pairwise(feature_1, feature_2):
+    #
+    # print(feature_1.size())
+    # print(feature_2.size())
+    feature_1.view(feature_1.size(0), -1)
+    feature_2.view(feature_2.size(0), -1)
+
+    # feature_1, abc, feature_2, abc.
+    total_dist = 0.0
+    total_time = 0
+    for i in range(feature_1.size(0) - 1):
+        for j in range(i+1, feature_1.size(0)):
+            total_dist += torch.norm(feature_1[i] - feature_2[j], p = 2)
+            total_time += 1
+
+    return total_dist/total_time
+
 def cutting_train_clas_layer_mapping(arch_name, cutlayer):
     # read cuttinglayer_train_clas_layer_mapping.txt
     if "vgg11" in arch_name:
