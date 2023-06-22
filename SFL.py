@@ -1057,6 +1057,12 @@ class Trainer:
             z_private = z_private.detach()
         
         if "manifoldmix" in self.regularization_option:
+
+            if "variable" in self.regularization_option:
+                regularization_strength = np.random.rand() * self.regularization_strength
+            else:
+                regularization_strength = self.regularization_strength
+
             z_private = torch.cat([torch.clip(z_private[:z_private.size(0)//2, :, :, :] + regularization_strength * z_private[z_private.size(0)//2:, :, :, :].detach(), -1, 1), z_private[z_private.size(0)//2:, :, :, :]], dim = 0)
         
         output = self.model.cloud(z_private)
@@ -1092,8 +1098,13 @@ class Trainer:
                 surrogate_input = x_private
                 surrogate_label = label_private
             
-            with torch.no_grad():
-                suro_act = self.surrogate_model.local(surrogate_input.detach())
+
+            if "manifoldmix" in self.regularization_option:
+                suro_act = z_private.detach()
+            else:
+                with torch.no_grad():
+                    suro_act = self.surrogate_model.local(surrogate_input.detach())
+            
             suro_output = self.surrogate_model.cloud(suro_act)
             suro_loss = criterion(suro_output, surrogate_label)
             
@@ -1312,10 +1323,15 @@ class Trainer:
 
         if "manifoldmix" in self.regularization_option:
             
+            if "variable" in self.regularization_option:
+                regularization_strength = np.random.rand() * self.regularization_strength
+            else:
+                regularization_strength = self.regularization_strength
+            
             with torch.no_grad():
                 real_img_activation = self.model.local_list[client_id](x_private[:x_private.size(0)//2, :, :, :])
 
-            z_private = torch.cat([z_private[:x_private.size(0)//2, :, :, :] + self.regularization_strength * real_img_activation.detach(), z_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+            z_private = torch.cat([z_private[:x_private.size(0)//2, :, :, :] + regularization_strength * real_img_activation.detach(), z_private[x_private.size(0)//2:, :, :, :]], dim = 0)
         
         output = self.model.cloud(z_private)
         
@@ -1384,8 +1400,14 @@ class Trainer:
                 surrogate_label = label_private
 
 
-            with torch.no_grad():
-                suro_act = self.surrogate_model.local(surrogate_input.detach())
+            
+            if "manifoldmix" in self.regularization_option:
+                suro_act = z_private.detach()
+            else:
+                with torch.no_grad():
+                    suro_act = self.surrogate_model.local(surrogate_input.detach())
+            
+            
             suro_output = self.surrogate_model.cloud(suro_act)
             suro_loss = criterion(suro_output, surrogate_label)
 
