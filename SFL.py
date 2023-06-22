@@ -1126,34 +1126,28 @@ class Trainer:
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-                variance = torch.var(x_noise.detach().view(x_noise.size(0), -1), dim = 1)
-                variance = torch.mean(variance)
-                file1 = open(f"{self.save_dir}/margin_stats/variance_noise.txt", "a")
-                file1.write(f"{variance}, ")
-                file1.close()
-
                 if "randommix" in self.regularization_option or "mixup" in self.regularization_option:
                     confidence_score_margin_surrogate = self.calculate_margin(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), using_surrogate_if_available=True) / (x_noise.size(0)//2) # margin to the generator
                     file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_mixture.txt", "a")
                     file1.write(f"{confidence_score_margin_surrogate}, ")
                     file1.close()
 
-                variance = torch.var(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1).view(x_noise.size(0)//2, -1), dim = 1)
-                variance = torch.mean(variance)
-                file1 = open(f"{self.save_dir}/margin_stats/variance_mixture.txt", "a")
-                file1.write(f"{variance}, ")
-                file1.close()
-
                 confidence_score_margin_surrogate = self.calculate_margin(surrogate_input.detach(), using_surrogate_if_available=True)/surrogate_input.size(0) # margin to the generator
                 file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate.txt", "a")
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-                variance = torch.var(surrogate_input.detach().view(surrogate_input.size(0), -1), dim = 1)
-                variance = torch.mean(variance)
-                file1 = open(f"{self.save_dir}/margin_stats/variance_input.txt", "a")
-                file1.write(f"{variance}, ")
-                file1.close()
+            variance = torch.var(x_noise.detach().view(x_noise.size(0), -1), dim = 1)
+            variance = torch.mean(variance)
+            file1 = open(f"{self.save_dir}/margin_stats/variance_noise.txt", "a")
+            file1.write(f"{variance}, ")
+            file1.close()
+
+            variance = torch.var(surrogate_input.detach().view(surrogate_input.size(0), -1), dim = 1)
+            variance = torch.mean(variance)
+            file1 = open(f"{self.save_dir}/margin_stats/variance_input.txt", "a")
+            file1.write(f"{variance}, ")
+            file1.close()
 
             confidence_score_margin_target = self.calculate_margin(x_noise.detach(), using_surrogate_if_available=False)/x_noise.size(0) # margin to the generator
             file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_noise.txt", "a")
@@ -1165,6 +1159,12 @@ class Trainer:
                 file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_mixture.txt", "a")
                 file2.write(f"{confidence_score_margin_target}, ")
                 file2.close()
+
+                variance = torch.var(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1).view(x_noise.size(0)//2, -1), dim = 1)
+                variance = torch.mean(variance)
+                file1 = open(f"{self.save_dir}/margin_stats/variance_mixture.txt", "a")
+                file1.write(f"{variance}, ")
+                file1.close()
 
             confidence_score_margin_target = self.calculate_margin(x_private.detach(), using_surrogate_if_available=False)/x_private.size(0) # margin to the generator
             file2 = open(f"{self.save_dir}/margin_stats/margin_target.txt", "a")
@@ -1426,23 +1426,11 @@ class Trainer:
         if "print_margin_stats"  in self.regularization_option and batch == 0:
             if not os.path.isdir(self.save_dir + "/margin_stats"):
                     os.makedirs(self.save_dir + "/margin_stats")
-            
-            # 
-            # torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1), noise_label
-            # x_private, label_private
-            # x_noise, noise_label
-
 
             if "surrogate" in self.regularization_option:
                 confidence_score_margin_surrogate = self.calculate_margin(surrogate_input.detach(), using_surrogate_if_available=True)/surrogate_input.size(0)  # margin to the generator
                 file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate.txt", "a")
                 file1.write(f"{confidence_score_margin_surrogate}, ")
-                file1.close()
-
-                variance = torch.var(surrogate_input.detach().view(surrogate_input.size(0), -1), dim = 1)
-                variance = torch.mean(variance)
-                file1 = open(f"{self.save_dir}/margin_stats/variance_input.txt", "a")
-                file1.write(f"{variance}, ")
                 file1.close()
                 
                 confidence_score_margin_surrogate = self.calculate_margin(x_private, using_surrogate_if_available=True)/x_private.size(0) # margin to the generator
@@ -1450,21 +1438,9 @@ class Trainer:
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-                variance = torch.var(x_private.detach().view(x_private.size(0), -1), dim = 1)
-                variance = torch.mean(variance)
-                file1 = open(f"{self.save_dir}/margin_stats/variance_img.txt", "a")
-                file1.write(f"{variance}, ")
-                file1.close()
-
                 confidence_score_margin_surrogate = self.calculate_margin(x_noise.detach(), using_surrogate_if_available=True)/x_noise.size(0) # margin to the generator
                 file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_noise.txt", "a")
                 file1.write(f"{confidence_score_margin_surrogate}, ")
-                file1.close()
-
-                variance = torch.var(x_noise.detach().view(x_noise.size(0), -1), dim = 1)
-                variance = torch.mean(variance)
-                file1 = open(f"{self.save_dir}/margin_stats/variance_noise.txt", "a")
-                file1.write(f"{variance}, ")
                 file1.close()
 
                 if "randommix" in self.regularization_option or "mixup" in self.regularization_option:
@@ -1472,12 +1448,24 @@ class Trainer:
                     file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_mixture.txt", "a")
                     file1.write(f"{confidence_score_margin_surrogate}, ")
                     file1.close()
+            
+            variance = torch.var(surrogate_input.detach().view(surrogate_input.size(0), -1), dim = 1)
+            variance = torch.mean(variance)
+            file1 = open(f"{self.save_dir}/margin_stats/variance_input.txt", "a")
+            file1.write(f"{variance}, ")
+            file1.close()
 
-                    variance = torch.var(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1).view(x_noise.size(0), -1), dim = 1)
-                    variance = torch.mean(variance)
-                    file1 = open(f"{self.save_dir}/margin_stats/variance_mixture.txt", "a")
-                    file1.write(f"{variance}, ")
-                    file1.close()
+            variance = torch.var(x_private.detach().view(x_private.size(0), -1), dim = 1)
+            variance = torch.mean(variance)
+            file1 = open(f"{self.save_dir}/margin_stats/variance_img.txt", "a")
+            file1.write(f"{variance}, ")
+            file1.close()
+
+            variance = torch.var(x_noise.detach().view(x_noise.size(0), -1), dim = 1)
+            variance = torch.mean(variance)
+            file1 = open(f"{self.save_dir}/margin_stats/variance_noise.txt", "a")
+            file1.write(f"{variance}, ")
+            file1.close()
 
             confidence_score_margin_target = self.calculate_margin(x_fake.detach(), using_surrogate_if_available=False)/x_fake.size(0) # margin to the generator
             file2 = open(f"{self.save_dir}/margin_stats/margin_target.txt", "a")
@@ -1493,8 +1481,6 @@ class Trainer:
             file2 = open(f"{self.save_dir}/margin_stats/margin_target_on_noise.txt", "a")
             file2.write(f"{confidence_score_margin_target}, ")
             file2.close()
-
-            
             
             avg_distance = self.avg_feature_distance_between_two_dataset(x_fake[:x_fake.size(0)//2, :, :, :].detach(), label_private[:label_private.size(0)//2], x_fake[:x_fake.size(0)//2, :, :, :].detach(), label_private[:label_private.size(0)//2])
             file2 = open(f"{self.save_dir}/margin_stats/avg_distance_between_fake_img.txt", "a")
@@ -1517,6 +1503,11 @@ class Trainer:
                 file2.write(f"{confidence_score_margin_target}, ")
                 file2.close()
 
+                variance = torch.var(torch.clip(x_noise.detach() + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :].detach(), -1, 1).view(x_noise.size(0), -1), dim = 1)
+                variance = torch.mean(variance)
+                file1 = open(f"{self.save_dir}/margin_stats/variance_mixture.txt", "a")
+                file1.write(f"{variance}, ")
+                file1.close()
 
         return total_losses, f_losses
     
