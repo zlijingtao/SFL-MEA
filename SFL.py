@@ -1214,6 +1214,8 @@ class Trainer:
                 while label_private[t] == noise_label[t]:
                     noise_label[t] = np.random.randint(low = 0, high = self.num_class)
             noise_label = noise_label.cuda()
+        elif "sameclass" in self.regularization_option:
+            noise_label = label_private[:x_private.size(0)//2]
         else:
             noise_label = label_private[x_private.size(0)//2:]
         
@@ -1360,6 +1362,10 @@ class Trainer:
                 x_fake = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_noise], dim = 0)
                 surrogate_input = x_fake
                 surrogate_label = label_private
+            elif "mixup" in self.regularization_option:
+                surrogate_input = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+                surrogate_label = label_private
+            
             else:
                 surrogate_input = x_fake
                 surrogate_label = label_private
