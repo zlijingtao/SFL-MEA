@@ -1029,6 +1029,18 @@ class Trainer:
         elif "variablemix" in self.regularization_option:
             regularization_strength = np.random.rand() * self.regularization_strength # never pass the self.regularization_strength, anything below that
             x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+        
+        elif "ultramix" in self.regularization_option:
+            
+            if np.random.rand()> 0.5:
+                regularization_strength = np.random.rand() * self.regularization_strength # never pass the self.regularization_strength, anything below that
+            else:
+                regularization_strength = 1 - np.random.rand() * self.regularization_strength
+            
+            x_private = torch.cat([(1 - regularization_strength) * x_noise[:x_noise.size(0)//2, :, :, :] + regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
+            
+            if regularization_strength > 1 - self.regularization_strength:
+                label_private = torch.cat([label_private[x_private.size(0)//2:], label_private[x_private.size(0)//2:]], dim = 0)
         else:
             x_private = x_noise
         
@@ -1126,7 +1138,7 @@ class Trainer:
                 file1.write(f"{confidence_score_margin_surrogate}, ")
                 file1.close()
 
-                if "randommix" in self.regularization_option or "mixup" in self.regularization_option:
+                if "mix" in self.regularization_option:
                     confidence_score_margin_surrogate = self.calculate_margin(torch.clip(x_noise[:x_noise.size(0)//2, :, :, :].detach() + self.regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), using_surrogate_if_available=True) / (x_noise.size(0)//2) # margin to the generator
                     file1 = open(f"{self.save_dir}/margin_stats/margin_surrogate_on_mixture.txt", "a")
                     file1.write(f"{confidence_score_margin_surrogate}, ")
@@ -1285,6 +1297,19 @@ class Trainer:
             regularization_strength = np.random.rand() * self.regularization_strength # never pass the self.regularization_strength, anything below that
 
             x_fake = torch.cat([torch.clip(x_noise + regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+        elif "ultramix" in self.regularization_option:
+            
+            if np.random.rand()> 0.5:
+                regularization_strength = np.random.rand() * self.regularization_strength # never pass the self.regularization_strength, anything below that
+            else:
+                regularization_strength = 1 - np.random.rand() * self.regularization_strength
+
+            x_fake = torch.cat([(1 - regularization_strength) * x_noise + regularization_strength * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+
+            if regularization_strength > 1 - self.regularization_strength:
+                label_private = torch.cat([label_private[:x_private.size(0)//2], label_private[x_private.size(0)//2:]], dim = 0)
+        
+        
         else:
             # send both noise and training images
             x_fake = torch.cat([x_noise, x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
