@@ -16,3 +16,6 @@ wandb/*
 datasets/tiny-imagenet-200/
 datasets/facescrub-dataset/
 mobilenetv2.pytorch/
+tools/feature_vectors/*/deep_features/*/*.pt
+tools/feature_vectors/*/deep_features/*/*.png
+!tools/feature_vectors/naive_vgg11_cifar10_cut10/*.tar

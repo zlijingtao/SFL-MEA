@@ -251,6 +251,10 @@ class Trainer:
         
             self.logger.debug("Final-Generator_MEAN_MARGIN: {}".format(mean_margin))
 
+            # print("deep feature analysis")
+            # self.deep_feature_analysis()
+
+
     def sync_client(self, idxs_users = None):
         
         if idxs_users is not None:
@@ -1544,11 +1548,93 @@ class Trainer:
         return total_losses, f_losses
     
 
+    def deep_feature_analysis(self, num_samples_per_label = 30):
+        
+        
+        # we use the same model classifier to extract features:
+        save_dir = "./tools/feature_vectors/naive_vgg11_cifar10_cut10"
+        # save_dir = "./saves/V1-seed123/V1-vgg11-cifar10-gan_assist_train_ME_multiGAN_surrogate_randommix_start0-str0.6-cut10-client5-noniid1.0--data50--budget-1"
+        
+        
+        self.model = get_model(self.arch, self.cutting_layer, self.num_client, self.num_class, 0)
+        self.model.merge_classifier_cloud()
+        checkpoint_i = torch.load(save_dir + "/checkpoint_client_{}.tar".format(self.n_epochs))
+        self.model.local_list[0].cuda()
+        self.model.local_list[0].load_state_dict(checkpoint_i, strict = False)
+        checkpoint = torch.load(save_dir + "/checkpoint_cloud_{}.tar".format(self.n_epochs))
+        self.model.cloud.cuda()
+        self.model.cloud.load_state_dict(checkpoint, strict = False)
+
+        self.validate_target()
+
+        save_dir = "./tools/feature_vectors/naive_vgg11_cifar10_cut10"
+        if not os.path.isdir(save_dir + "/deep_features"):
+            os.makedirs(save_dir + "/deep_features")
+        self.model.unmerge_classifier_cloud()
+        for cls in range(self.num_class):
+            real_samples = []
+            
+            fake_samples = []
+            if not os.path.isdir(save_dir + f"/deep_features/{cls}"):
+                os.makedirs(save_dir + f"/deep_features/{cls}")
+            
+            for img_batch, label_batch in self.client_dataloader[0]:
+                img_batch = img_batch.cuda()
+                label_batch = label_batch.cuda()
+                for i in range(img_batch.size(0)):
+                    img = img_batch[i, :, :, :]
+                    label = label_batch[i]
+                    if label.item() == cls:
+                        real_samples.append(img)
+
+                        z = torch.randn((1, self.nz)).cuda()
+            
+                        x_noise = self.generator(z, label.view(-1)) # pre_x returns the output of G before applying the activation
+                        if "mix" in self.regularization_option:
+                            x_fake = torch.clip(x_noise + self.regularization_strength * img, -1, 1).detach()
+                        else:
+                            x_fake = x_noise
+                        fake_samples.append(x_fake[0, :, :, :])
+                        if len(fake_samples) >= num_samples_per_label:
+                            break
+                if len(fake_samples) >= num_samples_per_label:
+                    break
+            
+            real_sample_t = torch.stack(real_samples, dim = 0)
+            
+            fake_sample_t = torch.stack(fake_samples, dim = 0)
+
+            self.model.local_list[0].cuda()
+            self.model.local_list[0].eval()
+            self.model.cloud.cuda()
+            self.model.cloud.eval()
+
+            with torch.no_grad():
+
+                activation_data1 = self.model.local_list[0](real_sample_t)
+                real_features = self.model.cloud(activation_data1).cpu()
+
+                activation_data2 = self.model.local_list[0](fake_sample_t)
+                fake_features = self.model.cloud(activation_data2).cpu()
+
+            # save these featues to a file
+            torch.save(real_features, f"{save_dir}/deep_features/{cls}/real_image_features.pt")
+            torch.save(fake_features, f"{save_dir}/deep_features/{cls}/{self.regularization_option}_str{self.regularization_strength}_features.pt")
+
+        self.model.merge_classifier_cloud()
+
     def avg_feature_distance_between_two_dataset(self, data1, label1, data2, label2, num_samples_per_label = 5):
         # print("Distance between Data1 and Data 2 is 0.0 for class-0")
         
         avg_distance_per_class_list = []
         self.model.unmerge_classifier_cloud()
+        
+        self.model.local_list[0].cuda()
+        self.model.local_list[0].eval()
+        self.model.cloud.cuda()
+        self.model.cloud.eval()
+        
+        
         # iterating every label
         for label in range(self.num_class):
             samples_for_data1 = []
@@ -1577,10 +1663,7 @@ class Trainer:
             samples_data2 = torch.stack(samples_for_data2, dim = 0)
 
             
-            self.model.local_list[0].cuda()
-            self.model.local_list[0].eval()
-            self.model.cloud.cuda()
-            self.model.cloud.eval()
+            
             
             with torch.no_grad():
 
@@ -1590,12 +1673,21 @@ class Trainer:
                 activation_data2 = self.model.local_list[0](samples_data2)
                 features_data2 = self.model.cloud(activation_data2)
 
+
+            merged_array = torch.cat([features_data1, features_data2], dim = 0)
+            merged_mean = torch.mean(merged_array)
+            merged_std = torch.std(merged_array)
+
+            features_data1 = (features_data1 - merged_mean)/merged_std
+            features_data2 = (features_data2 - merged_mean)/merged_std
             # distance between data1 and data2:
             avg_distance = get_feature_distance_pairwise(features_data1, features_data2)
             # print(f"Distance between Data1 and Data 2 is {avg_distance} for class-{label}")
             avg_distance_per_class_list.append(avg_distance)
         
         self.model.merge_classifier_cloud()
+        self.model.local_list[0].train()
+        self.model.cloud.train()
         return sum(avg_distance_per_class_list) / len(avg_distance_per_class_list)
     
     
