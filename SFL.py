@@ -689,7 +689,7 @@ class Trainer:
     
     
     
-    
+
     def train_target_step(self, x_private, label_private, client_id, epoch, batch, attack = False, skip_regularization = False):
 
         dl_transforms = torch.nn.Sequential(
@@ -751,11 +751,14 @@ class Trainer:
         if self.arch != "ViT":
             # Final Prediction Logits (complete forward pass)
             z_private = self.model.local_list[client_id](x_private)
-            if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
-                z_private = z_private.detach()
-            else:
-                
-                z_private.retain_grad()
+
+            # we move reduce_grad_freq to later
+            # if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
+            #     z_private = z_private.detach()
+            # else:
+            #     z_private.retain_grad()
+            
+            z_private.retain_grad()
             output = self.model.cloud(z_private)
         else:
             output = self.model(x_private)
@@ -786,6 +789,20 @@ class Trainer:
             
         
         total_loss.backward()
+
+        # we move reduce_grad_freq after loss beign calculated to apply loss-based reduce_grad_freq
+        if "reduce_grad_freq" in self.regularization_option:
+
+            if batch % 2 == 1:
+                zeroing_grad(self.model.local_list[client_id])
+        
+        if "print_loss" in self.regularization_option:
+            if not os.path.isdir(self.save_dir + "/loss_stats"):
+                os.makedirs(self.save_dir + "/loss_stats")
+            total_loss_printable = total_loss.detach().cpu().numpy() # margin to the generator
+            file1 = open(f"{self.save_dir}/loss_stats/training_loss_client{client_id}.txt", "a")
+            file1.write(f"{total_loss_printable}, ")
+            file1.close()
 
         if "gradient_noise" in self.regularization_option and self.arch != "ViT":
             h.remove()
@@ -1075,8 +1092,8 @@ class Trainer:
 
         z_private = self.model.local_list[client_id](x_private)
 
-        if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1: # server will skip sending back gradients, once per two steps
-            z_private = z_private.detach()
+        # if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1: # server will skip sending back gradients, once per two steps
+        #     z_private = z_private.detach()
         
         if "manifoldmix" in self.regularization_option:
 
@@ -1103,6 +1120,23 @@ class Trainer:
 
         total_loss.backward()
         
+        if "reduce_grad_freq" in self.regularization_option:
+
+            if batch % 2 == 1:
+                zeroing_grad(self.model.local_list[client_id])
+                self.generator_optimizer.zero_grad()
+        
+        if "print_loss" in self.regularization_option:
+            if not os.path.isdir(self.save_dir + "/loss_stats"):
+                os.makedirs(self.save_dir + "/loss_stats")
+            total_loss_printable = total_loss.detach().cpu().numpy() # margin to the generator
+            file1 = open(f"{self.save_dir}/loss_stats/training_loss_client{client_id}.txt", "a")
+            file1.write(f"{total_loss_printable}, ")
+            file1.close()
+
+
+
+
         self.generator_optimizer.step()
         
         if "gradient_noise" in self.regularization_option:
@@ -1360,8 +1394,8 @@ class Trainer:
         z_private = self.model.local_list[client_id](x_fake)
         
         
-        if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
-            z_private = z_private.detach()
+        # if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
+        #     z_private = z_private.detach()
         
 
         if "manifoldmix" in self.regularization_option:
@@ -1395,6 +1429,21 @@ class Trainer:
         
         total_loss.backward()
         
+
+        if "reduce_grad_freq" in self.regularization_option:
+
+            if batch % 2 == 1:
+                zeroing_grad(self.model.local_list[client_id])
+                self.generator_optimizer.zero_grad()
+        
+        if "print_loss" in self.regularization_option:
+            if not os.path.isdir(self.save_dir + "/loss_stats"):
+                os.makedirs(self.save_dir + "/loss_stats")
+            total_loss_printable = total_loss.detach().cpu().numpy() # margin to the generator
+            file1 = open(f"{self.save_dir}/loss_stats/training_loss_client{client_id}.txt", "a")
+            file1.write(f"{total_loss_printable}, ")
+            file1.close()
+
         self.generator_optimizer.step()
 
         if "gradient_noise" in self.regularization_option:
