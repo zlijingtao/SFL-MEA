@@ -762,7 +762,7 @@ class Trainer:
 
 
         if "label_smooth" in self.regularization_option:
-            criterion = torch.nn.CrossEntropyLoss(label_smoothing=self.regularization_strength)
+            criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.2)
         else:
             criterion = torch.nn.CrossEntropyLoss()
 
@@ -770,24 +770,25 @@ class Trainer:
 
         total_loss = f_loss
 
+        if "gradient_noise" in self.regularization_option and self.arch != "ViT":
+            h = z_private.register_hook(lambda grad: grad + 5e-3 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
+        
         if not skip_regularization: # this is execute by benign clients
             if "l1" in self.regularization_option:
                 all_params = torch.cat([x.view(-1) for x in self.model.local_list[client_id].parameters()])
-                l1_regularization = self.regularization_strength * torch.norm(all_params, 1)
+                l1_regularization = 0.0002 * torch.norm(all_params, 1)
                 total_loss = total_loss + l1_regularization
             if "l2" in self.regularization_option:
                 all_params = torch.cat([x.view(-1) for x in self.model.local_list[client_id].parameters()])
-                l2_regularization = self.regularization_strength * torch.norm(all_params, 2)
+                l2_regularization = 0.2 * torch.norm(all_params, 2)
                 total_loss = total_loss + l2_regularization
             
-            if "gradient_noise" in self.regularization_option and self.arch != "ViT":
-                h = z_private.register_hook(lambda grad: grad + 1e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
+            
         
         total_loss.backward()
 
-        if not skip_regularization:
-            if "gradient_noise" in self.regularization_option and self.arch != "ViT":
-                h.remove()
+        if "gradient_noise" in self.regularization_option and self.arch != "ViT":
+            h.remove()
 
         if attack: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
             if "nopoison" in self.regularization_option:
@@ -906,8 +907,11 @@ class Trainer:
         if epoch > 160:
             craft_LR /= 5
 
-        criterion = torch.nn.CrossEntropyLoss()
-        
+        # criterion = torch.nn.CrossEntropyLoss()
+        if "label_smooth" in self.regularization_option:
+            criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.2)
+        else:
+            criterion = torch.nn.CrossEntropyLoss()
         self.model.cloud.train()
         self.model.local_list[client_id].train()
         image_save_path = self.save_dir + '/craft_pairs/'
@@ -1085,14 +1089,17 @@ class Trainer:
         
         output = self.model.cloud(z_private)
         
-        criterion = torch.nn.CrossEntropyLoss()
-
+        # criterion = torch.nn.CrossEntropyLoss()
+        if "label_smooth" in self.regularization_option:
+            criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.2)
+        else:
+            criterion = torch.nn.CrossEntropyLoss()
         f_loss = criterion(output, label_private)
 
         total_loss = f_loss
 
         if "gradient_noise" in self.regularization_option:
-            h = z_private.register_hook(lambda grad: grad + 1e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
+            h = z_private.register_hook(lambda grad: grad + 5e-3 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
 
         total_loss.backward()
         
@@ -1371,15 +1378,18 @@ class Trainer:
         
         output = self.model.cloud(z_private)
         
-        criterion = torch.nn.CrossEntropyLoss()
-
+        # criterion = torch.nn.CrossEntropyLoss()
+        if "label_smooth" in self.regularization_option:
+            criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.2)
+        else:
+            criterion = torch.nn.CrossEntropyLoss()
         f_loss = criterion(output, label_private)
 
         total_loss = f_loss
         
         if "gradient_noise" in self.regularization_option:
             # see https://medium.com/analytics-vidhya/pytorch-hooks-5909c7636fb
-            h = z_private.register_hook(lambda grad: grad + 1e-2 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
+            h = z_private.register_hook(lambda grad: grad + 5e-3 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
 
         self.generator_optimizer.zero_grad()
         

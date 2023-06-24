@@ -22,6 +22,7 @@ mobilenetv2
 mobilenetv2 valid cut: - 1, 4, 7 11 14 17 18 19
 
 
+- CIFAR-10 Dataset (number below are cutlayer value in scripts, not the real cut-layer):
 VGG11 secure cut: 10
 ResNet18 secure cut: 9
 ResNet20 secure cut: 10
