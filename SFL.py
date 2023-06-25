@@ -776,11 +776,16 @@ class Trainer:
         if not skip_regularization: # this is execute by benign clients
             if "l1" in self.regularization_option:
                 all_params = torch.cat([x.view(-1) for x in self.model.local_list[client_id].parameters()])
-                l1_regularization = 0.0002 * torch.norm(all_params, 1)
+
+                try:
+                    l1_str = float(self.regularization_option.split("l1")[-1].split("_")[0])
+                except:
+                    l1_str = 0.0002
+                l1_regularization = l1_str * torch.norm(all_params, 1)
                 total_loss = total_loss + l1_regularization
             if "l2" in self.regularization_option:
                 all_params = torch.cat([x.view(-1) for x in self.model.local_list[client_id].parameters()])
-                l2_regularization = 0.2 * torch.norm(all_params, 2)
+                l2_regularization = 0.1 * torch.norm(all_params, 2)
                 total_loss = total_loss + l2_regularization
             
             
