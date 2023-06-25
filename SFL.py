@@ -393,6 +393,10 @@ class Trainer:
                 self.query_image_id = 0
 
             self.logger.debug("Start SFL training")
+            
+            if "reduce_grad_freq" in self.regularization_option:
+                self.last_step_avg_train_loss = 0.0
+            
             for epoch in range(1, self.n_epochs+1):
                 
                 
@@ -425,8 +429,8 @@ class Trainer:
                     if self.scheme == "V1":
                         self.optimizer_zero_grad()
                     
-                    
-                    
+                    if "reduce_grad_freq" in self.regularization_option:
+                        this_step_avg_training_loss = 0.0
                     
                     for id, client_id in enumerate(idxs_users): # id is the position in client_iterator_list, client_id is the actual client id.
                         
@@ -489,7 +493,10 @@ class Trainer:
                                     train_loss, f_loss = self.train_target_step(images, labels, id, epoch, batch, attack = False, skip_regularization=False)
                                 else:
                                     train_loss, f_loss = self.train_target_step(images, labels, id, epoch, batch, attack = False, skip_regularization = False)
-
+                        
+                        if "reduce_grad_freq" in self.regularization_option:
+                            this_step_avg_training_loss += train_loss
+                        
                         if self.scheme == "V2":
                             self.optimizer_step()
                         
@@ -505,6 +512,8 @@ class Trainer:
                     if self.scheme == "V1":
                         self.optimizer_step()
                 
+                    if "reduce_grad_freq" in self.regularization_option:
+                        self.last_step_avg_train_loss = this_step_avg_training_loss / len(idxs_users)
                 # model synchronization
                 self.sync_client()
                     
@@ -751,12 +760,6 @@ class Trainer:
         if self.arch != "ViT":
             # Final Prediction Logits (complete forward pass)
             z_private = self.model.local_list[client_id](x_private)
-
-            # we move reduce_grad_freq to later
-            # if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
-            #     z_private = z_private.detach()
-            # else:
-            #     z_private.retain_grad()
             
             z_private.retain_grad()
             output = self.model.cloud(z_private)
@@ -790,11 +793,17 @@ class Trainer:
         
         total_loss.backward()
 
-        # we move reduce_grad_freq after loss beign calculated to apply loss-based reduce_grad_freq
         if "reduce_grad_freq" in self.regularization_option:
-
-            if batch % 2 == 1:
-                zeroing_grad(self.model.local_list[client_id])
+            if "by" in self.regularization_option: # reduce freqeuncy by 1/reduce_factor
+                try:
+                    reduce_factor = int(self.regularization_option.split("by")[-1].split("_")[0])
+                except:
+                    reduce_factor = 2
+                if batch % reduce_factor == 1:
+                    zeroing_grad(self.model.local_list[client_id])
+            else: # use loss-based by default
+                if total_loss.detach().item() < self.last_step_avg_train_loss / 2:
+                    zeroing_grad(self.model.local_list[client_id])
         
         if "print_loss" in self.regularization_option:
             if not os.path.isdir(self.save_dir + "/loss_stats"):
@@ -1091,9 +1100,6 @@ class Trainer:
             torchvision.utils.save_image(imgGen1, train_output_path + '/{}/out_finalout_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
 
         z_private = self.model.local_list[client_id](x_private)
-
-        # if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1: # server will skip sending back gradients, once per two steps
-        #     z_private = z_private.detach()
         
         if "manifoldmix" in self.regularization_option:
 
@@ -1121,10 +1127,18 @@ class Trainer:
         total_loss.backward()
         
         if "reduce_grad_freq" in self.regularization_option:
-
-            if batch % 2 == 1:
-                zeroing_grad(self.model.local_list[client_id])
-                self.generator_optimizer.zero_grad()
+            if "by" in self.regularization_option:
+                try:
+                    reduce_factor = int(self.regularization_option.split("by")[-1].split("_")[0])
+                except:
+                    reduce_factor = 2
+                if batch % reduce_factor == 1:
+                    zeroing_grad(self.model.local_list[client_id])
+                    self.generator_optimizer.zero_grad()
+            else: # use loss-based by default
+                if total_loss.detach().item() < self.last_step_avg_train_loss / 2:
+                    zeroing_grad(self.model.local_list[client_id])
+                    self.generator_optimizer.zero_grad()
         
         if "print_loss" in self.regularization_option:
             if not os.path.isdir(self.save_dir + "/loss_stats"):
@@ -1392,11 +1406,6 @@ class Trainer:
             torchvision.utils.save_image(imgGen3, train_output_path + '/{}/out_trainimg_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
 
         z_private = self.model.local_list[client_id](x_fake)
-        
-        
-        # if "reduce_grad_freq" in self.regularization_option and batch % 2 == 1:
-        #     z_private = z_private.detach()
-        
 
         if "manifoldmix" in self.regularization_option:
             
@@ -1431,10 +1440,19 @@ class Trainer:
         
 
         if "reduce_grad_freq" in self.regularization_option:
-
-            if batch % 2 == 1:
-                zeroing_grad(self.model.local_list[client_id])
-                self.generator_optimizer.zero_grad()
+            if "by" in self.regularization_option:
+                try:
+                    reduce_factor = int(self.regularization_option.split("by")[-1].split("_")[0])
+                except:
+                    reduce_factor = 2
+                if batch % reduce_factor == 1:
+                    zeroing_grad(self.model.local_list[client_id])
+                    self.generator_optimizer.zero_grad()
+            else: # use loss-based by default
+                if total_loss.detach().item() < self.last_step_avg_train_loss / 2:
+                    zeroing_grad(self.model.local_list[client_id])
+                    self.generator_optimizer.zero_grad()
+                    # print("skip gradients")
         
         if "print_loss" in self.regularization_option:
             if not os.path.isdir(self.save_dir + "/loss_stats"):
