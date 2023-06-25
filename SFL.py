@@ -1755,13 +1755,13 @@ class Trainer:
                 activation_data2 = self.model.local_list[0](samples_data2)
                 features_data2 = self.model.cloud(activation_data2)
 
+            # optional, take the normalized feature value.
+            # merged_array = torch.cat([features_data1, features_data2], dim = 0)
+            # merged_mean = torch.mean(merged_array)
+            # merged_std = torch.std(merged_array)
+            # features_data1 = (features_data1 - merged_mean)/merged_std
+            # features_data2 = (features_data2 - merged_mean)/merged_std
 
-            merged_array = torch.cat([features_data1, features_data2], dim = 0)
-            merged_mean = torch.mean(merged_array)
-            merged_std = torch.std(merged_array)
-
-            features_data1 = (features_data1 - merged_mean)/merged_std
-            features_data2 = (features_data2 - merged_mean)/merged_std
             # distance between data1 and data2:
             avg_distance = get_feature_distance_pairwise(features_data1, features_data2)
             # print(f"Distance between Data1 and Data 2 is {avg_distance} for class-{label}")
