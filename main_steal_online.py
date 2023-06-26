@@ -74,8 +74,8 @@ if args.scheme == "V1":
     elif num_client == 2:
         batch_size = 128
 
-if num_client > 10:
-    client_sample_ratio = 10. /num_client
+if num_client > 5:
+    client_sample_ratio = 5. /num_client
     args.num_epochs = int(200 / client_sample_ratio)
 else:
     client_sample_ratio = 1.0
