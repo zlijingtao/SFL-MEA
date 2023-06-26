@@ -361,7 +361,10 @@ class MobileNet_surrogate(nn.Module):
             if ("Conv2d" in str(module) and "Block" not in str(module)) or "Linear" in str(module) or "Block" in str(module):
                 local_count += 1
             if local_count <= num_of_local_layer:
-                local_list.append(module)
+                if "MobView" in str(module):
+                    cloud_list.append(module)
+                else:
+                    local_list.append(module)
             else:
                 cloud_list.append(module)
         
@@ -696,7 +699,10 @@ class ResNet_surrogate(nn.Module):
             if "conv3x3" in str(module) or "Linear" in str(module) or "BasicBlock" in str(module):
                 local_count += 1
             if local_count <= num_of_local_layer:
-                local_list.append(module)
+                if "MobView" in str(module):
+                    cloud_list.append(module)
+                else:
+                    local_list.append(module)
             else:
                 cloud_list.append(module)
         
@@ -786,7 +792,11 @@ class cifarResNet_surrogate(nn.Module):
             if "conv3x3" in str(module) or "Linear" in str(module) or "ResNet_BasicBlock" in str(module):
                 local_count += 1
             if local_count <= num_of_local_layer:
-                local_list.append(module)
+                if "CifarResView" in str(module):
+                    cloud_list.append(module)
+                else:
+                    local_list.append(module)
+                
             else:
                 cloud_list.append(module)
         

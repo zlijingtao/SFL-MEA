@@ -118,12 +118,19 @@ class Trainer:
         if "surrogate" in self.regularization_option:
             train_clas_layer = self.model.get_num_of_cloud_layer()
 
+            # print(f"number of layers in the cloud for the target model is {self.model.get_num_of_cloud_layer()}")
+
             self.surrogate_model = architectures.create_surrogate_model(arch, cutting_layer, self.num_class, self.model.get_num_of_cloud_layer(), "same")
 
             self.surrogate_model.resplit(train_clas_layer)
             self.surrogate_model.local.apply(init_weights)
             self.surrogate_model.cloud.apply(init_weights)
-
+            
+            # print("self.model local is:")
+            # print(self.model.local_list[-1])
+            # print("surrogate_model_local is:")
+            # print(self.surrogate_model.local)
+            # exit()
             # let them be the same model
             self.surrogate_model.local = self.model.local_list[-1]
             self.surrogate_model.cloud.cuda()
