@@ -573,7 +573,10 @@ class VGG_surrogate(nn.Module):
             if "Conv2d" in str(module) or "Linear" in str(module) or "MaxPool2d" in str(module):
                 local_count += 1
             if local_count <= num_of_local_layer:
-                local_list.append(module)
+                if "VGGView" in str(module):
+                    cloud_list.append(module)
+                else:
+                    local_list.append(module)
             else:
                 cloud_list.append(module)
         
