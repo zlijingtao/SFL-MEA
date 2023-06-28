@@ -197,8 +197,17 @@ def MIA_attack(save_dir, target_model, target_dataset_name = "cifar10", aux_data
     elif target_dataset_name == "facescrub":
         images = torch.load("./saved_tensors/test_facescrub_image.pt")
         labels = torch.load("./saved_tensors/test_facescrub_label.pt")
+    elif target_dataset_name == "imagenet12":
+        images = torch.load("./saved_tensors/test_imagenet12_image.pt")
+        labels = torch.load("./saved_tensors/test_imagenet12_label.pt")
     else:
-        raise(f"MIA on {target_dataset_name} IS Not supported")
+        client_dataloader_list, _, _ = get_dataset(target_dataset_name, 128, actual_num_users=1)
+        client_dataloader = client_dataloader_list[0]
+        for images, labels in client_dataloader:
+            torch.save(images, f"./saved_tensors/test_{target_dataset_name}_image.pt")
+            torch.save(labels, f"./saved_tensors/test_{target_dataset_name}_label.pt")
+            break
+        raise(f"MIA on {target_dataset_name} IS Not supported, Add it in model_inversion_attack.py line 182 and run again!")
     # image_grid = make_grid(images, 8)
     # image_grid = wandb.Image(image_grid, caption="Original Images")
         
@@ -256,8 +265,11 @@ def MIA_attack(save_dir, target_model, target_dataset_name = "cifar10", aux_data
                     print("Extract input dimension fialed, set to 0")
                     input_dim = 0
                 break
-
-        decoder = architectures.get_decoder(gan_AE_type, input_nc = input_nc, output_nc=3, input_dim=input_dim, output_dim=32, gan_AE_activation=gan_AE_activation)
+        
+        if "imagenet" in target_dataset_name:
+            decoder = architectures.get_decoder(gan_AE_type, input_nc = input_nc, output_nc=3, input_dim=input_dim, output_dim=224, gan_AE_activation=gan_AE_activation)
+        else:
+            decoder = architectures.get_decoder(gan_AE_type, input_nc = input_nc, output_nc=3, input_dim=input_dim, output_dim=32, gan_AE_activation=gan_AE_activation)
         
         '''Setting attacker's learning algorithm'''
         # optimizer = torch.optim.Adam(decoder.parameters(), lr=1e-3)

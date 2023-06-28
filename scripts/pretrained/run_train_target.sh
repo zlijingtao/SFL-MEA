@@ -17,4 +17,4 @@ cd ../../
 
 # python main.py --filename vgg11-svhn-new-v1 --dataset svhn --learning_rate 0.05 --scheme V1
 
-python main.py --filename resnet18-tinyimagenet-new-v1 --dataset tinyimagenet --arch resnet18 --learning_rate 0.05 --scheme V1
+python main.py --filename vgg11-imagenet12-new-v1 --dataset imagenet12 --learning_rate 0.05 --scheme V1

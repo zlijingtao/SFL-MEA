@@ -27,3 +27,12 @@ VGG11 secure cut: 10
 ResNet18 secure cut: 9
 ResNet20 secure cut: 10
 mobilenetv2 secure cut: 19
+
+- CIFAR-100 Dataset
+VGG11 secure cut: 8
+
+- SVHN Dataset
+VGG11 secure cut: 7
+
+- ImageNet-12 Dataset
+VGG11 secure cut: 13

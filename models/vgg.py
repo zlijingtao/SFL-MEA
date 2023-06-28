@@ -171,7 +171,12 @@ class VGG(nn.Module):
                     local_count += 1
                 
                 if local_count <= num_of_local_layer:
-                    local_list.append(module)
+                    if "VGGView" in str(module):
+                        cloud_list.append(module)
+                    elif "AdaptiveAvgPool2d" in str(module):
+                        cloud_list.append(module)
+                    else:
+                        local_list.append(module)
                 else:
                     cloud_list.append(module)
             
@@ -510,6 +515,8 @@ def make_layers(cutting_layer,cfg, batch_norm=False, adds_bottleneck = False, bo
         if v_idx < cutting_layer - 1:
             if v == 'M':
                 local += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            elif v == 'AdaptiveM':
+                local += [nn.AdaptiveAvgPool2d((1,1))]
             else:
                 conv2d = nn.Conv2d(in_channels, int(v * channel_mul), kernel_size=3, padding=1)
                 if batch_norm:
@@ -520,6 +527,8 @@ def make_layers(cutting_layer,cfg, batch_norm=False, adds_bottleneck = False, bo
         elif v_idx == cutting_layer - 1:
             if v == 'M':
                 local += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            elif v == 'AdaptiveM':
+                local += [nn.AdaptiveAvgPool2d((1,1))]
             else:
                 conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
                 if batch_norm:
@@ -575,6 +584,8 @@ def make_layers(cutting_layer,cfg, batch_norm=False, adds_bottleneck = False, bo
         else:
             if v == 'M':
                 cloud += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            elif v == 'AdaptiveM':
+                cloud += [nn.AdaptiveAvgPool2d((1,1))]
             else:
                 conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
                 if batch_norm:
@@ -598,12 +609,17 @@ cfg = {
 def vgg11(cutting_layer, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
     """VGG 11-layer model (configuration "A")"""
     return VGG(make_layers(cutting_layer,cfg['A'], batch_norm=False, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), num_client = num_client, num_class = num_class, initialize_different = initialize_different)
+    
 
 
 def vgg11_bn(cutting_layer, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
     """VGG 11-layer model (configuration "A") with batch normalization"""
-    return VGG(make_layers(cutting_layer,cfg['A'], batch_norm=True, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), num_client = num_client, num_class = num_class, initialize_different = initialize_different)
-
+    if num_class != 12:
+        return VGG(make_layers(cutting_layer,cfg['A'], batch_norm=True, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), num_client = num_client, num_class = num_class, initialize_different = initialize_different)
+    else:
+        configs = cfg['A'].copy()
+        configs.append("AdaptiveM")
+        return VGG(make_layers(cutting_layer,configs, batch_norm=True, adds_bottleneck = adds_bottleneck, bottleneck_option = bottleneck_option), num_client = num_client, num_class = num_class, initialize_different = initialize_different)
 
 def vgg13(cutting_layer, num_client = 1, num_class = 10, initialize_different = False, adds_bottleneck = False, bottleneck_option = "C8S1"):
     """VGG 13-layer model (configuration "B")"""
