@@ -12,6 +12,7 @@ import torchvision
 from datetime import datetime
 import os, copy
 from shutil import rmtree
+from torch.distributions import Beta
 from datasets import get_dataset, denormalize, get_image_shape
 from models import get_model
 import wandb
@@ -1517,14 +1518,19 @@ class Trainer:
                 surrogate_input = x_fake
                 surrogate_label = label_private
             elif "mixup" in self.regularization_option:
-                surrogate_input = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                surrogate_label = label_private
+                # regularization_strength = np.random.rand() # never pass the self.regularization_strength, anything below that
+
+                
+                beta_distribution = Beta(torch.FloatTensor([0.4]), torch.FloatTensor([0.4]))
+                regularization_strength = beta_distribution.sample()
+                # print(f"mixup strength is {regularization_strength}")
+
+                surrogate_input = torch.cat([(1 - self.regularization_strength) * x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+                surrogate_label = torch.cat([(1 - self.regularization_strength) * F.one_hot(noise_label, self.num_class) + self.regularization_strength * F.one_hot(label_private[:x_private.size(0)//2], self.num_class), F.one_hot(label_private[x_private.size(0)//2:], self.num_class)], dim = 0)
             
             else:
                 surrogate_input = x_fake
                 surrogate_label = label_private
-
-
             
             if "manifoldmix" in self.regularization_option:
                 suro_act = z_private.detach()
@@ -1534,7 +1540,15 @@ class Trainer:
             
             
             suro_output = self.surrogate_model.cloud(suro_act)
-            suro_loss = criterion(suro_output, surrogate_label)
+
+            if "mixup" in self.regularization_option:
+                # print(suro_output.size())
+                # print(surrogate_label.size())
+                suro_loss = torch.mean(torch.sum(-surrogate_label * torch.nn.functional.log_softmax(suro_output, dim=1), dim=1))
+            else:
+                suro_loss = criterion(suro_output, surrogate_label)
+
+
 
             self.suro_optimizer.zero_grad()
             suro_loss.backward()
