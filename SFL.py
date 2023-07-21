@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 import torch.nn.functional as F
 import models.architectures_torch as architectures
 from models.architectures_torch import init_weights
+from attacks.model_extraction_attack import adversarial_attack
 from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, TV, l2loss, zeroing_grad, fidelity
 from utils import average_weights, get_feature_distance_pairwise
 import logging
@@ -345,8 +346,20 @@ class Trainer:
         self.logger.debug(f"Perform {self.regularization_option}, total query: {num_query}, starting at {self.attack_start_epoch} epoch, {extra_txt}")
 
         best_avg_accu = 0.0
+        
+        
+        if "earlyepoch" in self.regularization_option:
+            suro_train_start = int(self.regularization_option.split("earlyepoch")[-1].split("_")[0])
+        else:
+            suro_train_start = 0
+        
+        
         if "surrogate" in self.regularization_option:
             best_avg_surro_accu = 0.0
+        
+        
+        
+        
         if not self.call_resume:
             LOG = np.zeros((self.n_epochs * self.num_batches, self.num_client))
 
@@ -562,7 +575,7 @@ class Trainer:
                     self.scheduler_step(warmup=True)
                 else:
                     self.scheduler_step(epoch)
-                    if "surrogate" in self.regularization_option:
+                    if "surrogate" in self.regularization_option and epoch > suro_train_start:
                         self.suro_scheduler.step(epoch)
                 
                 gc.collect()
@@ -595,6 +608,15 @@ class Trainer:
             self.logger.debug("Best Average Validation Accuracy is {}".format(avg_accu))
             wandb.run.summary["Best-Val-Accuracy"] = avg_accu
         
+        #evaluate final surrogate model used in Transfer Adversarial Attack.
+        if "surrogate" in self.regularization_option:
+            average_ASR = adversarial_attack(self.logger, self.dataset, self.model, self.surrogate_model, self.num_class)
+            self.logger.debug("Average Attack Successful Rate is {}".format(average_ASR))
+            wandb.run.summary["Average-ASR"] = average_ASR
+            # wandb.log({f"surrogate_acc": surro_accu, "surrogate_val_loss": loss})
+            # if surro_accu > best_avg_surro_accu:
+            #     best_avg_surro_accu = surro_accu
+
         wandb.finish()
         return LOG
 
@@ -1172,8 +1194,18 @@ class Trainer:
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
+        
+        
+        if "earlyepoch" in self.regularization_option:
+            suro_train_start = int(self.regularization_option.split("earlyepoch")[-1].split("_")[0])
 
-        if "surrogate" in self.regularization_option:
+        else:
+            suro_train_start = 0
+        if "surrogate" in self.regularization_option and epoch > suro_train_start:
+
+            
+            # if gan_train_ME_surrogate_earlyepoch5_start0
+
             self.surrogate_model.local = self.model.local_list[client_id]
             self.surrogate_model.cloud.train()
 
@@ -1197,6 +1229,14 @@ class Trainer:
             self.suro_optimizer.zero_grad()
             suro_loss.backward()
             self.suro_optimizer.step()
+
+            if "earlyepoch" in self.regularization_option:
+                if not os.path.isdir(self.save_dir + "/loss_stats"):
+                    os.makedirs(self.save_dir + "/loss_stats")
+                total_loss_printable = suro_loss.detach().cpu().numpy() # margin to the generator
+                file1 = open(f"{self.save_dir}/loss_stats/suro_training_loss.txt", "a")
+                file1.write(f"{total_loss_printable}, ")
+                file1.close()
         
         # zero out local model gradients to avoid unecessary poisoning effect #It turns out the poisoning effect helps accelerate the attack.
         if "nopoison" in self.regularization_option:
