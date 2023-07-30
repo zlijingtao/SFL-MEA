@@ -35,7 +35,11 @@ def extract_surro_val_accu_from_log(file_path):
 
 
 
+file_path = "V1-vgg11-cifar10-gan_train_ME_surrogate_earlyepoch0_test_consistency_start0-step1.0-cut10-client5-noniid1.0--budget-1/train.log"
 
+
+# Read the values from the text file
+accuracy_epoch0_consist = extract_surro_val_accu_from_log(file_path)
 
 
 
@@ -63,6 +67,7 @@ accuracy_epoch150 = extract_surro_val_accu_from_log(file_path)
 plt.figure(figsize=(8,2))
 # plt.hist(values, range = (0, 0.05), bins=20, color="orange")  # You can adjust the number of bins as needed
 # plt.plot()  # You can adjust the number of bins as needed
+plt.plot(list(range(len(accuracy_epoch0))), accuracy_epoch0_consist, label='fixed-target')
 plt.plot(list(range(len(accuracy_epoch0))), accuracy_epoch0, label='epoch-0')
 plt.plot(list(range(len(accuracy_epoch0))), accuracy_epoch50, label='epoch-50')
 plt.plot(list(range(len(accuracy_epoch0))), accuracy_epoch100, label='epoch-100')

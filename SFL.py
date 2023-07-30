@@ -221,7 +221,7 @@ class Trainer:
 
         self.call_resume = True
         print("load cloud")
-        checkpoint = torch.load(self.save_dir + "checkpoint_cloud_{}.tar".format(self.n_epochs))
+        checkpoint = torch.load(model_path_name.replace("checkpoint_client", "checkpoint_cloud"))
         self.model.cloud.cuda()
         self.model.cloud.load_state_dict(checkpoint, strict = False)
         
@@ -229,6 +229,11 @@ class Trainer:
             self.model.resplit(self.cutting_layer, count_from_right=False)
 
         self.validate_target()
+
+
+        # if test consistency-do not load surrogate model:
+        if "test_consistency" in self.regularization_option:
+            return
 
         # if surrogate model is enabled. load it too
         if "surrogate" in self.regularization_option:
@@ -262,7 +267,13 @@ class Trainer:
 
             # print("deep feature analysis")
             # self.deep_feature_analysis()
-
+        if "surrogate" in self.regularization_option:
+            average_ASR = adversarial_attack(self.logger, self.dataset, self.model, self.surrogate_model, self.num_class)
+            self.logger.debug("Average Attack Successful Rate is {}".format(average_ASR))
+            # wandb.run.summary["Average-ASR"] = average_ASR
+            # wandb.log({f"surrogate_acc": surro_accu, "surrogate_val_loss": loss})
+            # if surro_accu > best_avg_surro_accu:
+            #     best_avg_surro_accu = surro_accu
 
     def sync_client(self, idxs_users = None):
         
@@ -518,7 +529,7 @@ class Trainer:
                         if "reduce_grad_freq" in self.regularization_option:
                             this_step_avg_training_loss += train_loss
                         
-                        if self.scheme == "V2":
+                        if self.scheme == "V2" and "test_consistency" not in self.regularization_option:
                             self.optimizer_step()
                         
                         # Logging
@@ -530,7 +541,7 @@ class Trainer:
                         # increment rotate_label
                         if ("soft_train_ME" in self.regularization_option or "GM_train_ME" in self.regularization_option) and epoch > self.attack_start_epoch and idxs_users[client_id] == self.attacker_client_id:  # SoftTrain, rotate labels
                             self.rotate_label += 1
-                    if self.scheme == "V1":
+                    if self.scheme == "V1" and "test_consistency" not in self.regularization_option:
                         self.optimizer_step()
                 
                     if "reduce_grad_freq" in self.regularization_option:
@@ -748,6 +759,10 @@ class Trainer:
         
         self.model.cloud.train()
         self.model.local_list[client_id].train()
+
+        if "test_consistency" in self.regularization_option:
+            self.model.cloud.eval()
+            self.model.local_list[client_id].eval()
         
         if attack: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
             # collect gradient
@@ -786,7 +801,6 @@ class Trainer:
                 # x_private = torch.Tensor(x_private)
                 x_private.requires_grad_(True)
             
-
         if self.arch != "ViT":
             # Final Prediction Logits (complete forward pass)
             z_private = self.model.local_list[client_id](x_private)
@@ -1056,6 +1070,10 @@ class Trainer:
         self.generator.cuda()
         self.generator.train()
         
+        if "test_consistency" in self.regularization_option:
+            self.model.cloud.eval()
+            self.model.local_list[client_id].eval()
+
         self.generator_optimizer.zero_grad()
         train_output_path = self.save_dir + "generator_train"
         if not os.path.isdir(train_output_path):
@@ -1134,6 +1152,8 @@ class Trainer:
             imgGen1 = denormalize(imgGen1, self.dataset)
             torchvision.utils.save_image(imgGen1, train_output_path + '/{}/out_finalout_{}.jpg'.format(epoch, batch * self.batch_size + self.batch_size))
 
+
+        
         z_private = self.model.local_list[client_id](x_private)
         
         if "manifoldmix" in self.regularization_option:
@@ -1337,6 +1357,10 @@ class Trainer:
         self.generator.cuda()
         self.generator.train()
         
+        if "test_consistency" in self.regularization_option:
+            self.model.cloud.eval()
+            self.model.local_list[client_id].eval()
+
         x_private = x_private.cuda()
         label_private = label_private.cuda()
 

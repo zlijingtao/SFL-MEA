@@ -80,6 +80,9 @@ if num_client > 5:
 else:
     client_sample_ratio = 1.0
 
+if "test_consistency" in args.regularization:
+    args.lr = 0.0
+
 mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epochs, scheme = args.scheme,
                  num_client = num_client, dataset=args.dataset, save_dir=save_dir_name,
                  regularization_option=args.regularization, regularization_strength = args.regularization_strength, learning_rate = args.learning_rate,
@@ -88,12 +91,19 @@ mi = SFL.Trainer(args.arch, cutting_layer, batch_size, n_epochs = args.num_epoch
                  attacker_querying_budget_num_step = args.attacker_querying_budget_num_step, last_client_fix_amount = args.last_client_fix_amount)
 mi.logger.debug(str(args))
 
-
+if "test_consistency" in args.regularization:
+    filename = args.filename.replace("_test_consistency", "")
+    mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, filename, args.num_epochs))
+    mi.call_resume = False
+    mi.suro_optimizer = torch.optim.SGD(mi.surrogate_model.cloud.parameters(), lr=0.02, momentum=0.9, weight_decay=5e-4)
+    mi.suro_scheduler = torch.optim.lr_scheduler.MultiStepLR(mi.suro_optimizer, milestones=[60, 120], gamma=0.2)  # learning rate decay
 
 if not os.path.isfile(f"./{args.folder}/{args.filename}/checkpoint_client_{args.num_epochs}.tar"):
     mi.train(verbose=True)
 else:
     mi.resume("./{}/{}/checkpoint_client_{}.tar".format(args.folder, args.filename, args.num_epochs))
+
+
 
 
 if "surrogate" not in args.regularization: # do offline surrogate model training
