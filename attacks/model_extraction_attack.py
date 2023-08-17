@@ -154,12 +154,7 @@ def steal_test(arch, target_model, surrogate_model, val_loader):
     fidel_score = AverageMeter()
     top1 = AverageMeter()
 
-    if arch == "ViT":
-        dl_transforms = torch.nn.Sequential(
-            transforms.Resize(224),
-            transforms.CenterCrop(224))
-    else:
-        dl_transforms = None
+    dl_transforms = None
 
     target_model.local_list[0].cuda()
     target_model.local_list[0].eval()
@@ -630,12 +625,7 @@ def prepare_steal_attack(logger, save_dir, arch, target_dataset_name,  target_mo
     elif attack_style == "TrainME_option":
         ''' TrainME: Use available training dataset for surrogate model training'''
         ''' Because of data augmentation, set query to 10 there'''
-        if arch == "ViT":
-            dl_transforms = torch.nn.Sequential(
-                transforms.Resize(224),
-                transforms.CenterCrop(224))
-        else:
-            dl_transforms = None
+        dl_transforms = None
         for images, labels in attacker_dataloader:
             if dl_transforms is not None:
                 images = dl_transforms(images)
@@ -1147,17 +1137,11 @@ def steal_attack(save_dir, arch, cutting_layer, num_class, target_model, target_
 
     image_shape = get_image_shape(target_dataset_name)
     # set up data augmentation
-    if arch == "ViT":
-        dl_transforms = torch.nn.Sequential(
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(15))
-    else:
-        dl_transforms = torch.nn.Sequential(
-            transforms.RandomCrop(image_shape[-1], padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(15)
-        )
+    dl_transforms = torch.nn.Sequential(
+        transforms.RandomCrop(image_shape[-1], padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(15)
+    )
     
     if "Craft_option" in attack_style or "Generator_option" in attack_style or "GM_option" in attack_style:
         dl_transforms = None

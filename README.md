@@ -1,15 +1,13 @@
-# SFL IP protection: a model split approach to protect IP of FL
-This repository is official pytorch repository of SFL IP protection
+# EMGAN: early-mix-gan to steal IP of SFL
+This repository is official pytorch repository of EMGAN
 
-SFL extractor, an advanced adaptive ME attack.
-Checkout 04dcce44aa2 for the old version, including five basic ME attacks
-
-Made a mistake on Jun 15, 2023, was found and fixed on Jun 21, 2023. The mistakes affect nothing, but the margin stats of baseline methods (GAN-assist without randommix)
+EMGAN, an advanced adaptive ME attack.
+Checkout 04dcce44aa2 for the old version, including five basic ME attacks (many are deprecated in the current version)
 
 ## Roadmap:
-[x] Use MIA to set a layer threshold 
-[x] Finish sweeping all offline/online MEAs
+[x] Propose five basic ME attacks
 [x] Improve Gan-based data-free extraction attack
+[x] Paper Writing
 
 ## Requirement:
 
@@ -31,14 +29,10 @@ transformers (pip install)
 
 * *main.py*: Entry code to train a vanilla model. wandb registered
 
-* *main_vit.py*: Entry code to finetune a ViT model. wandb registered
-
-* *main_steal_offline.py*: Entry code to do post-analysis of all model extraction attacks.
-* 
-* *main_steal_online.py*: Entry code to do post-analysis of all model extraction attacks.
+* *main_steal_online.py*: Entry code to perform model extraction attacks during training.
 
 ## Proof Of Concepts:
 
-* *bash run_all_offline.sh*
+* *bash scripts/run_attack.sh*
 
 ## Cite the work:

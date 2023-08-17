@@ -657,14 +657,7 @@ class Trainer:
         self.model.cloud.eval()
         criterion = nn.CrossEntropyLoss()
 
-        if self.arch == "ViT":
-            dl_transforms = torch.nn.Sequential(
-                transforms.Resize(224),
-                transforms.CenterCrop(224))
-
         for i, (input, target) in enumerate(val_loader):
-            if self.arch == "ViT":
-                input = dl_transforms(input)
             input = input.cuda()
             target = target.cuda()
             # compute output
@@ -698,14 +691,7 @@ class Trainer:
         self.surrogate_model.cloud.eval()
         criterion = nn.CrossEntropyLoss()
 
-        if self.arch == "ViT":
-            dl_transforms = torch.nn.Sequential(
-                transforms.Resize(224),
-                transforms.CenterCrop(224))
-
         for i, (input, target) in enumerate(val_loader):
-            if self.arch == "ViT":
-                input = dl_transforms(input)
             input = input.cuda()
             target = target.cuda()
             # compute output
@@ -735,13 +721,6 @@ class Trainer:
             transforms.RandomCrop(self.image_shape[-1], padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(15))
-
-        if self.arch == "ViT":
-            dl_transforms = torch.nn.Sequential(
-                transforms.RandomResizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomRotation(15)
-        )
         
         if dl_transforms is not None:
             x_private = dl_transforms(x_private)
@@ -787,14 +766,12 @@ class Trainer:
                 x_private.requires_grad_(True)
             
 
-        if self.arch != "ViT":
-            # Final Prediction Logits (complete forward pass)
-            z_private = self.model.local_list[client_id](x_private)
-            
-            z_private.retain_grad()
-            output = self.model.cloud(z_private)
-        else:
-            output = self.model(x_private)
+        # Final Prediction Logits (complete forward pass)
+        z_private = self.model.local_list[client_id](x_private)
+        
+        z_private.retain_grad()
+        output = self.model.cloud(z_private)
+
 
 
         if "label_smooth" in self.regularization_option:
@@ -806,7 +783,7 @@ class Trainer:
 
         total_loss = f_loss
 
-        if "gradient_noise" in self.regularization_option and self.arch != "ViT":
+        if "gradient_noise" in self.regularization_option:
             h = z_private.register_hook(lambda grad: grad + 5e-3 * torch.max(torch.abs(grad)) * torch.rand_like(grad).cuda())
         
         if not skip_regularization: # this is execute by benign clients
@@ -848,7 +825,7 @@ class Trainer:
             file1.write(f"{total_loss_printable}, ")
             file1.close()
 
-        if "gradient_noise" in self.regularization_option and self.arch != "ViT":
+        if "gradient_noise" in self.regularization_option:
             h.remove()
 
         if attack: # if we save grad, meaning we are doing softTrain, which has a poisoning effect, we do not want this to affect aggregation.
@@ -1099,7 +1076,7 @@ class Trainer:
             regularization_strength = np.random.rand() * self.regularization_strength # never pass the self.regularization_strength, anything below that
             x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
         
-        elif "ultramix" in self.regularization_option:
+        elif "propermix" in self.regularization_option:
             regularization_strength = (self.regularization_strength - 0.2) + np.random.rand() * 0.2 # never pass the self.regularization_strength, anything below that
             x_private = torch.cat([torch.clip(x_noise[:x_noise.size(0)//2, :, :, :] + regularization_strength * x_noise[x_noise.size(0)//2:, :, :, :].detach(), -1, 1), x_noise[x_noise.size(0)//2:, :, :, :]], dim = 0)
         
@@ -1321,13 +1298,6 @@ class Trainer:
             transforms.RandomCrop(self.image_shape[-1], padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(15))
-
-        if self.arch == "ViT":
-            dl_transforms = torch.nn.Sequential(
-                transforms.RandomResizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomRotation(15)
-        )
         
         if dl_transforms is not None:
             x_private = dl_transforms(x_private)
@@ -1411,7 +1381,7 @@ class Trainer:
             regularization_strength = np.random.rand() * self.regularization_strength # never pass the self.regularization_strength, anything below that
 
             x_fake = torch.cat([torch.clip(x_noise + regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-        elif "ultramix" in self.regularization_option:
+        elif "propermix" in self.regularization_option:
             
 
             regularization_strength = (self.regularization_strength - 0.2) + np.random.rand() * 0.2 # never pass the self.regularization_strength, anything below that
@@ -1842,12 +1812,7 @@ class Trainer:
         """
         fidel_score = AverageMeter()
         val_loader = self.pub_dataloader
-        if self.arch == "ViT":
-            dl_transforms = torch.nn.Sequential(
-                transforms.Resize(224),
-                transforms.CenterCrop(224))
-        else:
-            dl_transforms = None
+        dl_transforms = None
 
         self.model.local_list[client_id].cuda()
         self.model.local_list[client_id].eval()
