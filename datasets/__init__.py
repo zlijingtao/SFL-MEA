@@ -4,6 +4,7 @@ sys.path.append("../")
 from datasets.datasets_torch import get_cifar100_trainloader, get_cifar100_testloader, get_cifar10_trainloader, \
     get_cifar10_testloader, get_imagenet_trainloader, get_imagenet_testloader, get_mnist_bothloader, get_SVHN_trainloader, get_SVHN_testloader, get_fmnist_bothloader, get_femnist_bothloader, get_tinyimagenet_bothloader
 
+from datasets.datasets_torch import get_imagenet12_trainloader, get_imagenet12_testloader
 def denormalize(x, dataset): # normalize a zero mean, std = 1 to range [0, 1]
     
     if dataset == "mnist" or dataset == "fmnist" or dataset == "femnist":
@@ -14,7 +15,7 @@ def denormalize(x, dataset): # normalize a zero mean, std = 1 to range [0, 1]
     elif dataset == "cifar100":
         std = [0.2673342858792401, 0.2564384629170883, 0.27615047132568404]
         mean = [0.5070751592371323, 0.48654887331495095, 0.4409178433670343]
-    elif dataset == "imagenet":
+    elif dataset == "imagenet12" or dataset == "imagenet":
         std = [0.229, 0.224, 0.225]
         mean = [0.485, 0.456, 0.406]
     elif dataset == "facescrub":
@@ -73,6 +74,18 @@ def get_dataset(dataset_name, batch_size = 128, noniid_ratio = 1.0, actual_num_u
                                                         num_workers=4,
                                                         shuffle=False)
         orig_class = 1000
+    elif dataset_name == "imagenet12":
+        client_dataloader = get_imagenet12_trainloader(batch_size=batch_size,
+                                                            num_workers=4,
+                                                            shuffle=True,
+                                                            num_client=actual_num_users,
+                                                            augmentation_option = augmentation_option,
+                                                            noniid_ratio = noniid_ratio,
+                                                            last_client_fix_amount = last_client_fix_amount)
+        pub_dataloader = get_imagenet12_testloader(batch_size=batch_size,
+                                                        num_workers=4,
+                                                        shuffle=False)
+        orig_class = 12
     elif dataset_name == "svhn":
         if noniid_ratio != 1.0:
             print("Non IID in current dataset is not supported!")
@@ -146,6 +159,8 @@ def get_image_shape(dataset_name):
         image_shape = [3, 32, 32]
     elif dataset_name == "tinyimagenet":
         image_shape = [3, 32, 32]
+    elif dataset_name == "imagenet12":
+        image_shape = [3, 224, 224]
     elif dataset_name == "mnist":
         image_shape = [3, 32, 32]
     elif dataset_name == "fmnist":

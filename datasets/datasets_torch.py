@@ -706,6 +706,51 @@ def get_cifar100_testloader(batch_size=16, num_workers=2, shuffle=True, extra_cl
     return cifar100_test_loader, nomem_training_loader, nomem_testing_loader
 
 
+def get_imagenet12_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, data_portion = 1.0, noniid_ratio = 1.0, augmentation_option = False, last_client_fix_amount = -1):
+    """ return training dataloader
+    Returns: train_data_loader:torch dataloader object
+    """
+    if augmentation_option:
+        transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize(IMAGENET_TRAIN_MEAN, IMAGENET_TRAIN_STD)
+        ])
+    else:
+        transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(IMAGENET_TRAIN_MEAN, IMAGENET_TRAIN_STD)
+        ])
+    train_dir = os.path.join("./datasets/imagenet12", 'train')
+    imagenet_training = torchvision.datasets.ImageFolder(train_dir, transform=transform_train)
+
+    indices = torch.randperm(len(imagenet_training))[:int(len(imagenet_training)* data_portion)]
+
+    imagenet_training = torch.utils.data.Subset(imagenet_training, indices)
+
+    # imagenet_training_loader = get_multiclient_trainloader_list(imagenet_training, num_client, shuffle, num_workers, batch_size, noniid_ratio, 12, hetero, hetero_string)
+    imagenet_training_loader = split_training_data_to_training_loader(imagenet_training, num_client, batch_size, shuffle, num_workers, last_client_fix_amount, noniid_ratio, 12)
+
+    return imagenet_training_loader
+
+
+def get_imagenet12_testloader(batch_size=16, num_workers=2, shuffle=False):
+    """ return training dataloader
+    Returns: imagenet_test_loader:torch dataloader object
+    """
+    transform_test = transforms.Compose([
+        transforms.RandomResizedCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(IMAGENET_TRAIN_MEAN, IMAGENET_TRAIN_STD)
+    ])
+    train_dir = os.path.join("./datasets/imagenet12", 'val')
+    imagenet_test = torchvision.datasets.ImageFolder(train_dir, transform=transform_test)
+    imagenet_test_loader = DataLoader(imagenet_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
+    
+    return imagenet_test_loader
 
 
 def get_SVHN_trainloader(batch_size=16, num_workers=2, shuffle=True, num_client = 1, data_portion = 1.0, augmentation_option = False, last_client_fix_amount = -1):

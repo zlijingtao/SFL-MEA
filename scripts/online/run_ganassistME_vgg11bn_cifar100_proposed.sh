@@ -18,7 +18,7 @@ cutlayer_list="8"
 regularization_strength_list="0.6"
 num_client_list="5"
 noniid_ratio_list="1.0"
-last_client_fix_amount_list="500 1000"
+last_client_fix_amount_list="500"
 attacker_querying_budget_num_step_list="-1"
 for random_seed in $random_seed_list; do
         for scheme in $scheme_list; do

@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 import torch.nn.functional as F
 import models.architectures_torch as architectures
 from models.architectures_torch import init_weights
+from attacks.model_extraction_attack import adversarial_attack
 from utils import setup_logger, accuracy, AverageMeter, WarmUpLR, TV, l2loss, zeroing_grad, fidelity
 from utils import average_weights, get_feature_distance_pairwise
 import logging
@@ -12,6 +13,7 @@ import torchvision
 from datetime import datetime
 import os, copy
 from shutil import rmtree
+from torch.distributions import Beta
 from datasets import get_dataset, denormalize, get_image_shape
 from models import get_model
 import wandb
@@ -344,8 +346,20 @@ class Trainer:
         self.logger.debug(f"Perform {self.regularization_option}, total query: {num_query}, starting at {self.attack_start_epoch} epoch, {extra_txt}")
 
         best_avg_accu = 0.0
+        
+        
+        if "earlyepoch" in self.regularization_option:
+            suro_train_start = int(self.regularization_option.split("earlyepoch")[-1].split("_")[0])
+        else:
+            suro_train_start = 0
+        
+        
         if "surrogate" in self.regularization_option:
             best_avg_surro_accu = 0.0
+        
+        
+        
+        
         if not self.call_resume:
             LOG = np.zeros((self.n_epochs * self.num_batches, self.num_client))
 
@@ -561,7 +575,7 @@ class Trainer:
                     self.scheduler_step(warmup=True)
                 else:
                     self.scheduler_step(epoch)
-                    if "surrogate" in self.regularization_option:
+                    if "surrogate" in self.regularization_option and epoch > suro_train_start:
                         self.suro_scheduler.step(epoch)
                 
                 gc.collect()
@@ -594,6 +608,15 @@ class Trainer:
             self.logger.debug("Best Average Validation Accuracy is {}".format(avg_accu))
             wandb.run.summary["Best-Val-Accuracy"] = avg_accu
         
+        #evaluate final surrogate model used in Transfer Adversarial Attack.
+        if "surrogate" in self.regularization_option:
+            average_ASR = adversarial_attack(self.logger, self.dataset, self.model, self.surrogate_model, self.num_class)
+            self.logger.debug("Average Attack Successful Rate is {}".format(average_ASR))
+            wandb.run.summary["Average-ASR"] = average_ASR
+            # wandb.log({f"surrogate_acc": surro_accu, "surrogate_val_loss": loss})
+            # if surro_accu > best_avg_surro_accu:
+            #     best_avg_surro_accu = surro_accu
+
         wandb.finish()
         return LOG
 
@@ -1171,8 +1194,18 @@ class Trainer:
         total_losses = total_loss.detach().cpu().numpy()
         f_losses = f_loss.detach().cpu().numpy()
         del total_loss, f_loss
+        
+        
+        if "earlyepoch" in self.regularization_option:
+            suro_train_start = int(self.regularization_option.split("earlyepoch")[-1].split("_")[0])
 
-        if "surrogate" in self.regularization_option:
+        else:
+            suro_train_start = 0
+        if "surrogate" in self.regularization_option and epoch > suro_train_start:
+
+            
+            # if gan_train_ME_surrogate_earlyepoch5_start0
+
             self.surrogate_model.local = self.model.local_list[client_id]
             self.surrogate_model.cloud.train()
 
@@ -1196,6 +1229,14 @@ class Trainer:
             self.suro_optimizer.zero_grad()
             suro_loss.backward()
             self.suro_optimizer.step()
+
+            if "earlyepoch" in self.regularization_option:
+                if not os.path.isdir(self.save_dir + "/loss_stats"):
+                    os.makedirs(self.save_dir + "/loss_stats")
+                total_loss_printable = suro_loss.detach().cpu().numpy() # margin to the generator
+                file1 = open(f"{self.save_dir}/loss_stats/suro_training_loss.txt", "a")
+                file1.write(f"{total_loss_printable}, ")
+                file1.close()
         
         # zero out local model gradients to avoid unecessary poisoning effect #It turns out the poisoning effect helps accelerate the attack.
         if "nopoison" in self.regularization_option:
@@ -1517,14 +1558,19 @@ class Trainer:
                 surrogate_input = x_fake
                 surrogate_label = label_private
             elif "mixup" in self.regularization_option:
-                surrogate_input = torch.cat([torch.clip(x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], -1, 1), x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
-                surrogate_label = label_private
+                # regularization_strength = np.random.rand() # never pass the self.regularization_strength, anything below that
+
+                
+                beta_distribution = Beta(torch.FloatTensor([0.4]), torch.FloatTensor([0.4]))
+                regularization_strength = beta_distribution.sample()
+                # print(f"mixup strength is {regularization_strength}")
+
+                surrogate_input = torch.cat([(1 - self.regularization_strength) * x_noise + self.regularization_strength * x_private[:x_private.size(0)//2, :, :, :], x_private[x_private.size(0)//2:, :, :, :]], dim = 0)
+                surrogate_label = torch.cat([(1 - self.regularization_strength) * F.one_hot(noise_label, self.num_class) + self.regularization_strength * F.one_hot(label_private[:x_private.size(0)//2], self.num_class), F.one_hot(label_private[x_private.size(0)//2:], self.num_class)], dim = 0)
             
             else:
                 surrogate_input = x_fake
                 surrogate_label = label_private
-
-
             
             if "manifoldmix" in self.regularization_option:
                 suro_act = z_private.detach()
@@ -1534,7 +1580,15 @@ class Trainer:
             
             
             suro_output = self.surrogate_model.cloud(suro_act)
-            suro_loss = criterion(suro_output, surrogate_label)
+
+            if "mixup" in self.regularization_option:
+                # print(suro_output.size())
+                # print(surrogate_label.size())
+                suro_loss = torch.mean(torch.sum(-surrogate_label * torch.nn.functional.log_softmax(suro_output, dim=1), dim=1))
+            else:
+                suro_loss = criterion(suro_output, surrogate_label)
+
+
 
             self.suro_optimizer.zero_grad()
             suro_loss.backward()

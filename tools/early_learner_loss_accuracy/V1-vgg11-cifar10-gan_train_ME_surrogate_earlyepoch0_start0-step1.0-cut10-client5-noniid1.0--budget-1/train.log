@@ -1,0 +1,1813 @@
+2023-07-20 11:17:29,001 DEBUG Namespace(adversairal_attack=False, arch='vgg11_bn', attack_client=0, attack_epochs=200, attacker_querying_budget_num_step=-1, aux_dataset='cifar100', batch_size=128, client_sample_ratio=1.0, cutlayer=10, dataset='cifar10', filename='V1-vgg11-cifar10-gan_train_ME_surrogate_earlyepoch0_start0-step1.0-cut10-client5-noniid1.0--budget-1', folder='saves/earlylearner-V1-seed123-schedulerfixed', last_client_fix_amount=-1, last_n_batch=10000, learning_rate=0.02, learning_rate_MEA=0.01, load_from_checkpoint=False, load_from_checkpoint_server=False, noniid_ratio=1.0, num_client=5, num_epochs=200, random_seed=123, regularization='gan_train_ME_surrogate_earlyepoch0_start0', regularization_strength=1.0, scheme='V1', surrogate_arch='same', transfer_source_task='cifar100')
+2023-07-20 11:17:32,639 DEBUG Perform gan_train_ME_surrogate_earlyepoch0_start0, total query: 2508800, starting at 0 epoch, gan_train_ME latent vector size is 512
+2023-07-20 11:17:32,642 DEBUG Train for total 200 epochs in V1 style
+2023-07-20 11:17:32,982 DEBUG Start SFL training
+2023-07-20 11:17:50,505 DEBUG log--[1/200][196/196][client-0] train loss: 2.2717 cross-entropy loss: 2.2717
+2023-07-20 11:17:50,618 DEBUG log--[1/200][196/196][client-1] train loss: 2.3487 cross-entropy loss: 2.3487
+2023-07-20 11:17:50,784 DEBUG log--[1/200][196/196][client-2] train loss: 2.2917 cross-entropy loss: 2.2917
+2023-07-20 11:17:50,903 DEBUG log--[1/200][196/196][client-3] train loss: 2.3474 cross-entropy loss: 2.3474
+2023-07-20 11:17:50,934 DEBUG log--[1/200][196/196][client-4] train loss: 1.7723 cross-entropy loss: 1.7723
+2023-07-20 11:17:51,743 DEBUG Test (client-0):	Loss 2.3023 (2.3087)	Prec@1 18.750 (10.070)
+2023-07-20 11:17:51,744 DEBUG  * Prec@1 10.070
+2023-07-20 11:17:52,561 DEBUG Test (surrogate):	Loss 10.5005 (8.6349)	Prec@1 0.000 (12.850)
+2023-07-20 11:17:52,562 DEBUG  * Prec@1 12.850
+2023-07-20 11:18:11,548 DEBUG log--[2/200][196/196][client-0] train loss: 2.3099 cross-entropy loss: 2.3099
+2023-07-20 11:18:11,691 DEBUG log--[2/200][196/196][client-1] train loss: 2.3054 cross-entropy loss: 2.3054
+2023-07-20 11:18:11,844 DEBUG log--[2/200][196/196][client-2] train loss: 2.3190 cross-entropy loss: 2.3190
+2023-07-20 11:18:11,960 DEBUG log--[2/200][196/196][client-3] train loss: 2.3305 cross-entropy loss: 2.3305
+2023-07-20 11:18:11,991 DEBUG log--[2/200][196/196][client-4] train loss: 1.6091 cross-entropy loss: 1.6091
+2023-07-20 11:18:12,877 DEBUG Test (client-0):	Loss 2.3021 (2.3085)	Prec@1 12.500 (10.150)
+2023-07-20 11:18:12,878 DEBUG  * Prec@1 10.150
+2023-07-20 11:18:13,703 DEBUG Test (surrogate):	Loss 10.3104 (8.5893)	Prec@1 0.000 (12.990)
+2023-07-20 11:18:13,704 DEBUG  * Prec@1 12.990
+2023-07-20 11:18:31,981 DEBUG log--[3/200][196/196][client-0] train loss: 1.4943 cross-entropy loss: 1.4943
+2023-07-20 11:18:32,103 DEBUG log--[3/200][196/196][client-1] train loss: 2.0437 cross-entropy loss: 2.0437
+2023-07-20 11:18:32,215 DEBUG log--[3/200][196/196][client-2] train loss: 1.6312 cross-entropy loss: 1.6312
+2023-07-20 11:18:32,336 DEBUG log--[3/200][196/196][client-3] train loss: 1.6752 cross-entropy loss: 1.6752
+2023-07-20 11:18:32,368 DEBUG log--[3/200][196/196][client-4] train loss: 0.0124 cross-entropy loss: 0.0124
+2023-07-20 11:18:33,220 DEBUG Test (client-0):	Loss 2.8027 (2.9714)	Prec@1 6.250 (11.530)
+2023-07-20 11:18:33,222 DEBUG  * Prec@1 11.530
+2023-07-20 11:18:34,054 DEBUG Test (surrogate):	Loss 10.2283 (8.7477)	Prec@1 0.000 (11.220)
+2023-07-20 11:18:34,055 DEBUG  * Prec@1 11.220
+2023-07-20 11:18:52,210 DEBUG log--[4/200][196/196][client-0] train loss: 1.3758 cross-entropy loss: 1.3758
+2023-07-20 11:18:52,346 DEBUG log--[4/200][196/196][client-1] train loss: 1.8350 cross-entropy loss: 1.8350
+2023-07-20 11:18:52,472 DEBUG log--[4/200][196/196][client-2] train loss: 1.4277 cross-entropy loss: 1.4277
+2023-07-20 11:18:52,597 DEBUG log--[4/200][196/196][client-3] train loss: 1.5692 cross-entropy loss: 1.5692
+2023-07-20 11:18:52,628 DEBUG log--[4/200][196/196][client-4] train loss: 0.0084 cross-entropy loss: 0.0084
+2023-07-20 11:18:53,525 DEBUG Test (client-0):	Loss 2.0396 (1.7294)	Prec@1 31.250 (36.560)
+2023-07-20 11:18:53,526 DEBUG  * Prec@1 36.560
+2023-07-20 11:18:54,410 DEBUG Test (surrogate):	Loss 6.6161 (4.9290)	Prec@1 12.500 (27.090)
+2023-07-20 11:18:54,412 DEBUG  * Prec@1 27.090
+2023-07-20 11:19:12,582 DEBUG log--[5/200][196/196][client-0] train loss: 1.5451 cross-entropy loss: 1.5451
+2023-07-20 11:19:12,716 DEBUG log--[5/200][196/196][client-1] train loss: 1.3211 cross-entropy loss: 1.3211
+2023-07-20 11:19:12,888 DEBUG log--[5/200][196/196][client-2] train loss: 1.2683 cross-entropy loss: 1.2683
+2023-07-20 11:19:13,013 DEBUG log--[5/200][196/196][client-3] train loss: 1.2121 cross-entropy loss: 1.2121
+2023-07-20 11:19:13,045 DEBUG log--[5/200][196/196][client-4] train loss: 0.0105 cross-entropy loss: 0.0105
+2023-07-20 11:19:13,890 DEBUG Test (client-0):	Loss 1.5808 (1.3374)	Prec@1 31.250 (51.500)
+2023-07-20 11:19:13,891 DEBUG  * Prec@1 51.500
+2023-07-20 11:19:14,678 DEBUG Test (surrogate):	Loss 4.2057 (3.9124)	Prec@1 31.250 (36.620)
+2023-07-20 11:19:14,679 DEBUG  * Prec@1 36.620
+2023-07-20 11:19:32,973 DEBUG log--[6/200][196/196][client-0] train loss: 1.2582 cross-entropy loss: 1.2582
+2023-07-20 11:19:33,093 DEBUG log--[6/200][196/196][client-1] train loss: 1.0069 cross-entropy loss: 1.0069
+2023-07-20 11:19:33,229 DEBUG log--[6/200][196/196][client-2] train loss: 1.2941 cross-entropy loss: 1.2941
+2023-07-20 11:19:33,352 DEBUG log--[6/200][196/196][client-3] train loss: 1.6164 cross-entropy loss: 1.6164
+2023-07-20 11:19:33,385 DEBUG log--[6/200][196/196][client-4] train loss: 0.0130 cross-entropy loss: 0.0130
+2023-07-20 11:19:34,278 DEBUG Test (client-0):	Loss 1.3259 (1.2236)	Prec@1 62.500 (57.140)
+2023-07-20 11:19:34,279 DEBUG  * Prec@1 57.140
+2023-07-20 11:19:35,130 DEBUG Test (surrogate):	Loss 3.3030 (3.7890)	Prec@1 43.750 (42.190)
+2023-07-20 11:19:35,131 DEBUG  * Prec@1 42.190
+2023-07-20 11:19:53,263 DEBUG log--[7/200][196/196][client-0] train loss: 1.2369 cross-entropy loss: 1.2369
+2023-07-20 11:19:53,406 DEBUG log--[7/200][196/196][client-1] train loss: 1.2032 cross-entropy loss: 1.2032
+2023-07-20 11:19:53,562 DEBUG log--[7/200][196/196][client-2] train loss: 1.1263 cross-entropy loss: 1.1263
+2023-07-20 11:19:53,707 DEBUG log--[7/200][196/196][client-3] train loss: 1.3096 cross-entropy loss: 1.3096
+2023-07-20 11:19:53,740 DEBUG log--[7/200][196/196][client-4] train loss: 0.0054 cross-entropy loss: 0.0054
+2023-07-20 11:19:54,562 DEBUG Test (client-0):	Loss 1.2494 (1.1213)	Prec@1 56.250 (59.030)
+2023-07-20 11:19:54,563 DEBUG  * Prec@1 59.030
+2023-07-20 11:19:55,413 DEBUG Test (surrogate):	Loss 3.4749 (3.1360)	Prec@1 43.750 (48.540)
+2023-07-20 11:19:55,414 DEBUG  * Prec@1 48.540
+2023-07-20 11:20:13,663 DEBUG log--[8/200][196/196][client-0] train loss: 1.0005 cross-entropy loss: 1.0005
+2023-07-20 11:20:13,791 DEBUG log--[8/200][196/196][client-1] train loss: 1.3419 cross-entropy loss: 1.3419
+2023-07-20 11:20:13,908 DEBUG log--[8/200][196/196][client-2] train loss: 1.2983 cross-entropy loss: 1.2983
+2023-07-20 11:20:14,043 DEBUG log--[8/200][196/196][client-3] train loss: 0.9490 cross-entropy loss: 0.9490
+2023-07-20 11:20:14,075 DEBUG log--[8/200][196/196][client-4] train loss: 0.0052 cross-entropy loss: 0.0052
+2023-07-20 11:20:14,966 DEBUG Test (client-0):	Loss 1.0424 (0.9656)	Prec@1 62.500 (66.200)
+2023-07-20 11:20:14,967 DEBUG  * Prec@1 66.200
+2023-07-20 11:20:15,863 DEBUG Test (surrogate):	Loss 3.6988 (3.0816)	Prec@1 43.750 (51.730)
+2023-07-20 11:20:15,864 DEBUG  * Prec@1 51.730
+2023-07-20 11:20:34,135 DEBUG log--[9/200][196/196][client-0] train loss: 1.0984 cross-entropy loss: 1.0984
+2023-07-20 11:20:34,273 DEBUG log--[9/200][196/196][client-1] train loss: 0.9454 cross-entropy loss: 0.9454
+2023-07-20 11:20:34,410 DEBUG log--[9/200][196/196][client-2] train loss: 1.1830 cross-entropy loss: 1.1830
+2023-07-20 11:20:34,574 DEBUG log--[9/200][196/196][client-3] train loss: 0.9815 cross-entropy loss: 0.9815
+2023-07-20 11:20:34,611 DEBUG log--[9/200][196/196][client-4] train loss: 0.0052 cross-entropy loss: 0.0052
+2023-07-20 11:20:35,465 DEBUG Test (client-0):	Loss 1.1295 (0.9119)	Prec@1 62.500 (67.820)
+2023-07-20 11:20:35,466 DEBUG  * Prec@1 67.820
+2023-07-20 11:20:36,294 DEBUG Test (surrogate):	Loss 3.5826 (2.9990)	Prec@1 50.000 (55.230)
+2023-07-20 11:20:36,295 DEBUG  * Prec@1 55.230
+2023-07-20 11:20:54,822 DEBUG log--[10/200][196/196][client-0] train loss: 0.9319 cross-entropy loss: 0.9319
+2023-07-20 11:20:54,945 DEBUG log--[10/200][196/196][client-1] train loss: 1.0316 cross-entropy loss: 1.0316
+2023-07-20 11:20:55,082 DEBUG log--[10/200][196/196][client-2] train loss: 1.3493 cross-entropy loss: 1.3493
+2023-07-20 11:20:55,201 DEBUG log--[10/200][196/196][client-3] train loss: 1.1898 cross-entropy loss: 1.1898
+2023-07-20 11:20:55,234 DEBUG log--[10/200][196/196][client-4] train loss: 0.0027 cross-entropy loss: 0.0027
+2023-07-20 11:20:56,094 DEBUG Test (client-0):	Loss 0.8608 (0.8741)	Prec@1 50.000 (68.920)
+2023-07-20 11:20:56,094 DEBUG  * Prec@1 68.920
+2023-07-20 11:20:56,896 DEBUG Test (surrogate):	Loss 3.7543 (3.0182)	Prec@1 56.250 (56.130)
+2023-07-20 11:20:56,897 DEBUG  * Prec@1 56.130
+2023-07-20 11:21:15,396 DEBUG log--[11/200][196/196][client-0] train loss: 0.8702 cross-entropy loss: 0.8702
+2023-07-20 11:21:15,540 DEBUG log--[11/200][196/196][client-1] train loss: 0.8970 cross-entropy loss: 0.8970
+2023-07-20 11:21:15,659 DEBUG log--[11/200][196/196][client-2] train loss: 0.7833 cross-entropy loss: 0.7833
+2023-07-20 11:21:15,807 DEBUG log--[11/200][196/196][client-3] train loss: 0.8544 cross-entropy loss: 0.8544
+2023-07-20 11:21:15,841 DEBUG log--[11/200][196/196][client-4] train loss: 0.0052 cross-entropy loss: 0.0052
+2023-07-20 11:21:16,725 DEBUG Test (client-0):	Loss 1.0560 (0.8859)	Prec@1 62.500 (69.970)
+2023-07-20 11:21:16,726 DEBUG  * Prec@1 69.970
+2023-07-20 11:21:17,582 DEBUG Test (surrogate):	Loss 3.7198 (2.9228)	Prec@1 56.250 (57.140)
+2023-07-20 11:21:17,583 DEBUG  * Prec@1 57.140
+2023-07-20 11:21:36,196 DEBUG log--[12/200][196/196][client-0] train loss: 1.0707 cross-entropy loss: 1.0707
+2023-07-20 11:21:36,343 DEBUG log--[12/200][196/196][client-1] train loss: 1.1614 cross-entropy loss: 1.1614
+2023-07-20 11:21:36,539 DEBUG log--[12/200][196/196][client-2] train loss: 0.8496 cross-entropy loss: 0.8496
+2023-07-20 11:21:36,673 DEBUG log--[12/200][196/196][client-3] train loss: 0.7450 cross-entropy loss: 0.7450
+2023-07-20 11:21:36,705 DEBUG log--[12/200][196/196][client-4] train loss: 0.0090 cross-entropy loss: 0.0090
+2023-07-20 11:21:37,545 DEBUG Test (client-0):	Loss 0.7816 (0.8087)	Prec@1 75.000 (72.190)
+2023-07-20 11:21:37,546 DEBUG  * Prec@1 72.190
+2023-07-20 11:21:38,366 DEBUG Test (surrogate):	Loss 3.0414 (2.5754)	Prec@1 56.250 (59.870)
+2023-07-20 11:21:38,367 DEBUG  * Prec@1 59.870
+2023-07-20 11:21:56,787 DEBUG log--[13/200][196/196][client-0] train loss: 0.5736 cross-entropy loss: 0.5736
+2023-07-20 11:21:56,984 DEBUG log--[13/200][196/196][client-1] train loss: 0.9598 cross-entropy loss: 0.9598
+2023-07-20 11:21:57,119 DEBUG log--[13/200][196/196][client-2] train loss: 1.0124 cross-entropy loss: 1.0124
+2023-07-20 11:21:57,261 DEBUG log--[13/200][196/196][client-3] train loss: 1.6015 cross-entropy loss: 1.6015
+2023-07-20 11:21:57,292 DEBUG log--[13/200][196/196][client-4] train loss: 0.0027 cross-entropy loss: 0.0027
+2023-07-20 11:21:58,144 DEBUG Test (client-0):	Loss 0.7353 (0.7241)	Prec@1 68.750 (75.040)
+2023-07-20 11:21:58,146 DEBUG  * Prec@1 75.040
+2023-07-20 11:21:58,972 DEBUG Test (surrogate):	Loss 2.9654 (2.3183)	Prec@1 56.250 (62.040)
+2023-07-20 11:21:58,973 DEBUG  * Prec@1 62.040
+2023-07-20 11:22:17,476 DEBUG log--[14/200][196/196][client-0] train loss: 1.0133 cross-entropy loss: 1.0133
+2023-07-20 11:22:17,643 DEBUG log--[14/200][196/196][client-1] train loss: 0.8913 cross-entropy loss: 0.8913
+2023-07-20 11:22:17,779 DEBUG log--[14/200][196/196][client-2] train loss: 1.1267 cross-entropy loss: 1.1267
+2023-07-20 11:22:17,907 DEBUG log--[14/200][196/196][client-3] train loss: 0.8532 cross-entropy loss: 0.8532
+2023-07-20 11:22:17,940 DEBUG log--[14/200][196/196][client-4] train loss: 0.0032 cross-entropy loss: 0.0032
+2023-07-20 11:22:18,787 DEBUG Test (client-0):	Loss 0.5701 (0.7594)	Prec@1 75.000 (73.580)
+2023-07-20 11:22:18,788 DEBUG  * Prec@1 73.580
+2023-07-20 11:22:19,594 DEBUG Test (surrogate):	Loss 2.9890 (2.4464)	Prec@1 50.000 (60.940)
+2023-07-20 11:22:19,594 DEBUG  * Prec@1 60.940
+2023-07-20 11:22:37,784 DEBUG log--[15/200][196/196][client-0] train loss: 0.7689 cross-entropy loss: 0.7689
+2023-07-20 11:22:37,912 DEBUG log--[15/200][196/196][client-1] train loss: 0.7001 cross-entropy loss: 0.7001
+2023-07-20 11:22:38,034 DEBUG log--[15/200][196/196][client-2] train loss: 0.8365 cross-entropy loss: 0.8365
+2023-07-20 11:22:38,206 DEBUG log--[15/200][196/196][client-3] train loss: 0.9737 cross-entropy loss: 0.9737
+2023-07-20 11:22:38,240 DEBUG log--[15/200][196/196][client-4] train loss: 0.0048 cross-entropy loss: 0.0048
+2023-07-20 11:22:39,082 DEBUG Test (client-0):	Loss 0.7667 (0.7079)	Prec@1 68.750 (75.520)
+2023-07-20 11:22:39,083 DEBUG  * Prec@1 75.520
+2023-07-20 11:22:39,922 DEBUG Test (surrogate):	Loss 2.6975 (2.1982)	Prec@1 56.250 (63.710)
+2023-07-20 11:22:39,922 DEBUG  * Prec@1 63.710
+2023-07-20 11:22:58,386 DEBUG log--[16/200][196/196][client-0] train loss: 1.1978 cross-entropy loss: 1.1978
+2023-07-20 11:22:58,542 DEBUG log--[16/200][196/196][client-1] train loss: 0.7993 cross-entropy loss: 0.7993
+2023-07-20 11:22:58,677 DEBUG log--[16/200][196/196][client-2] train loss: 0.8358 cross-entropy loss: 0.8358
+2023-07-20 11:22:58,822 DEBUG log--[16/200][196/196][client-3] train loss: 1.0025 cross-entropy loss: 1.0025
+2023-07-20 11:22:58,854 DEBUG log--[16/200][196/196][client-4] train loss: 0.0011 cross-entropy loss: 0.0011
+2023-07-20 11:22:59,748 DEBUG Test (client-0):	Loss 0.6166 (0.6885)	Prec@1 81.250 (76.350)
+2023-07-20 11:22:59,750 DEBUG  * Prec@1 76.350
+2023-07-20 11:23:00,676 DEBUG Test (surrogate):	Loss 2.6795 (2.1448)	Prec@1 56.250 (64.340)
+2023-07-20 11:23:00,678 DEBUG  * Prec@1 64.340
+2023-07-20 11:23:19,195 DEBUG log--[17/200][196/196][client-0] train loss: 0.6191 cross-entropy loss: 0.6191
+2023-07-20 11:23:19,332 DEBUG log--[17/200][196/196][client-1] train loss: 0.8259 cross-entropy loss: 0.8259
+2023-07-20 11:23:19,482 DEBUG log--[17/200][196/196][client-2] train loss: 0.7691 cross-entropy loss: 0.7691
+2023-07-20 11:23:19,618 DEBUG log--[17/200][196/196][client-3] train loss: 0.8175 cross-entropy loss: 0.8175
+2023-07-20 11:23:19,650 DEBUG log--[17/200][196/196][client-4] train loss: 0.0045 cross-entropy loss: 0.0045
+2023-07-20 11:23:20,536 DEBUG Test (client-0):	Loss 0.5020 (0.6838)	Prec@1 81.250 (76.530)
+2023-07-20 11:23:20,538 DEBUG  * Prec@1 76.530
+2023-07-20 11:23:21,369 DEBUG Test (surrogate):	Loss 2.4361 (2.3464)	Prec@1 56.250 (63.340)
+2023-07-20 11:23:21,370 DEBUG  * Prec@1 63.340
+2023-07-20 11:23:39,630 DEBUG log--[18/200][196/196][client-0] train loss: 0.9887 cross-entropy loss: 0.9887
+2023-07-20 11:23:39,768 DEBUG log--[18/200][196/196][client-1] train loss: 0.7362 cross-entropy loss: 0.7362
+2023-07-20 11:23:39,881 DEBUG log--[18/200][196/196][client-2] train loss: 0.7463 cross-entropy loss: 0.7463
+2023-07-20 11:23:40,010 DEBUG log--[18/200][196/196][client-3] train loss: 0.9108 cross-entropy loss: 0.9108
+2023-07-20 11:23:40,042 DEBUG log--[18/200][196/196][client-4] train loss: 0.0011 cross-entropy loss: 0.0011
+2023-07-20 11:23:40,916 DEBUG Test (client-0):	Loss 0.5760 (0.6659)	Prec@1 75.000 (77.350)
+2023-07-20 11:23:40,917 DEBUG  * Prec@1 77.350
+2023-07-20 11:23:41,794 DEBUG Test (surrogate):	Loss 1.9722 (2.2088)	Prec@1 62.500 (63.370)
+2023-07-20 11:23:41,795 DEBUG  * Prec@1 63.370
+2023-07-20 11:24:00,160 DEBUG log--[19/200][196/196][client-0] train loss: 0.9360 cross-entropy loss: 0.9360
+2023-07-20 11:24:00,322 DEBUG log--[19/200][196/196][client-1] train loss: 0.6265 cross-entropy loss: 0.6265
+2023-07-20 11:24:00,450 DEBUG log--[19/200][196/196][client-2] train loss: 0.9303 cross-entropy loss: 0.9303
+2023-07-20 11:24:00,608 DEBUG log--[19/200][196/196][client-3] train loss: 0.6847 cross-entropy loss: 0.6847
+2023-07-20 11:24:00,640 DEBUG log--[19/200][196/196][client-4] train loss: 0.0047 cross-entropy loss: 0.0047
+2023-07-20 11:24:01,554 DEBUG Test (client-0):	Loss 0.7042 (0.6568)	Prec@1 68.750 (77.410)
+2023-07-20 11:24:01,555 DEBUG  * Prec@1 77.410
+2023-07-20 11:24:02,450 DEBUG Test (surrogate):	Loss 2.4726 (2.1905)	Prec@1 68.750 (63.720)
+2023-07-20 11:24:02,452 DEBUG  * Prec@1 63.720
+2023-07-20 11:24:20,921 DEBUG log--[20/200][196/196][client-0] train loss: 0.8078 cross-entropy loss: 0.8078
+2023-07-20 11:24:21,069 DEBUG log--[20/200][196/196][client-1] train loss: 0.4240 cross-entropy loss: 0.4240
+2023-07-20 11:24:21,200 DEBUG log--[20/200][196/196][client-2] train loss: 0.6401 cross-entropy loss: 0.6401
+2023-07-20 11:24:21,343 DEBUG log--[20/200][196/196][client-3] train loss: 0.7724 cross-entropy loss: 0.7724
+2023-07-20 11:24:21,375 DEBUG log--[20/200][196/196][client-4] train loss: 0.0022 cross-entropy loss: 0.0022
+2023-07-20 11:24:22,329 DEBUG Test (client-0):	Loss 0.4555 (0.6093)	Prec@1 81.250 (79.170)
+2023-07-20 11:24:22,331 DEBUG  * Prec@1 79.170
+2023-07-20 11:24:23,267 DEBUG Test (surrogate):	Loss 1.7625 (1.9510)	Prec@1 68.750 (65.520)
+2023-07-20 11:24:23,269 DEBUG  * Prec@1 65.520
+2023-07-20 11:24:41,618 DEBUG log--[21/200][196/196][client-0] train loss: 1.0357 cross-entropy loss: 1.0357
+2023-07-20 11:24:41,746 DEBUG log--[21/200][196/196][client-1] train loss: 0.5892 cross-entropy loss: 0.5892
+2023-07-20 11:24:41,860 DEBUG log--[21/200][196/196][client-2] train loss: 0.7560 cross-entropy loss: 0.7560
+2023-07-20 11:24:41,984 DEBUG log--[21/200][196/196][client-3] train loss: 0.9067 cross-entropy loss: 0.9067
+2023-07-20 11:24:42,016 DEBUG log--[21/200][196/196][client-4] train loss: 0.0012 cross-entropy loss: 0.0012
+2023-07-20 11:24:42,919 DEBUG Test (client-0):	Loss 0.4559 (0.6178)	Prec@1 87.500 (79.140)
+2023-07-20 11:24:42,920 DEBUG  * Prec@1 79.140
+2023-07-20 11:24:43,799 DEBUG Test (surrogate):	Loss 1.8957 (1.9669)	Prec@1 68.750 (65.670)
+2023-07-20 11:24:43,801 DEBUG  * Prec@1 65.670
+2023-07-20 11:25:01,991 DEBUG log--[22/200][196/196][client-0] train loss: 0.5894 cross-entropy loss: 0.5894
+2023-07-20 11:25:02,120 DEBUG log--[22/200][196/196][client-1] train loss: 0.5983 cross-entropy loss: 0.5983
+2023-07-20 11:25:02,304 DEBUG log--[22/200][196/196][client-2] train loss: 0.5618 cross-entropy loss: 0.5618
+2023-07-20 11:25:02,462 DEBUG log--[22/200][196/196][client-3] train loss: 0.5968 cross-entropy loss: 0.5968
+2023-07-20 11:25:02,495 DEBUG log--[22/200][196/196][client-4] train loss: 0.0027 cross-entropy loss: 0.0027
+2023-07-20 11:25:03,342 DEBUG Test (client-0):	Loss 0.5547 (0.5824)	Prec@1 75.000 (80.010)
+2023-07-20 11:25:03,343 DEBUG  * Prec@1 80.010
+2023-07-20 11:25:04,166 DEBUG Test (surrogate):	Loss 2.2169 (1.7735)	Prec@1 68.750 (67.550)
+2023-07-20 11:25:04,168 DEBUG  * Prec@1 67.550
+2023-07-20 11:25:22,663 DEBUG log--[23/200][196/196][client-0] train loss: 0.5146 cross-entropy loss: 0.5146
+2023-07-20 11:25:22,818 DEBUG log--[23/200][196/196][client-1] train loss: 0.7832 cross-entropy loss: 0.7832
+2023-07-20 11:25:22,945 DEBUG log--[23/200][196/196][client-2] train loss: 0.7805 cross-entropy loss: 0.7805
+2023-07-20 11:25:23,070 DEBUG log--[23/200][196/196][client-3] train loss: 0.7560 cross-entropy loss: 0.7560
+2023-07-20 11:25:23,102 DEBUG log--[23/200][196/196][client-4] train loss: 0.0024 cross-entropy loss: 0.0024
+2023-07-20 11:25:24,020 DEBUG Test (client-0):	Loss 0.4302 (0.5888)	Prec@1 87.500 (79.420)
+2023-07-20 11:25:24,021 DEBUG  * Prec@1 79.420
+2023-07-20 11:25:24,909 DEBUG Test (surrogate):	Loss 1.6116 (1.6864)	Prec@1 68.750 (67.950)
+2023-07-20 11:25:24,910 DEBUG  * Prec@1 67.950
+2023-07-20 11:25:43,144 DEBUG log--[24/200][196/196][client-0] train loss: 0.7045 cross-entropy loss: 0.7045
+2023-07-20 11:25:43,276 DEBUG log--[24/200][196/196][client-1] train loss: 0.5837 cross-entropy loss: 0.5837
+2023-07-20 11:25:43,399 DEBUG log--[24/200][196/196][client-2] train loss: 0.8641 cross-entropy loss: 0.8641
+2023-07-20 11:25:43,523 DEBUG log--[24/200][196/196][client-3] train loss: 0.7225 cross-entropy loss: 0.7225
+2023-07-20 11:25:43,554 DEBUG log--[24/200][196/196][client-4] train loss: 0.0017 cross-entropy loss: 0.0017
+2023-07-20 11:25:44,471 DEBUG Test (client-0):	Loss 0.4409 (0.5462)	Prec@1 87.500 (81.130)
+2023-07-20 11:25:44,472 DEBUG  * Prec@1 81.130
+2023-07-20 11:25:45,334 DEBUG Test (surrogate):	Loss 2.0629 (1.6723)	Prec@1 68.750 (68.270)
+2023-07-20 11:25:45,334 DEBUG  * Prec@1 68.270
+2023-07-20 11:26:03,626 DEBUG log--[25/200][196/196][client-0] train loss: 0.8046 cross-entropy loss: 0.8046
+2023-07-20 11:26:03,759 DEBUG log--[25/200][196/196][client-1] train loss: 0.4749 cross-entropy loss: 0.4749
+2023-07-20 11:26:03,894 DEBUG log--[25/200][196/196][client-2] train loss: 0.8429 cross-entropy loss: 0.8429
+2023-07-20 11:26:04,014 DEBUG log--[25/200][196/196][client-3] train loss: 1.0317 cross-entropy loss: 1.0317
+2023-07-20 11:26:04,046 DEBUG log--[25/200][196/196][client-4] train loss: 0.0018 cross-entropy loss: 0.0018
+2023-07-20 11:26:04,963 DEBUG Test (client-0):	Loss 0.4843 (0.5811)	Prec@1 87.500 (80.620)
+2023-07-20 11:26:04,964 DEBUG  * Prec@1 80.620
+2023-07-20 11:26:05,842 DEBUG Test (surrogate):	Loss 1.6753 (1.6233)	Prec@1 68.750 (67.800)
+2023-07-20 11:26:05,843 DEBUG  * Prec@1 67.800
+2023-07-20 11:26:24,048 DEBUG log--[26/200][196/196][client-0] train loss: 0.5503 cross-entropy loss: 0.5503
+2023-07-20 11:26:24,213 DEBUG log--[26/200][196/196][client-1] train loss: 0.4567 cross-entropy loss: 0.4567
+2023-07-20 11:26:24,391 DEBUG log--[26/200][196/196][client-2] train loss: 0.7625 cross-entropy loss: 0.7625
+2023-07-20 11:26:24,531 DEBUG log--[26/200][196/196][client-3] train loss: 0.5568 cross-entropy loss: 0.5568
+2023-07-20 11:26:24,563 DEBUG log--[26/200][196/196][client-4] train loss: 0.0018 cross-entropy loss: 0.0018
+2023-07-20 11:26:25,436 DEBUG Test (client-0):	Loss 0.4677 (0.5132)	Prec@1 81.250 (82.480)
+2023-07-20 11:26:25,437 DEBUG  * Prec@1 82.480
+2023-07-20 11:26:26,256 DEBUG Test (surrogate):	Loss 1.3192 (1.6061)	Prec@1 68.750 (68.970)
+2023-07-20 11:26:26,258 DEBUG  * Prec@1 68.970
+2023-07-20 11:26:44,586 DEBUG log--[27/200][196/196][client-0] train loss: 0.5562 cross-entropy loss: 0.5562
+2023-07-20 11:26:44,703 DEBUG log--[27/200][196/196][client-1] train loss: 0.5104 cross-entropy loss: 0.5104
+2023-07-20 11:26:44,836 DEBUG log--[27/200][196/196][client-2] train loss: 0.4861 cross-entropy loss: 0.4861
+2023-07-20 11:26:44,955 DEBUG log--[27/200][196/196][client-3] train loss: 0.7419 cross-entropy loss: 0.7419
+2023-07-20 11:26:44,986 DEBUG log--[27/200][196/196][client-4] train loss: 0.0013 cross-entropy loss: 0.0013
+2023-07-20 11:26:45,888 DEBUG Test (client-0):	Loss 0.4403 (0.5308)	Prec@1 87.500 (81.810)
+2023-07-20 11:26:45,888 DEBUG  * Prec@1 81.810
+2023-07-20 11:26:46,765 DEBUG Test (surrogate):	Loss 1.7564 (1.6107)	Prec@1 62.500 (67.990)
+2023-07-20 11:26:46,766 DEBUG  * Prec@1 67.990
+2023-07-20 11:27:04,820 DEBUG log--[28/200][196/196][client-0] train loss: 0.5933 cross-entropy loss: 0.5933
+2023-07-20 11:27:04,941 DEBUG log--[28/200][196/196][client-1] train loss: 0.5861 cross-entropy loss: 0.5861
+2023-07-20 11:27:05,063 DEBUG log--[28/200][196/196][client-2] train loss: 0.6601 cross-entropy loss: 0.6601
+2023-07-20 11:27:05,184 DEBUG log--[28/200][196/196][client-3] train loss: 0.4228 cross-entropy loss: 0.4228
+2023-07-20 11:27:05,215 DEBUG log--[28/200][196/196][client-4] train loss: 0.0020 cross-entropy loss: 0.0020
+2023-07-20 11:27:06,100 DEBUG Test (client-0):	Loss 0.4611 (0.5486)	Prec@1 87.500 (81.350)
+2023-07-20 11:27:06,102 DEBUG  * Prec@1 81.350
+2023-07-20 11:27:06,954 DEBUG Test (surrogate):	Loss 1.6939 (1.6232)	Prec@1 62.500 (67.940)
+2023-07-20 11:27:06,954 DEBUG  * Prec@1 67.940
+2023-07-20 11:27:25,057 DEBUG log--[29/200][196/196][client-0] train loss: 0.8372 cross-entropy loss: 0.8372
+2023-07-20 11:27:25,187 DEBUG log--[29/200][196/196][client-1] train loss: 0.5817 cross-entropy loss: 0.5817
+2023-07-20 11:27:25,310 DEBUG log--[29/200][196/196][client-2] train loss: 0.6178 cross-entropy loss: 0.6178
+2023-07-20 11:27:25,429 DEBUG log--[29/200][196/196][client-3] train loss: 0.5641 cross-entropy loss: 0.5641
+2023-07-20 11:27:25,462 DEBUG log--[29/200][196/196][client-4] train loss: 0.0031 cross-entropy loss: 0.0031
+2023-07-20 11:27:26,383 DEBUG Test (client-0):	Loss 0.4942 (0.5270)	Prec@1 81.250 (82.000)
+2023-07-20 11:27:26,384 DEBUG  * Prec@1 82.000
+2023-07-20 11:27:27,282 DEBUG Test (surrogate):	Loss 1.4031 (1.5505)	Prec@1 68.750 (68.130)
+2023-07-20 11:27:27,283 DEBUG  * Prec@1 68.130
+2023-07-20 11:27:45,568 DEBUG log--[30/200][196/196][client-0] train loss: 0.5109 cross-entropy loss: 0.5109
+2023-07-20 11:27:45,762 DEBUG log--[30/200][196/196][client-1] train loss: 0.6696 cross-entropy loss: 0.6696
+2023-07-20 11:27:45,960 DEBUG log--[30/200][196/196][client-2] train loss: 0.6343 cross-entropy loss: 0.6343
+2023-07-20 11:27:46,078 DEBUG log--[30/200][196/196][client-3] train loss: 0.4741 cross-entropy loss: 0.4741
+2023-07-20 11:27:46,110 DEBUG log--[30/200][196/196][client-4] train loss: 0.0015 cross-entropy loss: 0.0015
+2023-07-20 11:27:46,955 DEBUG Test (client-0):	Loss 0.5853 (0.5058)	Prec@1 87.500 (82.110)
+2023-07-20 11:27:46,956 DEBUG  * Prec@1 82.110
+2023-07-20 11:27:47,820 DEBUG Test (surrogate):	Loss 1.6154 (1.5526)	Prec@1 68.750 (68.650)
+2023-07-20 11:27:47,821 DEBUG  * Prec@1 68.650
+2023-07-20 11:28:06,061 DEBUG log--[31/200][196/196][client-0] train loss: 0.5232 cross-entropy loss: 0.5232
+2023-07-20 11:28:06,185 DEBUG log--[31/200][196/196][client-1] train loss: 0.7326 cross-entropy loss: 0.7326
+2023-07-20 11:28:06,318 DEBUG log--[31/200][196/196][client-2] train loss: 0.5263 cross-entropy loss: 0.5263
+2023-07-20 11:28:06,456 DEBUG log--[31/200][196/196][client-3] train loss: 0.4295 cross-entropy loss: 0.4295
+2023-07-20 11:28:06,488 DEBUG log--[31/200][196/196][client-4] train loss: 0.0024 cross-entropy loss: 0.0024
+2023-07-20 11:28:07,356 DEBUG Test (client-0):	Loss 0.3911 (0.4953)	Prec@1 87.500 (83.010)
+2023-07-20 11:28:07,357 DEBUG  * Prec@1 83.010
+2023-07-20 11:28:08,190 DEBUG Test (surrogate):	Loss 1.2379 (1.4875)	Prec@1 68.750 (69.790)
+2023-07-20 11:28:08,191 DEBUG  * Prec@1 69.790
+2023-07-20 11:28:26,569 DEBUG log--[32/200][196/196][client-0] train loss: 0.6573 cross-entropy loss: 0.6573
+2023-07-20 11:28:26,709 DEBUG log--[32/200][196/196][client-1] train loss: 0.6174 cross-entropy loss: 0.6174
+2023-07-20 11:28:26,853 DEBUG log--[32/200][196/196][client-2] train loss: 0.6896 cross-entropy loss: 0.6896
+2023-07-20 11:28:26,997 DEBUG log--[32/200][196/196][client-3] train loss: 0.5556 cross-entropy loss: 0.5556
+2023-07-20 11:28:27,029 DEBUG log--[32/200][196/196][client-4] train loss: 0.0047 cross-entropy loss: 0.0047
+2023-07-20 11:28:27,930 DEBUG Test (client-0):	Loss 0.4841 (0.4856)	Prec@1 87.500 (83.380)
+2023-07-20 11:28:27,931 DEBUG  * Prec@1 83.380
+2023-07-20 11:28:28,777 DEBUG Test (surrogate):	Loss 1.4717 (1.3575)	Prec@1 68.750 (70.970)
+2023-07-20 11:28:28,778 DEBUG  * Prec@1 70.970
+2023-07-20 11:28:47,252 DEBUG log--[33/200][196/196][client-0] train loss: 0.6562 cross-entropy loss: 0.6562
+2023-07-20 11:28:47,435 DEBUG log--[33/200][196/196][client-1] train loss: 0.5598 cross-entropy loss: 0.5598
+2023-07-20 11:28:47,564 DEBUG log--[33/200][196/196][client-2] train loss: 0.4896 cross-entropy loss: 0.4896
+2023-07-20 11:28:47,693 DEBUG log--[33/200][196/196][client-3] train loss: 0.4643 cross-entropy loss: 0.4643
+2023-07-20 11:28:47,724 DEBUG log--[33/200][196/196][client-4] train loss: 0.0026 cross-entropy loss: 0.0026
+2023-07-20 11:28:48,569 DEBUG Test (client-0):	Loss 0.3972 (0.5198)	Prec@1 81.250 (82.520)
+2023-07-20 11:28:48,570 DEBUG  * Prec@1 82.520
+2023-07-20 11:28:49,385 DEBUG Test (surrogate):	Loss 1.2045 (1.4518)	Prec@1 68.750 (69.310)
+2023-07-20 11:28:49,386 DEBUG  * Prec@1 69.310
+2023-07-20 11:29:07,329 DEBUG log--[34/200][196/196][client-0] train loss: 0.6707 cross-entropy loss: 0.6707
+2023-07-20 11:29:07,453 DEBUG log--[34/200][196/196][client-1] train loss: 0.5205 cross-entropy loss: 0.5205
+2023-07-20 11:29:07,579 DEBUG log--[34/200][196/196][client-2] train loss: 0.6156 cross-entropy loss: 0.6156
+2023-07-20 11:29:07,700 DEBUG log--[34/200][196/196][client-3] train loss: 0.4830 cross-entropy loss: 0.4830
+2023-07-20 11:29:07,732 DEBUG log--[34/200][196/196][client-4] train loss: 0.0019 cross-entropy loss: 0.0019
+2023-07-20 11:29:08,647 DEBUG Test (client-0):	Loss 0.3499 (0.4898)	Prec@1 87.500 (83.390)
+2023-07-20 11:29:08,648 DEBUG  * Prec@1 83.390
+2023-07-20 11:29:09,566 DEBUG Test (surrogate):	Loss 1.2855 (1.3732)	Prec@1 68.750 (70.070)
+2023-07-20 11:29:09,566 DEBUG  * Prec@1 70.070
+2023-07-20 11:29:28,111 DEBUG log--[35/200][196/196][client-0] train loss: 0.4511 cross-entropy loss: 0.4511
+2023-07-20 11:29:28,250 DEBUG log--[35/200][196/196][client-1] train loss: 0.4329 cross-entropy loss: 0.4329
+2023-07-20 11:29:28,380 DEBUG log--[35/200][196/196][client-2] train loss: 0.4695 cross-entropy loss: 0.4695
+2023-07-20 11:29:28,506 DEBUG log--[35/200][196/196][client-3] train loss: 0.5809 cross-entropy loss: 0.5809
+2023-07-20 11:29:28,538 DEBUG log--[35/200][196/196][client-4] train loss: 0.0022 cross-entropy loss: 0.0022
+2023-07-20 11:29:29,457 DEBUG Test (client-0):	Loss 0.4639 (0.4629)	Prec@1 87.500 (84.100)
+2023-07-20 11:29:29,458 DEBUG  * Prec@1 84.100
+2023-07-20 11:29:30,337 DEBUG Test (surrogate):	Loss 1.1831 (1.2865)	Prec@1 75.000 (71.650)
+2023-07-20 11:29:30,337 DEBUG  * Prec@1 71.650
+2023-07-20 11:29:48,735 DEBUG log--[36/200][196/196][client-0] train loss: 0.7162 cross-entropy loss: 0.7162
+2023-07-20 11:29:48,858 DEBUG log--[36/200][196/196][client-1] train loss: 0.6057 cross-entropy loss: 0.6057
+2023-07-20 11:29:48,994 DEBUG log--[36/200][196/196][client-2] train loss: 0.5512 cross-entropy loss: 0.5512
+2023-07-20 11:29:49,125 DEBUG log--[36/200][196/196][client-3] train loss: 0.5066 cross-entropy loss: 0.5066
+2023-07-20 11:29:49,156 DEBUG log--[36/200][196/196][client-4] train loss: 0.0022 cross-entropy loss: 0.0022
+2023-07-20 11:29:50,076 DEBUG Test (client-0):	Loss 0.3045 (0.4645)	Prec@1 87.500 (84.310)
+2023-07-20 11:29:50,077 DEBUG  * Prec@1 84.310
+2023-07-20 11:29:50,984 DEBUG Test (surrogate):	Loss 1.2102 (1.3049)	Prec@1 68.750 (70.940)
+2023-07-20 11:29:50,986 DEBUG  * Prec@1 70.940
+2023-07-20 11:30:09,256 DEBUG log--[37/200][196/196][client-0] train loss: 0.6392 cross-entropy loss: 0.6392
+2023-07-20 11:30:09,388 DEBUG log--[37/200][196/196][client-1] train loss: 0.6472 cross-entropy loss: 0.6472
+2023-07-20 11:30:09,521 DEBUG log--[37/200][196/196][client-2] train loss: 0.4235 cross-entropy loss: 0.4235
+2023-07-20 11:30:09,673 DEBUG log--[37/200][196/196][client-3] train loss: 0.4469 cross-entropy loss: 0.4469
+2023-07-20 11:30:09,705 DEBUG log--[37/200][196/196][client-4] train loss: 0.0031 cross-entropy loss: 0.0031
+2023-07-20 11:30:10,609 DEBUG Test (client-0):	Loss 0.2994 (0.4604)	Prec@1 87.500 (84.460)
+2023-07-20 11:30:10,610 DEBUG  * Prec@1 84.460
+2023-07-20 11:30:11,437 DEBUG Test (surrogate):	Loss 1.2410 (1.2968)	Prec@1 68.750 (71.300)
+2023-07-20 11:30:11,438 DEBUG  * Prec@1 71.300
+2023-07-20 11:30:29,905 DEBUG log--[38/200][196/196][client-0] train loss: 0.3962 cross-entropy loss: 0.3962
+2023-07-20 11:30:30,046 DEBUG log--[38/200][196/196][client-1] train loss: 0.3419 cross-entropy loss: 0.3419
+2023-07-20 11:30:30,231 DEBUG log--[38/200][196/196][client-2] train loss: 0.5728 cross-entropy loss: 0.5728
+2023-07-20 11:30:30,352 DEBUG log--[38/200][196/196][client-3] train loss: 0.4065 cross-entropy loss: 0.4065
+2023-07-20 11:30:30,384 DEBUG log--[38/200][196/196][client-4] train loss: 0.0015 cross-entropy loss: 0.0015
+2023-07-20 11:30:31,219 DEBUG Test (client-0):	Loss 0.3072 (0.4556)	Prec@1 87.500 (84.570)
+2023-07-20 11:30:31,220 DEBUG  * Prec@1 84.570
+2023-07-20 11:30:32,048 DEBUG Test (surrogate):	Loss 1.2952 (1.2683)	Prec@1 68.750 (71.540)
+2023-07-20 11:30:32,050 DEBUG  * Prec@1 71.540
+2023-07-20 11:30:50,506 DEBUG log--[39/200][196/196][client-0] train loss: 0.3482 cross-entropy loss: 0.3482
+2023-07-20 11:30:50,640 DEBUG log--[39/200][196/196][client-1] train loss: 0.5247 cross-entropy loss: 0.5247
+2023-07-20 11:30:50,767 DEBUG log--[39/200][196/196][client-2] train loss: 0.8412 cross-entropy loss: 0.8412
+2023-07-20 11:30:50,904 DEBUG log--[39/200][196/196][client-3] train loss: 0.5083 cross-entropy loss: 0.5083
+2023-07-20 11:30:50,936 DEBUG log--[39/200][196/196][client-4] train loss: 0.0010 cross-entropy loss: 0.0010
+2023-07-20 11:30:51,780 DEBUG Test (client-0):	Loss 0.3535 (0.4899)	Prec@1 87.500 (83.750)
+2023-07-20 11:30:51,782 DEBUG  * Prec@1 83.750
+2023-07-20 11:30:52,582 DEBUG Test (surrogate):	Loss 1.3884 (1.2133)	Prec@1 68.750 (71.680)
+2023-07-20 11:30:52,583 DEBUG  * Prec@1 71.680
+2023-07-20 11:31:10,862 DEBUG log--[40/200][196/196][client-0] train loss: 0.5118 cross-entropy loss: 0.5118
+2023-07-20 11:31:10,995 DEBUG log--[40/200][196/196][client-1] train loss: 0.6642 cross-entropy loss: 0.6642
+2023-07-20 11:31:11,122 DEBUG log--[40/200][196/196][client-2] train loss: 0.5709 cross-entropy loss: 0.5709
+2023-07-20 11:31:11,244 DEBUG log--[40/200][196/196][client-3] train loss: 0.4978 cross-entropy loss: 0.4978
+2023-07-20 11:31:11,275 DEBUG log--[40/200][196/196][client-4] train loss: 0.0007 cross-entropy loss: 0.0007
+2023-07-20 11:31:12,169 DEBUG Test (client-0):	Loss 0.3649 (0.4433)	Prec@1 87.500 (84.860)
+2023-07-20 11:31:12,170 DEBUG  * Prec@1 84.860
+2023-07-20 11:31:13,103 DEBUG Test (surrogate):	Loss 1.4812 (1.2166)	Prec@1 68.750 (71.640)
+2023-07-20 11:31:13,104 DEBUG  * Prec@1 71.640
+2023-07-20 11:31:31,491 DEBUG log--[41/200][196/196][client-0] train loss: 0.4083 cross-entropy loss: 0.4083
+2023-07-20 11:31:31,668 DEBUG log--[41/200][196/196][client-1] train loss: 0.3962 cross-entropy loss: 0.3962
+2023-07-20 11:31:31,792 DEBUG log--[41/200][196/196][client-2] train loss: 0.3693 cross-entropy loss: 0.3693
+2023-07-20 11:31:31,917 DEBUG log--[41/200][196/196][client-3] train loss: 0.4686 cross-entropy loss: 0.4686
+2023-07-20 11:31:31,948 DEBUG log--[41/200][196/196][client-4] train loss: 0.0018 cross-entropy loss: 0.0018
+2023-07-20 11:31:32,825 DEBUG Test (client-0):	Loss 0.4012 (0.4399)	Prec@1 87.500 (84.440)
+2023-07-20 11:31:32,827 DEBUG  * Prec@1 84.440
+2023-07-20 11:31:33,618 DEBUG Test (surrogate):	Loss 1.3794 (1.2525)	Prec@1 68.750 (71.100)
+2023-07-20 11:31:33,619 DEBUG  * Prec@1 71.100
+2023-07-20 11:31:51,835 DEBUG log--[42/200][196/196][client-0] train loss: 0.3376 cross-entropy loss: 0.3376
+2023-07-20 11:31:51,987 DEBUG log--[42/200][196/196][client-1] train loss: 0.5862 cross-entropy loss: 0.5862
+2023-07-20 11:31:52,105 DEBUG log--[42/200][196/196][client-2] train loss: 0.6936 cross-entropy loss: 0.6936
+2023-07-20 11:31:52,229 DEBUG log--[42/200][196/196][client-3] train loss: 0.3148 cross-entropy loss: 0.3148
+2023-07-20 11:31:52,260 DEBUG log--[42/200][196/196][client-4] train loss: 0.0019 cross-entropy loss: 0.0019
+2023-07-20 11:31:53,100 DEBUG Test (client-0):	Loss 0.3852 (0.4377)	Prec@1 87.500 (85.030)
+2023-07-20 11:31:53,102 DEBUG  * Prec@1 85.030
+2023-07-20 11:31:53,919 DEBUG Test (surrogate):	Loss 1.4146 (1.0922)	Prec@1 68.750 (72.940)
+2023-07-20 11:31:53,920 DEBUG  * Prec@1 72.940
+2023-07-20 11:32:12,330 DEBUG log--[43/200][196/196][client-0] train loss: 0.5896 cross-entropy loss: 0.5896
+2023-07-20 11:32:12,454 DEBUG log--[43/200][196/196][client-1] train loss: 0.7222 cross-entropy loss: 0.7222
+2023-07-20 11:32:12,590 DEBUG log--[43/200][196/196][client-2] train loss: 0.5852 cross-entropy loss: 0.5852
+2023-07-20 11:32:12,765 DEBUG log--[43/200][196/196][client-3] train loss: 0.6962 cross-entropy loss: 0.6962
+2023-07-20 11:32:12,797 DEBUG log--[43/200][196/196][client-4] train loss: 0.0012 cross-entropy loss: 0.0012
+2023-07-20 11:32:13,647 DEBUG Test (client-0):	Loss 0.3181 (0.4358)	Prec@1 87.500 (85.470)
+2023-07-20 11:32:13,649 DEBUG  * Prec@1 85.470
+2023-07-20 11:32:14,462 DEBUG Test (surrogate):	Loss 1.2014 (1.0541)	Prec@1 68.750 (73.380)
+2023-07-20 11:32:14,464 DEBUG  * Prec@1 73.380
+2023-07-20 11:32:32,873 DEBUG log--[44/200][196/196][client-0] train loss: 0.3978 cross-entropy loss: 0.3978
+2023-07-20 11:32:33,012 DEBUG log--[44/200][196/196][client-1] train loss: 0.5124 cross-entropy loss: 0.5124
+2023-07-20 11:32:33,139 DEBUG log--[44/200][196/196][client-2] train loss: 0.4363 cross-entropy loss: 0.4363
+2023-07-20 11:32:33,314 DEBUG log--[44/200][196/196][client-3] train loss: 0.7687 cross-entropy loss: 0.7687
+2023-07-20 11:32:33,350 DEBUG log--[44/200][196/196][client-4] train loss: 0.0017 cross-entropy loss: 0.0017
+2023-07-20 11:32:34,154 DEBUG Test (client-0):	Loss 0.4188 (0.4272)	Prec@1 87.500 (85.350)
+2023-07-20 11:32:34,154 DEBUG  * Prec@1 85.350
+2023-07-20 11:32:34,978 DEBUG Test (surrogate):	Loss 1.1353 (1.1139)	Prec@1 68.750 (72.670)
+2023-07-20 11:32:34,978 DEBUG  * Prec@1 72.670
+2023-07-20 11:32:53,121 DEBUG log--[45/200][196/196][client-0] train loss: 0.5740 cross-entropy loss: 0.5740
+2023-07-20 11:32:53,264 DEBUG log--[45/200][196/196][client-1] train loss: 0.4306 cross-entropy loss: 0.4306
+2023-07-20 11:32:53,457 DEBUG log--[45/200][196/196][client-2] train loss: 0.5060 cross-entropy loss: 0.5060
+2023-07-20 11:32:53,595 DEBUG log--[45/200][196/196][client-3] train loss: 0.6756 cross-entropy loss: 0.6756
+2023-07-20 11:32:53,627 DEBUG log--[45/200][196/196][client-4] train loss: 0.0016 cross-entropy loss: 0.0016
+2023-07-20 11:32:54,470 DEBUG Test (client-0):	Loss 0.2901 (0.4124)	Prec@1 87.500 (85.860)
+2023-07-20 11:32:54,470 DEBUG  * Prec@1 85.860
+2023-07-20 11:32:55,322 DEBUG Test (surrogate):	Loss 0.9459 (1.0127)	Prec@1 68.750 (73.960)
+2023-07-20 11:32:55,323 DEBUG  * Prec@1 73.960
+2023-07-20 11:33:13,608 DEBUG log--[46/200][196/196][client-0] train loss: 0.5738 cross-entropy loss: 0.5738
+2023-07-20 11:33:13,741 DEBUG log--[46/200][196/196][client-1] train loss: 0.3046 cross-entropy loss: 0.3046
+2023-07-20 11:33:13,875 DEBUG log--[46/200][196/196][client-2] train loss: 0.3043 cross-entropy loss: 0.3043
+2023-07-20 11:33:13,998 DEBUG log--[46/200][196/196][client-3] train loss: 0.3615 cross-entropy loss: 0.3615
+2023-07-20 11:33:14,030 DEBUG log--[46/200][196/196][client-4] train loss: 0.0010 cross-entropy loss: 0.0010
+2023-07-20 11:33:14,865 DEBUG Test (client-0):	Loss 0.4572 (0.4153)	Prec@1 87.500 (86.090)
+2023-07-20 11:33:14,866 DEBUG  * Prec@1 86.090
+2023-07-20 11:33:15,718 DEBUG Test (surrogate):	Loss 1.0224 (1.0221)	Prec@1 68.750 (73.640)
+2023-07-20 11:33:15,718 DEBUG  * Prec@1 73.640
+2023-07-20 11:33:34,142 DEBUG log--[47/200][196/196][client-0] train loss: 0.4003 cross-entropy loss: 0.4003
+2023-07-20 11:33:34,287 DEBUG log--[47/200][196/196][client-1] train loss: 0.3999 cross-entropy loss: 0.3999
+2023-07-20 11:33:34,414 DEBUG log--[47/200][196/196][client-2] train loss: 0.5729 cross-entropy loss: 0.5729
+2023-07-20 11:33:34,546 DEBUG log--[47/200][196/196][client-3] train loss: 0.5009 cross-entropy loss: 0.5009
+2023-07-20 11:33:34,578 DEBUG log--[47/200][196/196][client-4] train loss: 0.0031 cross-entropy loss: 0.0031
+2023-07-20 11:33:35,441 DEBUG Test (client-0):	Loss 0.3807 (0.4163)	Prec@1 93.750 (85.640)
+2023-07-20 11:33:35,442 DEBUG  * Prec@1 85.640
+2023-07-20 11:33:36,322 DEBUG Test (surrogate):	Loss 1.0684 (1.0633)	Prec@1 68.750 (73.100)
+2023-07-20 11:33:36,322 DEBUG  * Prec@1 73.100
+2023-07-20 11:33:54,431 DEBUG log--[48/200][196/196][client-0] train loss: 0.6374 cross-entropy loss: 0.6374
+2023-07-20 11:33:54,553 DEBUG log--[48/200][196/196][client-1] train loss: 0.3710 cross-entropy loss: 0.3710
+2023-07-20 11:33:54,684 DEBUG log--[48/200][196/196][client-2] train loss: 0.5848 cross-entropy loss: 0.5848
+2023-07-20 11:33:54,815 DEBUG log--[48/200][196/196][client-3] train loss: 0.3971 cross-entropy loss: 0.3971
+2023-07-20 11:33:54,847 DEBUG log--[48/200][196/196][client-4] train loss: 0.0013 cross-entropy loss: 0.0013
+2023-07-20 11:33:55,724 DEBUG Test (client-0):	Loss 0.4648 (0.4254)	Prec@1 87.500 (85.580)
+2023-07-20 11:33:55,726 DEBUG  * Prec@1 85.580
+2023-07-20 11:33:56,622 DEBUG Test (surrogate):	Loss 1.1941 (1.0145)	Prec@1 68.750 (73.420)
+2023-07-20 11:33:56,623 DEBUG  * Prec@1 73.420
+2023-07-20 11:34:14,877 DEBUG log--[49/200][196/196][client-0] train loss: 0.5605 cross-entropy loss: 0.5605
+2023-07-20 11:34:15,018 DEBUG log--[49/200][196/196][client-1] train loss: 0.3099 cross-entropy loss: 0.3099
+2023-07-20 11:34:15,155 DEBUG log--[49/200][196/196][client-2] train loss: 0.7802 cross-entropy loss: 0.7802
+2023-07-20 11:34:15,294 DEBUG log--[49/200][196/196][client-3] train loss: 0.4740 cross-entropy loss: 0.4740
+2023-07-20 11:34:15,327 DEBUG log--[49/200][196/196][client-4] train loss: 0.0017 cross-entropy loss: 0.0017
+2023-07-20 11:34:16,235 DEBUG Test (client-0):	Loss 0.3532 (0.4207)	Prec@1 87.500 (85.730)
+2023-07-20 11:34:16,235 DEBUG  * Prec@1 85.730
+2023-07-20 11:34:17,113 DEBUG Test (surrogate):	Loss 0.9660 (1.1015)	Prec@1 68.750 (71.920)
+2023-07-20 11:34:17,115 DEBUG  * Prec@1 71.920
+2023-07-20 11:34:35,375 DEBUG log--[50/200][196/196][client-0] train loss: 0.2929 cross-entropy loss: 0.2929
+2023-07-20 11:34:35,529 DEBUG log--[50/200][196/196][client-1] train loss: 0.5582 cross-entropy loss: 0.5582
+2023-07-20 11:34:35,659 DEBUG log--[50/200][196/196][client-2] train loss: 0.5216 cross-entropy loss: 0.5216
+2023-07-20 11:34:35,795 DEBUG log--[50/200][196/196][client-3] train loss: 0.6992 cross-entropy loss: 0.6992
+2023-07-20 11:34:35,828 DEBUG log--[50/200][196/196][client-4] train loss: 0.0012 cross-entropy loss: 0.0012
+2023-07-20 11:34:36,665 DEBUG Test (client-0):	Loss 0.3557 (0.4193)	Prec@1 87.500 (86.130)
+2023-07-20 11:34:36,666 DEBUG  * Prec@1 86.130
+2023-07-20 11:34:37,508 DEBUG Test (surrogate):	Loss 0.8706 (0.9415)	Prec@1 68.750 (74.410)
+2023-07-20 11:34:37,509 DEBUG  * Prec@1 74.410
+2023-07-20 11:34:55,932 DEBUG log--[51/200][196/196][client-0] train loss: 0.5347 cross-entropy loss: 0.5347
+2023-07-20 11:34:56,055 DEBUG log--[51/200][196/196][client-1] train loss: 0.4332 cross-entropy loss: 0.4332
+2023-07-20 11:34:56,183 DEBUG log--[51/200][196/196][client-2] train loss: 0.5188 cross-entropy loss: 0.5188
+2023-07-20 11:34:56,326 DEBUG log--[51/200][196/196][client-3] train loss: 0.4713 cross-entropy loss: 0.4713
+2023-07-20 11:34:56,357 DEBUG log--[51/200][196/196][client-4] train loss: 0.0017 cross-entropy loss: 0.0017
+2023-07-20 11:34:57,209 DEBUG Test (client-0):	Loss 0.3425 (0.4143)	Prec@1 87.500 (85.800)
+2023-07-20 11:34:57,211 DEBUG  * Prec@1 85.800
+2023-07-20 11:34:58,076 DEBUG Test (surrogate):	Loss 0.9914 (1.0444)	Prec@1 68.750 (72.900)
+2023-07-20 11:34:58,077 DEBUG  * Prec@1 72.900
+2023-07-20 11:35:16,175 DEBUG log--[52/200][196/196][client-0] train loss: 0.4856 cross-entropy loss: 0.4856
+2023-07-20 11:35:16,304 DEBUG log--[52/200][196/196][client-1] train loss: 0.6541 cross-entropy loss: 0.6541
+2023-07-20 11:35:16,424 DEBUG log--[52/200][196/196][client-2] train loss: 0.5603 cross-entropy loss: 0.5603
+2023-07-20 11:35:16,556 DEBUG log--[52/200][196/196][client-3] train loss: 0.3927 cross-entropy loss: 0.3927
+2023-07-20 11:35:16,590 DEBUG log--[52/200][196/196][client-4] train loss: 0.0017 cross-entropy loss: 0.0017
+2023-07-20 11:35:17,503 DEBUG Test (client-0):	Loss 0.4304 (0.4043)	Prec@1 87.500 (86.380)
+2023-07-20 11:35:17,504 DEBUG  * Prec@1 86.380
+2023-07-20 11:35:18,394 DEBUG Test (surrogate):	Loss 1.2757 (0.9639)	Prec@1 68.750 (73.960)
+2023-07-20 11:35:18,395 DEBUG  * Prec@1 73.960
+2023-07-20 11:35:36,831 DEBUG log--[53/200][196/196][client-0] train loss: 0.4999 cross-entropy loss: 0.4999
+2023-07-20 11:35:36,993 DEBUG log--[53/200][196/196][client-1] train loss: 0.5876 cross-entropy loss: 0.5876
+2023-07-20 11:35:37,182 DEBUG log--[53/200][196/196][client-2] train loss: 0.5240 cross-entropy loss: 0.5240
+2023-07-20 11:35:37,312 DEBUG log--[53/200][196/196][client-3] train loss: 0.4766 cross-entropy loss: 0.4766
+2023-07-20 11:35:37,344 DEBUG log--[53/200][196/196][client-4] train loss: 0.0015 cross-entropy loss: 0.0015
+2023-07-20 11:35:38,182 DEBUG Test (client-0):	Loss 0.3189 (0.4006)	Prec@1 87.500 (86.740)
+2023-07-20 11:35:38,183 DEBUG  * Prec@1 86.740
+2023-07-20 11:35:39,046 DEBUG Test (surrogate):	Loss 1.2645 (0.9203)	Prec@1 68.750 (74.650)
+2023-07-20 11:35:39,047 DEBUG  * Prec@1 74.650
+2023-07-20 11:35:57,406 DEBUG log--[54/200][196/196][client-0] train loss: 0.2114 cross-entropy loss: 0.2114
+2023-07-20 11:35:57,561 DEBUG log--[54/200][196/196][client-1] train loss: 0.4010 cross-entropy loss: 0.4010
+2023-07-20 11:35:57,692 DEBUG log--[54/200][196/196][client-2] train loss: 0.3096 cross-entropy loss: 0.3096
+2023-07-20 11:35:57,847 DEBUG log--[54/200][196/196][client-3] train loss: 0.3819 cross-entropy loss: 0.3819
+2023-07-20 11:35:57,880 DEBUG log--[54/200][196/196][client-4] train loss: 0.0025 cross-entropy loss: 0.0025
+2023-07-20 11:35:58,781 DEBUG Test (client-0):	Loss 0.3496 (0.3899)	Prec@1 87.500 (86.910)
+2023-07-20 11:35:58,782 DEBUG  * Prec@1 86.910
+2023-07-20 11:35:59,638 DEBUG Test (surrogate):	Loss 1.1323 (0.9215)	Prec@1 68.750 (74.820)
+2023-07-20 11:35:59,640 DEBUG  * Prec@1 74.820
+2023-07-20 11:36:18,079 DEBUG log--[55/200][196/196][client-0] train loss: 0.4815 cross-entropy loss: 0.4815
+2023-07-20 11:36:18,213 DEBUG log--[55/200][196/196][client-1] train loss: 0.7285 cross-entropy loss: 0.7285
+2023-07-20 11:36:18,393 DEBUG log--[55/200][196/196][client-2] train loss: 0.3573 cross-entropy loss: 0.3573
+2023-07-20 11:36:18,538 DEBUG log--[55/200][196/196][client-3] train loss: 0.4094 cross-entropy loss: 0.4094
+2023-07-20 11:36:18,570 DEBUG log--[55/200][196/196][client-4] train loss: 0.0009 cross-entropy loss: 0.0009
+2023-07-20 11:36:19,401 DEBUG Test (client-0):	Loss 0.4460 (0.3929)	Prec@1 87.500 (86.630)
+2023-07-20 11:36:19,402 DEBUG  * Prec@1 86.630
+2023-07-20 11:36:20,188 DEBUG Test (surrogate):	Loss 1.0942 (0.8882)	Prec@1 68.750 (75.530)
+2023-07-20 11:36:20,190 DEBUG  * Prec@1 75.530
+2023-07-20 11:36:38,316 DEBUG log--[56/200][196/196][client-0] train loss: 0.8103 cross-entropy loss: 0.8103
+2023-07-20 11:36:38,440 DEBUG log--[56/200][196/196][client-1] train loss: 0.5134 cross-entropy loss: 0.5134
+2023-07-20 11:36:38,590 DEBUG log--[56/200][196/196][client-2] train loss: 0.2636 cross-entropy loss: 0.2636
+2023-07-20 11:36:38,734 DEBUG log--[56/200][196/196][client-3] train loss: 0.6390 cross-entropy loss: 0.6390
+2023-07-20 11:36:38,765 DEBUG log--[56/200][196/196][client-4] train loss: 0.0011 cross-entropy loss: 0.0011
+2023-07-20 11:36:39,730 DEBUG Test (client-0):	Loss 0.3589 (0.4081)	Prec@1 87.500 (86.080)
+2023-07-20 11:36:39,731 DEBUG  * Prec@1 86.080
+2023-07-20 11:36:40,578 DEBUG Test (surrogate):	Loss 0.9476 (0.8607)	Prec@1 75.000 (75.480)
+2023-07-20 11:36:40,579 DEBUG  * Prec@1 75.480
+2023-07-20 11:36:58,715 DEBUG log--[57/200][196/196][client-0] train loss: 0.6498 cross-entropy loss: 0.6498
+2023-07-20 11:36:58,852 DEBUG log--[57/200][196/196][client-1] train loss: 0.6485 cross-entropy loss: 0.6485
+2023-07-20 11:36:58,970 DEBUG log--[57/200][196/196][client-2] train loss: 0.4931 cross-entropy loss: 0.4931
+2023-07-20 11:36:59,133 DEBUG log--[57/200][196/196][client-3] train loss: 0.5394 cross-entropy loss: 0.5394
+2023-07-20 11:36:59,165 DEBUG log--[57/200][196/196][client-4] train loss: 0.0014 cross-entropy loss: 0.0014
+2023-07-20 11:37:00,027 DEBUG Test (client-0):	Loss 0.3238 (0.3795)	Prec@1 87.500 (87.040)
+2023-07-20 11:37:00,028 DEBUG  * Prec@1 87.040
+2023-07-20 11:37:00,862 DEBUG Test (surrogate):	Loss 0.9692 (0.8795)	Prec@1 68.750 (75.520)
+2023-07-20 11:37:00,863 DEBUG  * Prec@1 75.520
+2023-07-20 11:37:19,214 DEBUG log--[58/200][196/196][client-0] train loss: 0.4025 cross-entropy loss: 0.4025
+2023-07-20 11:37:19,329 DEBUG log--[58/200][196/196][client-1] train loss: 0.5332 cross-entropy loss: 0.5332
+2023-07-20 11:37:19,448 DEBUG log--[58/200][196/196][client-2] train loss: 0.3158 cross-entropy loss: 0.3158
+2023-07-20 11:37:19,580 DEBUG log--[58/200][196/196][client-3] train loss: 0.4264 cross-entropy loss: 0.4264
+2023-07-20 11:37:19,612 DEBUG log--[58/200][196/196][client-4] train loss: 0.0021 cross-entropy loss: 0.0021
+2023-07-20 11:37:20,444 DEBUG Test (client-0):	Loss 0.3331 (0.3893)	Prec@1 87.500 (87.010)
+2023-07-20 11:37:20,446 DEBUG  * Prec@1 87.010
+2023-07-20 11:37:21,255 DEBUG Test (surrogate):	Loss 0.9927 (0.8141)	Prec@1 68.750 (76.810)
+2023-07-20 11:37:21,257 DEBUG  * Prec@1 76.810
+2023-07-20 11:37:39,559 DEBUG log--[59/200][196/196][client-0] train loss: 0.5455 cross-entropy loss: 0.5455
+2023-07-20 11:37:39,748 DEBUG log--[59/200][196/196][client-1] train loss: 0.5147 cross-entropy loss: 0.5147
+2023-07-20 11:37:39,934 DEBUG log--[59/200][196/196][client-2] train loss: 0.3661 cross-entropy loss: 0.3661
+2023-07-20 11:37:40,085 DEBUG log--[59/200][196/196][client-3] train loss: 0.5172 cross-entropy loss: 0.5172
+2023-07-20 11:37:40,116 DEBUG log--[59/200][196/196][client-4] train loss: 0.0012 cross-entropy loss: 0.0012
+2023-07-20 11:37:40,985 DEBUG Test (client-0):	Loss 0.2073 (0.3858)	Prec@1 87.500 (86.740)
+2023-07-20 11:37:40,986 DEBUG  * Prec@1 86.740
+2023-07-20 11:37:41,809 DEBUG Test (surrogate):	Loss 0.9709 (0.8369)	Prec@1 68.750 (75.940)
+2023-07-20 11:37:41,810 DEBUG  * Prec@1 75.940
+2023-07-20 11:38:00,046 DEBUG log--[60/200][196/196][client-0] train loss: 0.2599 cross-entropy loss: 0.2599
+2023-07-20 11:38:00,173 DEBUG log--[60/200][196/196][client-1] train loss: 0.5526 cross-entropy loss: 0.5526
+2023-07-20 11:38:00,325 DEBUG log--[60/200][196/196][client-2] train loss: 0.6002 cross-entropy loss: 0.6002
+2023-07-20 11:38:00,466 DEBUG log--[60/200][196/196][client-3] train loss: 0.5006 cross-entropy loss: 0.5006
+2023-07-20 11:38:00,498 DEBUG log--[60/200][196/196][client-4] train loss: 0.0024 cross-entropy loss: 0.0024
+2023-07-20 11:38:01,362 DEBUG Test (client-0):	Loss 0.2553 (0.3894)	Prec@1 93.750 (86.970)
+2023-07-20 11:38:01,362 DEBUG  * Prec@1 86.970
+2023-07-20 11:38:02,221 DEBUG Test (surrogate):	Loss 1.0027 (0.8421)	Prec@1 68.750 (76.000)
+2023-07-20 11:38:02,222 DEBUG  * Prec@1 76.000
+2023-07-20 11:38:20,411 DEBUG log--[61/200][196/196][client-0] train loss: 0.3077 cross-entropy loss: 0.3077
+2023-07-20 11:38:20,559 DEBUG log--[61/200][196/196][client-1] train loss: 0.2483 cross-entropy loss: 0.2483
+2023-07-20 11:38:20,673 DEBUG log--[61/200][196/196][client-2] train loss: 0.3527 cross-entropy loss: 0.3527
+2023-07-20 11:38:20,796 DEBUG log--[61/200][196/196][client-3] train loss: 0.2643 cross-entropy loss: 0.2643
+2023-07-20 11:38:20,827 DEBUG log--[61/200][196/196][client-4] train loss: 0.0002 cross-entropy loss: 0.0002
+2023-07-20 11:38:21,736 DEBUG Test (client-0):	Loss 0.1998 (0.3654)	Prec@1 93.750 (88.260)
+2023-07-20 11:38:21,737 DEBUG  * Prec@1 88.260
+2023-07-20 11:38:22,626 DEBUG Test (surrogate):	Loss 1.0463 (0.7871)	Prec@1 68.750 (77.380)
+2023-07-20 11:38:22,627 DEBUG  * Prec@1 77.380
+2023-07-20 11:38:40,838 DEBUG log--[62/200][196/196][client-0] train loss: 0.2284 cross-entropy loss: 0.2284
+2023-07-20 11:38:41,001 DEBUG log--[62/200][196/196][client-1] train loss: 0.1555 cross-entropy loss: 0.1555
+2023-07-20 11:38:41,152 DEBUG log--[62/200][196/196][client-2] train loss: 0.3182 cross-entropy loss: 0.3182
+2023-07-20 11:38:41,278 DEBUG log--[62/200][196/196][client-3] train loss: 0.2415 cross-entropy loss: 0.2415
+2023-07-20 11:38:41,310 DEBUG log--[62/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:38:42,163 DEBUG Test (client-0):	Loss 0.2489 (0.3611)	Prec@1 87.500 (88.480)
+2023-07-20 11:38:42,164 DEBUG  * Prec@1 88.480
+2023-07-20 11:38:43,008 DEBUG Test (surrogate):	Loss 0.9964 (0.8120)	Prec@1 68.750 (76.830)
+2023-07-20 11:38:43,009 DEBUG  * Prec@1 76.830
+2023-07-20 11:39:01,400 DEBUG log--[63/200][196/196][client-0] train loss: 0.3258 cross-entropy loss: 0.3258
+2023-07-20 11:39:01,543 DEBUG log--[63/200][196/196][client-1] train loss: 0.2558 cross-entropy loss: 0.2558
+2023-07-20 11:39:01,730 DEBUG log--[63/200][196/196][client-2] train loss: 0.1445 cross-entropy loss: 0.1445
+2023-07-20 11:39:01,851 DEBUG log--[63/200][196/196][client-3] train loss: 0.1409 cross-entropy loss: 0.1409
+2023-07-20 11:39:01,883 DEBUG log--[63/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:39:02,748 DEBUG Test (client-0):	Loss 0.2590 (0.3517)	Prec@1 87.500 (88.520)
+2023-07-20 11:39:02,749 DEBUG  * Prec@1 88.520
+2023-07-20 11:39:03,590 DEBUG Test (surrogate):	Loss 0.9757 (0.7960)	Prec@1 68.750 (76.980)
+2023-07-20 11:39:03,591 DEBUG  * Prec@1 76.980
+2023-07-20 11:39:22,036 DEBUG log--[64/200][196/196][client-0] train loss: 0.2673 cross-entropy loss: 0.2673
+2023-07-20 11:39:22,187 DEBUG log--[64/200][196/196][client-1] train loss: 0.2041 cross-entropy loss: 0.2041
+2023-07-20 11:39:22,318 DEBUG log--[64/200][196/196][client-2] train loss: 0.2355 cross-entropy loss: 0.2355
+2023-07-20 11:39:22,465 DEBUG log--[64/200][196/196][client-3] train loss: 0.3081 cross-entropy loss: 0.3081
+2023-07-20 11:39:22,496 DEBUG log--[64/200][196/196][client-4] train loss: 0.0002 cross-entropy loss: 0.0002
+2023-07-20 11:39:23,404 DEBUG Test (client-0):	Loss 0.2632 (0.3455)	Prec@1 87.500 (88.740)
+2023-07-20 11:39:23,406 DEBUG  * Prec@1 88.740
+2023-07-20 11:39:24,269 DEBUG Test (surrogate):	Loss 1.0599 (0.8202)	Prec@1 68.750 (76.360)
+2023-07-20 11:39:24,270 DEBUG  * Prec@1 76.360
+2023-07-20 11:39:42,647 DEBUG log--[65/200][196/196][client-0] train loss: 0.1283 cross-entropy loss: 0.1283
+2023-07-20 11:39:42,770 DEBUG log--[65/200][196/196][client-1] train loss: 0.2437 cross-entropy loss: 0.2437
+2023-07-20 11:39:42,925 DEBUG log--[65/200][196/196][client-2] train loss: 0.2937 cross-entropy loss: 0.2937
+2023-07-20 11:39:43,101 DEBUG log--[65/200][196/196][client-3] train loss: 0.2792 cross-entropy loss: 0.2792
+2023-07-20 11:39:43,135 DEBUG log--[65/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:39:43,998 DEBUG Test (client-0):	Loss 0.2902 (0.3472)	Prec@1 87.500 (88.600)
+2023-07-20 11:39:43,998 DEBUG  * Prec@1 88.600
+2023-07-20 11:39:44,829 DEBUG Test (surrogate):	Loss 1.0240 (0.7930)	Prec@1 68.750 (77.230)
+2023-07-20 11:39:44,830 DEBUG  * Prec@1 77.230
+2023-07-20 11:40:02,972 DEBUG log--[66/200][196/196][client-0] train loss: 0.1847 cross-entropy loss: 0.1847
+2023-07-20 11:40:03,109 DEBUG log--[66/200][196/196][client-1] train loss: 0.1156 cross-entropy loss: 0.1156
+2023-07-20 11:40:03,261 DEBUG log--[66/200][196/196][client-2] train loss: 0.1304 cross-entropy loss: 0.1304
+2023-07-20 11:40:03,395 DEBUG log--[66/200][196/196][client-3] train loss: 0.2183 cross-entropy loss: 0.2183
+2023-07-20 11:40:03,427 DEBUG log--[66/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:40:04,249 DEBUG Test (client-0):	Loss 0.3009 (0.3505)	Prec@1 87.500 (88.750)
+2023-07-20 11:40:04,250 DEBUG  * Prec@1 88.750
+2023-07-20 11:40:05,056 DEBUG Test (surrogate):	Loss 1.0011 (0.7877)	Prec@1 62.500 (77.180)
+2023-07-20 11:40:05,056 DEBUG  * Prec@1 77.180
+2023-07-20 11:40:23,548 DEBUG log--[67/200][196/196][client-0] train loss: 0.1887 cross-entropy loss: 0.1887
+2023-07-20 11:40:23,677 DEBUG log--[67/200][196/196][client-1] train loss: 0.4000 cross-entropy loss: 0.4000
+2023-07-20 11:40:23,817 DEBUG log--[67/200][196/196][client-2] train loss: 0.0949 cross-entropy loss: 0.0949
+2023-07-20 11:40:23,976 DEBUG log--[67/200][196/196][client-3] train loss: 0.1504 cross-entropy loss: 0.1504
+2023-07-20 11:40:24,008 DEBUG log--[67/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:40:24,907 DEBUG Test (client-0):	Loss 0.2673 (0.3469)	Prec@1 87.500 (89.160)
+2023-07-20 11:40:24,908 DEBUG  * Prec@1 89.160
+2023-07-20 11:40:25,790 DEBUG Test (surrogate):	Loss 1.0334 (0.7970)	Prec@1 68.750 (77.070)
+2023-07-20 11:40:25,790 DEBUG  * Prec@1 77.070
+2023-07-20 11:40:44,238 DEBUG log--[68/200][196/196][client-0] train loss: 0.2258 cross-entropy loss: 0.2258
+2023-07-20 11:40:44,364 DEBUG log--[68/200][196/196][client-1] train loss: 0.3645 cross-entropy loss: 0.3645
+2023-07-20 11:40:44,514 DEBUG log--[68/200][196/196][client-2] train loss: 0.1624 cross-entropy loss: 0.1624
+2023-07-20 11:40:44,660 DEBUG log--[68/200][196/196][client-3] train loss: 0.2906 cross-entropy loss: 0.2906
+2023-07-20 11:40:44,692 DEBUG log--[68/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:40:45,553 DEBUG Test (client-0):	Loss 0.2609 (0.3515)	Prec@1 87.500 (88.860)
+2023-07-20 11:40:45,554 DEBUG  * Prec@1 88.860
+2023-07-20 11:40:46,410 DEBUG Test (surrogate):	Loss 1.0668 (0.7738)	Prec@1 68.750 (77.680)
+2023-07-20 11:40:46,411 DEBUG  * Prec@1 77.680
+2023-07-20 11:41:04,563 DEBUG log--[69/200][196/196][client-0] train loss: 0.1299 cross-entropy loss: 0.1299
+2023-07-20 11:41:04,690 DEBUG log--[69/200][196/196][client-1] train loss: 0.3792 cross-entropy loss: 0.3792
+2023-07-20 11:41:04,829 DEBUG log--[69/200][196/196][client-2] train loss: 0.1914 cross-entropy loss: 0.1914
+2023-07-20 11:41:04,963 DEBUG log--[69/200][196/196][client-3] train loss: 0.2750 cross-entropy loss: 0.2750
+2023-07-20 11:41:04,995 DEBUG log--[69/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:41:05,858 DEBUG Test (client-0):	Loss 0.2421 (0.3620)	Prec@1 87.500 (88.690)
+2023-07-20 11:41:05,859 DEBUG  * Prec@1 88.690
+2023-07-20 11:41:06,684 DEBUG Test (surrogate):	Loss 1.1451 (0.8027)	Prec@1 62.500 (76.840)
+2023-07-20 11:41:06,685 DEBUG  * Prec@1 76.840
+2023-07-20 11:41:24,927 DEBUG log--[70/200][196/196][client-0] train loss: 0.1867 cross-entropy loss: 0.1867
+2023-07-20 11:41:25,066 DEBUG log--[70/200][196/196][client-1] train loss: 0.2917 cross-entropy loss: 0.2917
+2023-07-20 11:41:25,215 DEBUG log--[70/200][196/196][client-2] train loss: 0.1801 cross-entropy loss: 0.1801
+2023-07-20 11:41:25,360 DEBUG log--[70/200][196/196][client-3] train loss: 0.1436 cross-entropy loss: 0.1436
+2023-07-20 11:41:25,392 DEBUG log--[70/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:41:26,254 DEBUG Test (client-0):	Loss 0.2728 (0.3570)	Prec@1 93.750 (88.870)
+2023-07-20 11:41:26,254 DEBUG  * Prec@1 88.870
+2023-07-20 11:41:27,125 DEBUG Test (surrogate):	Loss 1.0380 (0.7871)	Prec@1 62.500 (77.120)
+2023-07-20 11:41:27,126 DEBUG  * Prec@1 77.120
+2023-07-20 11:41:45,293 DEBUG log--[71/200][196/196][client-0] train loss: 0.2231 cross-entropy loss: 0.2231
+2023-07-20 11:41:45,447 DEBUG log--[71/200][196/196][client-1] train loss: 0.1829 cross-entropy loss: 0.1829
+2023-07-20 11:41:45,579 DEBUG log--[71/200][196/196][client-2] train loss: 0.1338 cross-entropy loss: 0.1338
+2023-07-20 11:41:45,713 DEBUG log--[71/200][196/196][client-3] train loss: 0.1106 cross-entropy loss: 0.1106
+2023-07-20 11:41:45,744 DEBUG log--[71/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:41:46,625 DEBUG Test (client-0):	Loss 0.2394 (0.3510)	Prec@1 93.750 (88.620)
+2023-07-20 11:41:46,626 DEBUG  * Prec@1 88.620
+2023-07-20 11:41:47,513 DEBUG Test (surrogate):	Loss 1.0265 (0.7649)	Prec@1 62.500 (77.700)
+2023-07-20 11:41:47,514 DEBUG  * Prec@1 77.700
+2023-07-20 11:42:05,567 DEBUG log--[72/200][196/196][client-0] train loss: 0.2264 cross-entropy loss: 0.2264
+2023-07-20 11:42:05,702 DEBUG log--[72/200][196/196][client-1] train loss: 0.3174 cross-entropy loss: 0.3174
+2023-07-20 11:42:05,859 DEBUG log--[72/200][196/196][client-2] train loss: 0.2671 cross-entropy loss: 0.2671
+2023-07-20 11:42:06,020 DEBUG log--[72/200][196/196][client-3] train loss: 0.2031 cross-entropy loss: 0.2031
+2023-07-20 11:42:06,053 DEBUG log--[72/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:42:06,950 DEBUG Test (client-0):	Loss 0.2900 (0.3461)	Prec@1 93.750 (89.010)
+2023-07-20 11:42:06,951 DEBUG  * Prec@1 89.010
+2023-07-20 11:42:07,867 DEBUG Test (surrogate):	Loss 1.0559 (0.7825)	Prec@1 62.500 (77.330)
+2023-07-20 11:42:07,868 DEBUG  * Prec@1 77.330
+2023-07-20 11:42:26,050 DEBUG log--[73/200][196/196][client-0] train loss: 0.0756 cross-entropy loss: 0.0756
+2023-07-20 11:42:26,180 DEBUG log--[73/200][196/196][client-1] train loss: 0.2138 cross-entropy loss: 0.2138
+2023-07-20 11:42:26,352 DEBUG log--[73/200][196/196][client-2] train loss: 0.3157 cross-entropy loss: 0.3157
+2023-07-20 11:42:26,542 DEBUG log--[73/200][196/196][client-3] train loss: 0.1848 cross-entropy loss: 0.1848
+2023-07-20 11:42:26,575 DEBUG log--[73/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:42:27,408 DEBUG Test (client-0):	Loss 0.3348 (0.3453)	Prec@1 93.750 (89.180)
+2023-07-20 11:42:27,410 DEBUG  * Prec@1 89.180
+2023-07-20 11:42:28,229 DEBUG Test (surrogate):	Loss 1.1676 (0.7999)	Prec@1 62.500 (77.000)
+2023-07-20 11:42:28,230 DEBUG  * Prec@1 77.000
+2023-07-20 11:42:46,773 DEBUG log--[74/200][196/196][client-0] train loss: 0.1490 cross-entropy loss: 0.1490
+2023-07-20 11:42:46,939 DEBUG log--[74/200][196/196][client-1] train loss: 0.2714 cross-entropy loss: 0.2714
+2023-07-20 11:42:47,084 DEBUG log--[74/200][196/196][client-2] train loss: 0.2368 cross-entropy loss: 0.2368
+2023-07-20 11:42:47,208 DEBUG log--[74/200][196/196][client-3] train loss: 0.0895 cross-entropy loss: 0.0895
+2023-07-20 11:42:47,239 DEBUG log--[74/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:42:48,065 DEBUG Test (client-0):	Loss 0.3456 (0.3520)	Prec@1 87.500 (89.280)
+2023-07-20 11:42:48,066 DEBUG  * Prec@1 89.280
+2023-07-20 11:42:48,884 DEBUG Test (surrogate):	Loss 1.1204 (0.7694)	Prec@1 62.500 (77.450)
+2023-07-20 11:42:48,886 DEBUG  * Prec@1 77.450
+2023-07-20 11:43:07,187 DEBUG log--[75/200][196/196][client-0] train loss: 0.1633 cross-entropy loss: 0.1633
+2023-07-20 11:43:07,303 DEBUG log--[75/200][196/196][client-1] train loss: 0.1273 cross-entropy loss: 0.1273
+2023-07-20 11:43:07,439 DEBUG log--[75/200][196/196][client-2] train loss: 0.2339 cross-entropy loss: 0.2339
+2023-07-20 11:43:07,601 DEBUG log--[75/200][196/196][client-3] train loss: 0.2634 cross-entropy loss: 0.2634
+2023-07-20 11:43:07,635 DEBUG log--[75/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:43:08,466 DEBUG Test (client-0):	Loss 0.2701 (0.3529)	Prec@1 93.750 (89.010)
+2023-07-20 11:43:08,467 DEBUG  * Prec@1 89.010
+2023-07-20 11:43:09,308 DEBUG Test (surrogate):	Loss 1.0933 (0.8149)	Prec@1 62.500 (76.610)
+2023-07-20 11:43:09,309 DEBUG  * Prec@1 76.610
+2023-07-20 11:43:27,470 DEBUG log--[76/200][196/196][client-0] train loss: 0.2394 cross-entropy loss: 0.2394
+2023-07-20 11:43:27,595 DEBUG log--[76/200][196/196][client-1] train loss: 0.1310 cross-entropy loss: 0.1310
+2023-07-20 11:43:27,737 DEBUG log--[76/200][196/196][client-2] train loss: 0.0706 cross-entropy loss: 0.0706
+2023-07-20 11:43:27,913 DEBUG log--[76/200][196/196][client-3] train loss: 0.1181 cross-entropy loss: 0.1181
+2023-07-20 11:43:27,947 DEBUG log--[76/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:43:28,846 DEBUG Test (client-0):	Loss 0.2497 (0.3479)	Prec@1 93.750 (88.850)
+2023-07-20 11:43:28,847 DEBUG  * Prec@1 88.850
+2023-07-20 11:43:29,750 DEBUG Test (surrogate):	Loss 1.0299 (0.7881)	Prec@1 62.500 (76.970)
+2023-07-20 11:43:29,750 DEBUG  * Prec@1 76.970
+2023-07-20 11:43:47,810 DEBUG log--[77/200][196/196][client-0] train loss: 0.1262 cross-entropy loss: 0.1262
+2023-07-20 11:43:47,938 DEBUG log--[77/200][196/196][client-1] train loss: 0.3177 cross-entropy loss: 0.3177
+2023-07-20 11:43:48,068 DEBUG log--[77/200][196/196][client-2] train loss: 0.2091 cross-entropy loss: 0.2091
+2023-07-20 11:43:48,209 DEBUG log--[77/200][196/196][client-3] train loss: 0.0550 cross-entropy loss: 0.0550
+2023-07-20 11:43:48,240 DEBUG log--[77/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:43:49,093 DEBUG Test (client-0):	Loss 0.2788 (0.3559)	Prec@1 87.500 (88.940)
+2023-07-20 11:43:49,095 DEBUG  * Prec@1 88.940
+2023-07-20 11:43:49,943 DEBUG Test (surrogate):	Loss 1.1167 (0.8001)	Prec@1 68.750 (76.920)
+2023-07-20 11:43:49,944 DEBUG  * Prec@1 76.920
+2023-07-20 11:44:08,122 DEBUG log--[78/200][196/196][client-0] train loss: 0.1034 cross-entropy loss: 0.1034
+2023-07-20 11:44:08,250 DEBUG log--[78/200][196/196][client-1] train loss: 0.1741 cross-entropy loss: 0.1741
+2023-07-20 11:44:08,371 DEBUG log--[78/200][196/196][client-2] train loss: 0.3002 cross-entropy loss: 0.3002
+2023-07-20 11:44:08,525 DEBUG log--[78/200][196/196][client-3] train loss: 0.1741 cross-entropy loss: 0.1741
+2023-07-20 11:44:08,558 DEBUG log--[78/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:44:09,435 DEBUG Test (client-0):	Loss 0.2552 (0.3447)	Prec@1 87.500 (89.150)
+2023-07-20 11:44:09,436 DEBUG  * Prec@1 89.150
+2023-07-20 11:44:10,312 DEBUG Test (surrogate):	Loss 1.1817 (0.8099)	Prec@1 62.500 (76.610)
+2023-07-20 11:44:10,314 DEBUG  * Prec@1 76.610
+2023-07-20 11:44:28,609 DEBUG log--[79/200][196/196][client-0] train loss: 0.1012 cross-entropy loss: 0.1012
+2023-07-20 11:44:28,798 DEBUG log--[79/200][196/196][client-1] train loss: 0.0800 cross-entropy loss: 0.0800
+2023-07-20 11:44:28,922 DEBUG log--[79/200][196/196][client-2] train loss: 0.1795 cross-entropy loss: 0.1795
+2023-07-20 11:44:29,076 DEBUG log--[79/200][196/196][client-3] train loss: 0.1413 cross-entropy loss: 0.1413
+2023-07-20 11:44:29,108 DEBUG log--[79/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:44:29,990 DEBUG Test (client-0):	Loss 0.2264 (0.3587)	Prec@1 93.750 (88.740)
+2023-07-20 11:44:29,990 DEBUG  * Prec@1 88.740
+2023-07-20 11:44:30,818 DEBUG Test (surrogate):	Loss 1.1207 (0.7760)	Prec@1 62.500 (77.040)
+2023-07-20 11:44:30,819 DEBUG  * Prec@1 77.040
+2023-07-20 11:44:48,929 DEBUG log--[80/200][196/196][client-0] train loss: 0.2191 cross-entropy loss: 0.2191
+2023-07-20 11:44:49,049 DEBUG log--[80/200][196/196][client-1] train loss: 0.2229 cross-entropy loss: 0.2229
+2023-07-20 11:44:49,196 DEBUG log--[80/200][196/196][client-2] train loss: 0.0703 cross-entropy loss: 0.0703
+2023-07-20 11:44:49,337 DEBUG log--[80/200][196/196][client-3] train loss: 0.0925 cross-entropy loss: 0.0925
+2023-07-20 11:44:49,369 DEBUG log--[80/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:44:50,197 DEBUG Test (client-0):	Loss 0.3112 (0.3563)	Prec@1 93.750 (89.040)
+2023-07-20 11:44:50,198 DEBUG  * Prec@1 89.040
+2023-07-20 11:44:51,030 DEBUG Test (surrogate):	Loss 1.1140 (0.7647)	Prec@1 68.750 (77.380)
+2023-07-20 11:44:51,031 DEBUG  * Prec@1 77.380
+2023-07-20 11:45:09,165 DEBUG log--[81/200][196/196][client-0] train loss: 0.1796 cross-entropy loss: 0.1796
+2023-07-20 11:45:09,299 DEBUG log--[81/200][196/196][client-1] train loss: 0.2080 cross-entropy loss: 0.2080
+2023-07-20 11:45:09,436 DEBUG log--[81/200][196/196][client-2] train loss: 0.1279 cross-entropy loss: 0.1279
+2023-07-20 11:45:09,564 DEBUG log--[81/200][196/196][client-3] train loss: 0.1787 cross-entropy loss: 0.1787
+2023-07-20 11:45:09,595 DEBUG log--[81/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:45:10,494 DEBUG Test (client-0):	Loss 0.1793 (0.3492)	Prec@1 93.750 (89.230)
+2023-07-20 11:45:10,496 DEBUG  * Prec@1 89.230
+2023-07-20 11:45:11,361 DEBUG Test (surrogate):	Loss 0.9323 (0.7907)	Prec@1 62.500 (76.750)
+2023-07-20 11:45:11,362 DEBUG  * Prec@1 76.750
+2023-07-20 11:45:29,689 DEBUG log--[82/200][196/196][client-0] train loss: 0.0997 cross-entropy loss: 0.0997
+2023-07-20 11:45:29,834 DEBUG log--[82/200][196/196][client-1] train loss: 0.0756 cross-entropy loss: 0.0756
+2023-07-20 11:45:29,956 DEBUG log--[82/200][196/196][client-2] train loss: 0.1373 cross-entropy loss: 0.1373
+2023-07-20 11:45:30,081 DEBUG log--[82/200][196/196][client-3] train loss: 0.1799 cross-entropy loss: 0.1799
+2023-07-20 11:45:30,113 DEBUG log--[82/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:45:31,048 DEBUG Test (client-0):	Loss 0.2731 (0.3512)	Prec@1 87.500 (89.130)
+2023-07-20 11:45:31,049 DEBUG  * Prec@1 89.130
+2023-07-20 11:45:31,927 DEBUG Test (surrogate):	Loss 0.9243 (0.7663)	Prec@1 68.750 (77.480)
+2023-07-20 11:45:31,927 DEBUG  * Prec@1 77.480
+2023-07-20 11:45:50,077 DEBUG log--[83/200][196/196][client-0] train loss: 0.0514 cross-entropy loss: 0.0514
+2023-07-20 11:45:50,210 DEBUG log--[83/200][196/196][client-1] train loss: 0.1270 cross-entropy loss: 0.1270
+2023-07-20 11:45:50,331 DEBUG log--[83/200][196/196][client-2] train loss: 0.1954 cross-entropy loss: 0.1954
+2023-07-20 11:45:50,493 DEBUG log--[83/200][196/196][client-3] train loss: 0.2231 cross-entropy loss: 0.2231
+2023-07-20 11:45:50,525 DEBUG log--[83/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:45:51,435 DEBUG Test (client-0):	Loss 0.2959 (0.3479)	Prec@1 93.750 (89.350)
+2023-07-20 11:45:51,436 DEBUG  * Prec@1 89.350
+2023-07-20 11:45:52,322 DEBUG Test (surrogate):	Loss 0.9633 (0.7756)	Prec@1 68.750 (77.060)
+2023-07-20 11:45:52,323 DEBUG  * Prec@1 77.060
+2023-07-20 11:46:10,614 DEBUG log--[84/200][196/196][client-0] train loss: 0.2399 cross-entropy loss: 0.2399
+2023-07-20 11:46:10,767 DEBUG log--[84/200][196/196][client-1] train loss: 0.0936 cross-entropy loss: 0.0936
+2023-07-20 11:46:10,938 DEBUG log--[84/200][196/196][client-2] train loss: 0.1753 cross-entropy loss: 0.1753
+2023-07-20 11:46:11,130 DEBUG log--[84/200][196/196][client-3] train loss: 0.1359 cross-entropy loss: 0.1359
+2023-07-20 11:46:11,164 DEBUG log--[84/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:46:11,992 DEBUG Test (client-0):	Loss 0.2355 (0.3547)	Prec@1 93.750 (89.080)
+2023-07-20 11:46:11,994 DEBUG  * Prec@1 89.080
+2023-07-20 11:46:12,841 DEBUG Test (surrogate):	Loss 0.9671 (0.7811)	Prec@1 68.750 (76.920)
+2023-07-20 11:46:12,842 DEBUG  * Prec@1 76.920
+2023-07-20 11:46:31,077 DEBUG log--[85/200][196/196][client-0] train loss: 0.0804 cross-entropy loss: 0.0804
+2023-07-20 11:46:31,215 DEBUG log--[85/200][196/196][client-1] train loss: 0.0824 cross-entropy loss: 0.0824
+2023-07-20 11:46:31,348 DEBUG log--[85/200][196/196][client-2] train loss: 0.1703 cross-entropy loss: 0.1703
+2023-07-20 11:46:31,481 DEBUG log--[85/200][196/196][client-3] train loss: 0.1998 cross-entropy loss: 0.1998
+2023-07-20 11:46:31,513 DEBUG log--[85/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:46:32,410 DEBUG Test (client-0):	Loss 0.2538 (0.3628)	Prec@1 87.500 (88.680)
+2023-07-20 11:46:32,411 DEBUG  * Prec@1 88.680
+2023-07-20 11:46:33,268 DEBUG Test (surrogate):	Loss 1.0551 (0.8055)	Prec@1 68.750 (76.540)
+2023-07-20 11:46:33,269 DEBUG  * Prec@1 76.540
+2023-07-20 11:46:51,408 DEBUG log--[86/200][196/196][client-0] train loss: 0.0927 cross-entropy loss: 0.0927
+2023-07-20 11:46:51,572 DEBUG log--[86/200][196/196][client-1] train loss: 0.1359 cross-entropy loss: 0.1359
+2023-07-20 11:46:51,704 DEBUG log--[86/200][196/196][client-2] train loss: 0.1365 cross-entropy loss: 0.1365
+2023-07-20 11:46:51,825 DEBUG log--[86/200][196/196][client-3] train loss: 0.1715 cross-entropy loss: 0.1715
+2023-07-20 11:46:51,856 DEBUG log--[86/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:46:52,734 DEBUG Test (client-0):	Loss 0.3046 (0.3640)	Prec@1 87.500 (88.910)
+2023-07-20 11:46:52,735 DEBUG  * Prec@1 88.910
+2023-07-20 11:46:53,545 DEBUG Test (surrogate):	Loss 1.1110 (0.7921)	Prec@1 75.000 (76.730)
+2023-07-20 11:46:53,546 DEBUG  * Prec@1 76.730
+2023-07-20 11:47:11,753 DEBUG log--[87/200][196/196][client-0] train loss: 0.1010 cross-entropy loss: 0.1010
+2023-07-20 11:47:11,890 DEBUG log--[87/200][196/196][client-1] train loss: 0.1756 cross-entropy loss: 0.1756
+2023-07-20 11:47:12,026 DEBUG log--[87/200][196/196][client-2] train loss: 0.1360 cross-entropy loss: 0.1360
+2023-07-20 11:47:12,147 DEBUG log--[87/200][196/196][client-3] train loss: 0.1024 cross-entropy loss: 0.1024
+2023-07-20 11:47:12,178 DEBUG log--[87/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:47:13,087 DEBUG Test (client-0):	Loss 0.2469 (0.3535)	Prec@1 87.500 (89.080)
+2023-07-20 11:47:13,089 DEBUG  * Prec@1 89.080
+2023-07-20 11:47:14,006 DEBUG Test (surrogate):	Loss 1.0639 (0.7755)	Prec@1 68.750 (76.890)
+2023-07-20 11:47:14,007 DEBUG  * Prec@1 76.890
+2023-07-20 11:47:32,158 DEBUG log--[88/200][196/196][client-0] train loss: 0.2634 cross-entropy loss: 0.2634
+2023-07-20 11:47:32,320 DEBUG log--[88/200][196/196][client-1] train loss: 0.1073 cross-entropy loss: 0.1073
+2023-07-20 11:47:32,456 DEBUG log--[88/200][196/196][client-2] train loss: 0.1072 cross-entropy loss: 0.1072
+2023-07-20 11:47:32,594 DEBUG log--[88/200][196/196][client-3] train loss: 0.0264 cross-entropy loss: 0.0264
+2023-07-20 11:47:32,625 DEBUG log--[88/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:47:33,487 DEBUG Test (client-0):	Loss 0.2774 (0.3518)	Prec@1 93.750 (89.070)
+2023-07-20 11:47:33,487 DEBUG  * Prec@1 89.070
+2023-07-20 11:47:34,346 DEBUG Test (surrogate):	Loss 0.9668 (0.7796)	Prec@1 68.750 (77.050)
+2023-07-20 11:47:34,347 DEBUG  * Prec@1 77.050
+2023-07-20 11:47:52,472 DEBUG log--[89/200][196/196][client-0] train loss: 0.1355 cross-entropy loss: 0.1355
+2023-07-20 11:47:52,596 DEBUG log--[89/200][196/196][client-1] train loss: 0.0998 cross-entropy loss: 0.0998
+2023-07-20 11:47:52,788 DEBUG log--[89/200][196/196][client-2] train loss: 0.1672 cross-entropy loss: 0.1672
+2023-07-20 11:47:52,934 DEBUG log--[89/200][196/196][client-3] train loss: 0.1259 cross-entropy loss: 0.1259
+2023-07-20 11:47:52,966 DEBUG log--[89/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:47:53,798 DEBUG Test (client-0):	Loss 0.2412 (0.3524)	Prec@1 87.500 (89.360)
+2023-07-20 11:47:53,798 DEBUG  * Prec@1 89.360
+2023-07-20 11:47:54,645 DEBUG Test (surrogate):	Loss 1.0834 (0.7660)	Prec@1 68.750 (77.100)
+2023-07-20 11:47:54,646 DEBUG  * Prec@1 77.100
+2023-07-20 11:48:13,118 DEBUG log--[90/200][196/196][client-0] train loss: 0.1969 cross-entropy loss: 0.1969
+2023-07-20 11:48:13,247 DEBUG log--[90/200][196/196][client-1] train loss: 0.2835 cross-entropy loss: 0.2835
+2023-07-20 11:48:13,375 DEBUG log--[90/200][196/196][client-2] train loss: 0.0875 cross-entropy loss: 0.0875
+2023-07-20 11:48:13,500 DEBUG log--[90/200][196/196][client-3] train loss: 0.1410 cross-entropy loss: 0.1410
+2023-07-20 11:48:13,532 DEBUG log--[90/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:48:14,372 DEBUG Test (client-0):	Loss 0.3734 (0.3603)	Prec@1 87.500 (89.020)
+2023-07-20 11:48:14,373 DEBUG  * Prec@1 89.020
+2023-07-20 11:48:15,229 DEBUG Test (surrogate):	Loss 1.1090 (0.7976)	Prec@1 68.750 (76.410)
+2023-07-20 11:48:15,231 DEBUG  * Prec@1 76.410
+2023-07-20 11:48:33,316 DEBUG log--[91/200][196/196][client-0] train loss: 0.0680 cross-entropy loss: 0.0680
+2023-07-20 11:48:33,429 DEBUG log--[91/200][196/196][client-1] train loss: 0.1293 cross-entropy loss: 0.1293
+2023-07-20 11:48:33,564 DEBUG log--[91/200][196/196][client-2] train loss: 0.0445 cross-entropy loss: 0.0445
+2023-07-20 11:48:33,704 DEBUG log--[91/200][196/196][client-3] train loss: 0.1998 cross-entropy loss: 0.1998
+2023-07-20 11:48:33,738 DEBUG log--[91/200][196/196][client-4] train loss: 0.0001 cross-entropy loss: 0.0001
+2023-07-20 11:48:34,609 DEBUG Test (client-0):	Loss 0.2744 (0.3533)	Prec@1 93.750 (89.210)
+2023-07-20 11:48:34,610 DEBUG  * Prec@1 89.210
+2023-07-20 11:48:35,516 DEBUG Test (surrogate):	Loss 1.0391 (0.7818)	Prec@1 75.000 (77.000)
+2023-07-20 11:48:35,517 DEBUG  * Prec@1 77.000
+2023-07-20 11:48:53,701 DEBUG log--[92/200][196/196][client-0] train loss: 0.1210 cross-entropy loss: 0.1210
+2023-07-20 11:48:53,842 DEBUG log--[92/200][196/196][client-1] train loss: 0.2246 cross-entropy loss: 0.2246
+2023-07-20 11:48:53,980 DEBUG log--[92/200][196/196][client-2] train loss: 0.0853 cross-entropy loss: 0.0853
+2023-07-20 11:48:54,118 DEBUG log--[92/200][196/196][client-3] train loss: 0.0384 cross-entropy loss: 0.0384
+2023-07-20 11:48:54,151 DEBUG log--[92/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:48:55,019 DEBUG Test (client-0):	Loss 0.3839 (0.3585)	Prec@1 93.750 (89.100)
+2023-07-20 11:48:55,021 DEBUG  * Prec@1 89.100
+2023-07-20 11:48:55,914 DEBUG Test (surrogate):	Loss 1.0045 (0.7717)	Prec@1 68.750 (77.100)
+2023-07-20 11:48:55,914 DEBUG  * Prec@1 77.100
+2023-07-20 11:49:14,175 DEBUG log--[93/200][196/196][client-0] train loss: 0.1106 cross-entropy loss: 0.1106
+2023-07-20 11:49:14,313 DEBUG log--[93/200][196/196][client-1] train loss: 0.1444 cross-entropy loss: 0.1444
+2023-07-20 11:49:14,444 DEBUG log--[93/200][196/196][client-2] train loss: 0.0859 cross-entropy loss: 0.0859
+2023-07-20 11:49:14,570 DEBUG log--[93/200][196/196][client-3] train loss: 0.2693 cross-entropy loss: 0.2693
+2023-07-20 11:49:14,602 DEBUG log--[93/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:49:15,540 DEBUG Test (client-0):	Loss 0.3015 (0.3633)	Prec@1 87.500 (89.230)
+2023-07-20 11:49:15,541 DEBUG  * Prec@1 89.230
+2023-07-20 11:49:16,433 DEBUG Test (surrogate):	Loss 0.9993 (0.7868)	Prec@1 62.500 (76.790)
+2023-07-20 11:49:16,435 DEBUG  * Prec@1 76.790
+2023-07-20 11:49:34,626 DEBUG log--[94/200][196/196][client-0] train loss: 0.0419 cross-entropy loss: 0.0419
+2023-07-20 11:49:34,772 DEBUG log--[94/200][196/196][client-1] train loss: 0.1231 cross-entropy loss: 0.1231
+2023-07-20 11:49:34,930 DEBUG log--[94/200][196/196][client-2] train loss: 0.4284 cross-entropy loss: 0.4284
+2023-07-20 11:49:35,063 DEBUG log--[94/200][196/196][client-3] train loss: 0.1636 cross-entropy loss: 0.1636
+2023-07-20 11:49:35,096 DEBUG log--[94/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:49:35,950 DEBUG Test (client-0):	Loss 0.3591 (0.3589)	Prec@1 87.500 (89.210)
+2023-07-20 11:49:35,952 DEBUG  * Prec@1 89.210
+2023-07-20 11:49:36,789 DEBUG Test (surrogate):	Loss 1.0425 (0.7531)	Prec@1 75.000 (77.350)
+2023-07-20 11:49:36,790 DEBUG  * Prec@1 77.350
+2023-07-20 11:49:55,181 DEBUG log--[95/200][196/196][client-0] train loss: 0.2025 cross-entropy loss: 0.2025
+2023-07-20 11:49:55,305 DEBUG log--[95/200][196/196][client-1] train loss: 0.1460 cross-entropy loss: 0.1460
+2023-07-20 11:49:55,461 DEBUG log--[95/200][196/196][client-2] train loss: 0.3021 cross-entropy loss: 0.3021
+2023-07-20 11:49:55,616 DEBUG log--[95/200][196/196][client-3] train loss: 0.2125 cross-entropy loss: 0.2125
+2023-07-20 11:49:55,648 DEBUG log--[95/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:49:56,507 DEBUG Test (client-0):	Loss 0.3435 (0.3676)	Prec@1 93.750 (89.110)
+2023-07-20 11:49:56,507 DEBUG  * Prec@1 89.110
+2023-07-20 11:49:57,307 DEBUG Test (surrogate):	Loss 1.0180 (0.7852)	Prec@1 75.000 (76.680)
+2023-07-20 11:49:57,309 DEBUG  * Prec@1 76.680
+2023-07-20 11:50:15,515 DEBUG log--[96/200][196/196][client-0] train loss: 0.2585 cross-entropy loss: 0.2585
+2023-07-20 11:50:15,710 DEBUG log--[96/200][196/196][client-1] train loss: 0.2316 cross-entropy loss: 0.2316
+2023-07-20 11:50:15,842 DEBUG log--[96/200][196/196][client-2] train loss: 0.2956 cross-entropy loss: 0.2956
+2023-07-20 11:50:15,960 DEBUG log--[96/200][196/196][client-3] train loss: 0.2055 cross-entropy loss: 0.2055
+2023-07-20 11:50:15,992 DEBUG log--[96/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:50:16,824 DEBUG Test (client-0):	Loss 0.2904 (0.3578)	Prec@1 87.500 (89.300)
+2023-07-20 11:50:16,826 DEBUG  * Prec@1 89.300
+2023-07-20 11:50:17,661 DEBUG Test (surrogate):	Loss 1.1156 (0.7852)	Prec@1 68.750 (76.760)
+2023-07-20 11:50:17,662 DEBUG  * Prec@1 76.760
+2023-07-20 11:50:35,888 DEBUG log--[97/200][196/196][client-0] train loss: 0.1281 cross-entropy loss: 0.1281
+2023-07-20 11:50:36,014 DEBUG log--[97/200][196/196][client-1] train loss: 0.2174 cross-entropy loss: 0.2174
+2023-07-20 11:50:36,155 DEBUG log--[97/200][196/196][client-2] train loss: 0.1471 cross-entropy loss: 0.1471
+2023-07-20 11:50:36,294 DEBUG log--[97/200][196/196][client-3] train loss: 0.0598 cross-entropy loss: 0.0598
+2023-07-20 11:50:36,327 DEBUG log--[97/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:50:37,214 DEBUG Test (client-0):	Loss 0.3417 (0.3440)	Prec@1 93.750 (89.680)
+2023-07-20 11:50:37,214 DEBUG  * Prec@1 89.680
+2023-07-20 11:50:38,028 DEBUG Test (surrogate):	Loss 1.0915 (0.8014)	Prec@1 68.750 (76.500)
+2023-07-20 11:50:38,029 DEBUG  * Prec@1 76.500
+2023-07-20 11:50:56,479 DEBUG log--[98/200][196/196][client-0] train loss: 0.2515 cross-entropy loss: 0.2515
+2023-07-20 11:50:56,633 DEBUG log--[98/200][196/196][client-1] train loss: 0.1187 cross-entropy loss: 0.1187
+2023-07-20 11:50:56,757 DEBUG log--[98/200][196/196][client-2] train loss: 0.0997 cross-entropy loss: 0.0997
+2023-07-20 11:50:56,883 DEBUG log--[98/200][196/196][client-3] train loss: 0.4636 cross-entropy loss: 0.4636
+2023-07-20 11:50:56,915 DEBUG log--[98/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:50:57,770 DEBUG Test (client-0):	Loss 0.3452 (0.3587)	Prec@1 93.750 (89.160)
+2023-07-20 11:50:57,770 DEBUG  * Prec@1 89.160
+2023-07-20 11:50:58,587 DEBUG Test (surrogate):	Loss 1.0245 (0.7823)	Prec@1 75.000 (76.870)
+2023-07-20 11:50:58,587 DEBUG  * Prec@1 76.870
+2023-07-20 11:51:16,857 DEBUG log--[99/200][196/196][client-0] train loss: 0.0916 cross-entropy loss: 0.0916
+2023-07-20 11:51:16,982 DEBUG log--[99/200][196/196][client-1] train loss: 0.0813 cross-entropy loss: 0.0813
+2023-07-20 11:51:17,116 DEBUG log--[99/200][196/196][client-2] train loss: 0.1802 cross-entropy loss: 0.1802
+2023-07-20 11:51:17,245 DEBUG log--[99/200][196/196][client-3] train loss: 0.1151 cross-entropy loss: 0.1151
+2023-07-20 11:51:17,278 DEBUG log--[99/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:51:18,153 DEBUG Test (client-0):	Loss 0.3874 (0.3657)	Prec@1 93.750 (89.360)
+2023-07-20 11:51:18,154 DEBUG  * Prec@1 89.360
+2023-07-20 11:51:19,023 DEBUG Test (surrogate):	Loss 1.0261 (0.7801)	Prec@1 68.750 (76.770)
+2023-07-20 11:51:19,024 DEBUG  * Prec@1 76.770
+2023-07-20 11:51:37,237 DEBUG log--[100/200][196/196][client-0] train loss: 0.1322 cross-entropy loss: 0.1322
+2023-07-20 11:51:37,367 DEBUG log--[100/200][196/196][client-1] train loss: 0.2097 cross-entropy loss: 0.2097
+2023-07-20 11:51:37,513 DEBUG log--[100/200][196/196][client-2] train loss: 0.1788 cross-entropy loss: 0.1788
+2023-07-20 11:51:37,635 DEBUG log--[100/200][196/196][client-3] train loss: 0.3122 cross-entropy loss: 0.3122
+2023-07-20 11:51:37,666 DEBUG log--[100/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:51:38,540 DEBUG Test (client-0):	Loss 0.3572 (0.3726)	Prec@1 93.750 (89.180)
+2023-07-20 11:51:38,541 DEBUG  * Prec@1 89.180
+2023-07-20 11:51:39,451 DEBUG Test (surrogate):	Loss 1.1634 (0.7729)	Prec@1 68.750 (77.210)
+2023-07-20 11:51:39,452 DEBUG  * Prec@1 77.210
+2023-07-20 11:51:57,635 DEBUG log--[101/200][196/196][client-0] train loss: 0.1322 cross-entropy loss: 0.1322
+2023-07-20 11:51:57,800 DEBUG log--[101/200][196/196][client-1] train loss: 0.2842 cross-entropy loss: 0.2842
+2023-07-20 11:51:57,966 DEBUG log--[101/200][196/196][client-2] train loss: 0.1303 cross-entropy loss: 0.1303
+2023-07-20 11:51:58,097 DEBUG log--[101/200][196/196][client-3] train loss: 0.0600 cross-entropy loss: 0.0600
+2023-07-20 11:51:58,129 DEBUG log--[101/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:51:58,962 DEBUG Test (client-0):	Loss 0.3589 (0.3661)	Prec@1 93.750 (89.300)
+2023-07-20 11:51:58,963 DEBUG  * Prec@1 89.300
+2023-07-20 11:51:59,796 DEBUG Test (surrogate):	Loss 1.1195 (0.7683)	Prec@1 75.000 (77.280)
+2023-07-20 11:51:59,797 DEBUG  * Prec@1 77.280
+2023-07-20 11:52:17,974 DEBUG log--[102/200][196/196][client-0] train loss: 0.1633 cross-entropy loss: 0.1633
+2023-07-20 11:52:18,107 DEBUG log--[102/200][196/196][client-1] train loss: 0.1259 cross-entropy loss: 0.1259
+2023-07-20 11:52:18,227 DEBUG log--[102/200][196/196][client-2] train loss: 0.0872 cross-entropy loss: 0.0872
+2023-07-20 11:52:18,355 DEBUG log--[102/200][196/196][client-3] train loss: 0.1720 cross-entropy loss: 0.1720
+2023-07-20 11:52:18,386 DEBUG log--[102/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:52:19,274 DEBUG Test (client-0):	Loss 0.3607 (0.3677)	Prec@1 93.750 (89.070)
+2023-07-20 11:52:19,275 DEBUG  * Prec@1 89.070
+2023-07-20 11:52:20,146 DEBUG Test (surrogate):	Loss 1.0835 (0.7817)	Prec@1 75.000 (77.450)
+2023-07-20 11:52:20,147 DEBUG  * Prec@1 77.450
+2023-07-20 11:52:38,360 DEBUG log--[103/200][196/196][client-0] train loss: 0.2299 cross-entropy loss: 0.2299
+2023-07-20 11:52:38,510 DEBUG log--[103/200][196/196][client-1] train loss: 0.1026 cross-entropy loss: 0.1026
+2023-07-20 11:52:38,649 DEBUG log--[103/200][196/196][client-2] train loss: 0.1494 cross-entropy loss: 0.1494
+2023-07-20 11:52:38,779 DEBUG log--[103/200][196/196][client-3] train loss: 0.2262 cross-entropy loss: 0.2262
+2023-07-20 11:52:38,811 DEBUG log--[103/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:52:39,748 DEBUG Test (client-0):	Loss 0.3558 (0.3613)	Prec@1 93.750 (89.370)
+2023-07-20 11:52:39,749 DEBUG  * Prec@1 89.370
+2023-07-20 11:52:40,690 DEBUG Test (surrogate):	Loss 1.1510 (0.7730)	Prec@1 75.000 (77.200)
+2023-07-20 11:52:40,691 DEBUG  * Prec@1 77.200
+2023-07-20 11:52:58,942 DEBUG log--[104/200][196/196][client-0] train loss: 0.0868 cross-entropy loss: 0.0868
+2023-07-20 11:52:59,073 DEBUG log--[104/200][196/196][client-1] train loss: 0.0206 cross-entropy loss: 0.0206
+2023-07-20 11:52:59,206 DEBUG log--[104/200][196/196][client-2] train loss: 0.2524 cross-entropy loss: 0.2524
+2023-07-20 11:52:59,363 DEBUG log--[104/200][196/196][client-3] train loss: 0.1684 cross-entropy loss: 0.1684
+2023-07-20 11:52:59,395 DEBUG log--[104/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:53:00,308 DEBUG Test (client-0):	Loss 0.2175 (0.3589)	Prec@1 93.750 (89.210)
+2023-07-20 11:53:00,310 DEBUG  * Prec@1 89.210
+2023-07-20 11:53:01,196 DEBUG Test (surrogate):	Loss 0.9327 (0.7887)	Prec@1 68.750 (76.820)
+2023-07-20 11:53:01,197 DEBUG  * Prec@1 76.820
+2023-07-20 11:53:19,362 DEBUG log--[105/200][196/196][client-0] train loss: 0.1314 cross-entropy loss: 0.1314
+2023-07-20 11:53:19,505 DEBUG log--[105/200][196/196][client-1] train loss: 0.1931 cross-entropy loss: 0.1931
+2023-07-20 11:53:19,619 DEBUG log--[105/200][196/196][client-2] train loss: 0.0845 cross-entropy loss: 0.0845
+2023-07-20 11:53:19,790 DEBUG log--[105/200][196/196][client-3] train loss: 0.1144 cross-entropy loss: 0.1144
+2023-07-20 11:53:19,822 DEBUG log--[105/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:53:20,717 DEBUG Test (client-0):	Loss 0.4005 (0.3652)	Prec@1 87.500 (89.240)
+2023-07-20 11:53:20,718 DEBUG  * Prec@1 89.240
+2023-07-20 11:53:21,622 DEBUG Test (surrogate):	Loss 1.1655 (0.7969)	Prec@1 75.000 (76.500)
+2023-07-20 11:53:21,623 DEBUG  * Prec@1 76.500
+2023-07-20 11:53:39,866 DEBUG log--[106/200][196/196][client-0] train loss: 0.1491 cross-entropy loss: 0.1491
+2023-07-20 11:53:39,993 DEBUG log--[106/200][196/196][client-1] train loss: 0.3003 cross-entropy loss: 0.3003
+2023-07-20 11:53:40,127 DEBUG log--[106/200][196/196][client-2] train loss: 0.0898 cross-entropy loss: 0.0898
+2023-07-20 11:53:40,269 DEBUG log--[106/200][196/196][client-3] train loss: 0.2029 cross-entropy loss: 0.2029
+2023-07-20 11:53:40,301 DEBUG log--[106/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:53:41,196 DEBUG Test (client-0):	Loss 0.4485 (0.3588)	Prec@1 87.500 (89.550)
+2023-07-20 11:53:41,198 DEBUG  * Prec@1 89.550
+2023-07-20 11:53:42,079 DEBUG Test (surrogate):	Loss 1.1690 (0.7783)	Prec@1 68.750 (77.030)
+2023-07-20 11:53:42,080 DEBUG  * Prec@1 77.030
+2023-07-20 11:54:00,256 DEBUG log--[107/200][196/196][client-0] train loss: 0.1632 cross-entropy loss: 0.1632
+2023-07-20 11:54:00,398 DEBUG log--[107/200][196/196][client-1] train loss: 0.1324 cross-entropy loss: 0.1324
+2023-07-20 11:54:00,515 DEBUG log--[107/200][196/196][client-2] train loss: 0.2973 cross-entropy loss: 0.2973
+2023-07-20 11:54:00,668 DEBUG log--[107/200][196/196][client-3] train loss: 0.3193 cross-entropy loss: 0.3193
+2023-07-20 11:54:00,700 DEBUG log--[107/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:54:01,530 DEBUG Test (client-0):	Loss 0.3691 (0.3758)	Prec@1 93.750 (89.120)
+2023-07-20 11:54:01,531 DEBUG  * Prec@1 89.120
+2023-07-20 11:54:02,335 DEBUG Test (surrogate):	Loss 1.0688 (0.8016)	Prec@1 68.750 (76.030)
+2023-07-20 11:54:02,337 DEBUG  * Prec@1 76.030
+2023-07-20 11:54:20,413 DEBUG log--[108/200][196/196][client-0] train loss: 0.0824 cross-entropy loss: 0.0824
+2023-07-20 11:54:20,571 DEBUG log--[108/200][196/196][client-1] train loss: 0.0778 cross-entropy loss: 0.0778
+2023-07-20 11:54:20,721 DEBUG log--[108/200][196/196][client-2] train loss: 0.1863 cross-entropy loss: 0.1863
+2023-07-20 11:54:20,844 DEBUG log--[108/200][196/196][client-3] train loss: 0.0930 cross-entropy loss: 0.0930
+2023-07-20 11:54:20,875 DEBUG log--[108/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:54:21,733 DEBUG Test (client-0):	Loss 0.3972 (0.3517)	Prec@1 93.750 (89.310)
+2023-07-20 11:54:21,734 DEBUG  * Prec@1 89.310
+2023-07-20 11:54:22,552 DEBUG Test (surrogate):	Loss 1.0137 (0.7880)	Prec@1 75.000 (76.640)
+2023-07-20 11:54:22,553 DEBUG  * Prec@1 76.640
+2023-07-20 11:54:40,782 DEBUG log--[109/200][196/196][client-0] train loss: 0.2125 cross-entropy loss: 0.2125
+2023-07-20 11:54:40,916 DEBUG log--[109/200][196/196][client-1] train loss: 0.1057 cross-entropy loss: 0.1057
+2023-07-20 11:54:41,107 DEBUG log--[109/200][196/196][client-2] train loss: 0.3394 cross-entropy loss: 0.3394
+2023-07-20 11:54:41,235 DEBUG log--[109/200][196/196][client-3] train loss: 0.1415 cross-entropy loss: 0.1415
+2023-07-20 11:54:41,266 DEBUG log--[109/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:54:42,084 DEBUG Test (client-0):	Loss 0.1839 (0.3569)	Prec@1 93.750 (89.610)
+2023-07-20 11:54:42,085 DEBUG  * Prec@1 89.610
+2023-07-20 11:54:42,938 DEBUG Test (surrogate):	Loss 1.0041 (0.7714)	Prec@1 68.750 (76.970)
+2023-07-20 11:54:42,939 DEBUG  * Prec@1 76.970
+2023-07-20 11:55:01,250 DEBUG log--[110/200][196/196][client-0] train loss: 0.0837 cross-entropy loss: 0.0837
+2023-07-20 11:55:01,385 DEBUG log--[110/200][196/196][client-1] train loss: 0.1911 cross-entropy loss: 0.1911
+2023-07-20 11:55:01,515 DEBUG log--[110/200][196/196][client-2] train loss: 0.3649 cross-entropy loss: 0.3649
+2023-07-20 11:55:01,682 DEBUG log--[110/200][196/196][client-3] train loss: 0.1846 cross-entropy loss: 0.1846
+2023-07-20 11:55:01,717 DEBUG log--[110/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:55:02,663 DEBUG Test (client-0):	Loss 0.3044 (0.3669)	Prec@1 87.500 (89.060)
+2023-07-20 11:55:02,665 DEBUG  * Prec@1 89.060
+2023-07-20 11:55:03,608 DEBUG Test (surrogate):	Loss 1.0957 (0.7819)	Prec@1 75.000 (76.740)
+2023-07-20 11:55:03,609 DEBUG  * Prec@1 76.740
+2023-07-20 11:55:21,896 DEBUG log--[111/200][196/196][client-0] train loss: 0.1465 cross-entropy loss: 0.1465
+2023-07-20 11:55:22,088 DEBUG log--[111/200][196/196][client-1] train loss: 0.2826 cross-entropy loss: 0.2826
+2023-07-20 11:55:22,241 DEBUG log--[111/200][196/196][client-2] train loss: 0.1326 cross-entropy loss: 0.1326
+2023-07-20 11:55:22,374 DEBUG log--[111/200][196/196][client-3] train loss: 0.2160 cross-entropy loss: 0.2160
+2023-07-20 11:55:22,406 DEBUG log--[111/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:55:23,223 DEBUG Test (client-0):	Loss 0.2753 (0.3605)	Prec@1 87.500 (89.160)
+2023-07-20 11:55:23,223 DEBUG  * Prec@1 89.160
+2023-07-20 11:55:24,014 DEBUG Test (surrogate):	Loss 1.0299 (0.7922)	Prec@1 68.750 (76.280)
+2023-07-20 11:55:24,015 DEBUG  * Prec@1 76.280
+2023-07-20 11:55:42,302 DEBUG log--[112/200][196/196][client-0] train loss: 0.0914 cross-entropy loss: 0.0914
+2023-07-20 11:55:42,433 DEBUG log--[112/200][196/196][client-1] train loss: 0.2683 cross-entropy loss: 0.2683
+2023-07-20 11:55:42,565 DEBUG log--[112/200][196/196][client-2] train loss: 0.1205 cross-entropy loss: 0.1205
+2023-07-20 11:55:42,761 DEBUG log--[112/200][196/196][client-3] train loss: 0.1345 cross-entropy loss: 0.1345
+2023-07-20 11:55:42,794 DEBUG log--[112/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:55:43,696 DEBUG Test (client-0):	Loss 0.3377 (0.3773)	Prec@1 87.500 (88.830)
+2023-07-20 11:55:43,697 DEBUG  * Prec@1 88.830
+2023-07-20 11:55:44,605 DEBUG Test (surrogate):	Loss 1.1284 (0.7993)	Prec@1 68.750 (76.220)
+2023-07-20 11:55:44,606 DEBUG  * Prec@1 76.220
+2023-07-20 11:56:02,804 DEBUG log--[113/200][196/196][client-0] train loss: 0.0570 cross-entropy loss: 0.0570
+2023-07-20 11:56:02,929 DEBUG log--[113/200][196/196][client-1] train loss: 0.3719 cross-entropy loss: 0.3719
+2023-07-20 11:56:03,066 DEBUG log--[113/200][196/196][client-2] train loss: 0.2123 cross-entropy loss: 0.2123
+2023-07-20 11:56:03,224 DEBUG log--[113/200][196/196][client-3] train loss: 0.0487 cross-entropy loss: 0.0487
+2023-07-20 11:56:03,258 DEBUG log--[113/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:56:04,196 DEBUG Test (client-0):	Loss 0.2504 (0.3602)	Prec@1 93.750 (89.410)
+2023-07-20 11:56:04,196 DEBUG  * Prec@1 89.410
+2023-07-20 11:56:05,103 DEBUG Test (surrogate):	Loss 1.0268 (0.7946)	Prec@1 68.750 (76.620)
+2023-07-20 11:56:05,103 DEBUG  * Prec@1 76.620
+2023-07-20 11:56:23,181 DEBUG log--[114/200][196/196][client-0] train loss: 0.0489 cross-entropy loss: 0.0489
+2023-07-20 11:56:23,316 DEBUG log--[114/200][196/196][client-1] train loss: 0.0258 cross-entropy loss: 0.0258
+2023-07-20 11:56:23,464 DEBUG log--[114/200][196/196][client-2] train loss: 0.2899 cross-entropy loss: 0.2899
+2023-07-20 11:56:23,597 DEBUG log--[114/200][196/196][client-3] train loss: 0.0417 cross-entropy loss: 0.0417
+2023-07-20 11:56:23,629 DEBUG log--[114/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:56:24,531 DEBUG Test (client-0):	Loss 0.4205 (0.3631)	Prec@1 93.750 (89.140)
+2023-07-20 11:56:24,533 DEBUG  * Prec@1 89.140
+2023-07-20 11:56:25,457 DEBUG Test (surrogate):	Loss 1.0580 (0.7951)	Prec@1 68.750 (76.420)
+2023-07-20 11:56:25,458 DEBUG  * Prec@1 76.420
+2023-07-20 11:56:43,536 DEBUG log--[115/200][196/196][client-0] train loss: 0.2456 cross-entropy loss: 0.2456
+2023-07-20 11:56:43,664 DEBUG log--[115/200][196/196][client-1] train loss: 0.2828 cross-entropy loss: 0.2828
+2023-07-20 11:56:43,802 DEBUG log--[115/200][196/196][client-2] train loss: 0.0763 cross-entropy loss: 0.0763
+2023-07-20 11:56:43,936 DEBUG log--[115/200][196/196][client-3] train loss: 0.2724 cross-entropy loss: 0.2724
+2023-07-20 11:56:43,967 DEBUG log--[115/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:56:44,851 DEBUG Test (client-0):	Loss 0.3123 (0.3702)	Prec@1 93.750 (89.030)
+2023-07-20 11:56:44,852 DEBUG  * Prec@1 89.030
+2023-07-20 11:56:45,742 DEBUG Test (surrogate):	Loss 1.0835 (0.7898)	Prec@1 68.750 (76.650)
+2023-07-20 11:56:45,743 DEBUG  * Prec@1 76.650
+2023-07-20 11:57:03,687 DEBUG log--[116/200][196/196][client-0] train loss: 0.0670 cross-entropy loss: 0.0670
+2023-07-20 11:57:03,814 DEBUG log--[116/200][196/196][client-1] train loss: 0.1422 cross-entropy loss: 0.1422
+2023-07-20 11:57:03,933 DEBUG log--[116/200][196/196][client-2] train loss: 0.1305 cross-entropy loss: 0.1305
+2023-07-20 11:57:04,096 DEBUG log--[116/200][196/196][client-3] train loss: 0.1112 cross-entropy loss: 0.1112
+2023-07-20 11:57:04,131 DEBUG log--[116/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:57:05,022 DEBUG Test (client-0):	Loss 0.4586 (0.3750)	Prec@1 93.750 (88.980)
+2023-07-20 11:57:05,023 DEBUG  * Prec@1 88.980
+2023-07-20 11:57:05,889 DEBUG Test (surrogate):	Loss 1.1087 (0.7670)	Prec@1 68.750 (76.990)
+2023-07-20 11:57:05,890 DEBUG  * Prec@1 76.990
+2023-07-20 11:57:24,214 DEBUG log--[117/200][196/196][client-0] train loss: 0.1353 cross-entropy loss: 0.1353
+2023-07-20 11:57:24,351 DEBUG log--[117/200][196/196][client-1] train loss: 0.0551 cross-entropy loss: 0.0551
+2023-07-20 11:57:24,471 DEBUG log--[117/200][196/196][client-2] train loss: 0.2332 cross-entropy loss: 0.2332
+2023-07-20 11:57:24,601 DEBUG log--[117/200][196/196][client-3] train loss: 0.1599 cross-entropy loss: 0.1599
+2023-07-20 11:57:24,634 DEBUG log--[117/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:57:25,517 DEBUG Test (client-0):	Loss 0.3631 (0.3900)	Prec@1 87.500 (88.570)
+2023-07-20 11:57:25,518 DEBUG  * Prec@1 88.570
+2023-07-20 11:57:26,367 DEBUG Test (surrogate):	Loss 1.0370 (0.7661)	Prec@1 68.750 (76.550)
+2023-07-20 11:57:26,368 DEBUG  * Prec@1 76.550
+2023-07-20 11:57:44,524 DEBUG log--[118/200][196/196][client-0] train loss: 0.0949 cross-entropy loss: 0.0949
+2023-07-20 11:57:44,706 DEBUG log--[118/200][196/196][client-1] train loss: 0.0465 cross-entropy loss: 0.0465
+2023-07-20 11:57:44,832 DEBUG log--[118/200][196/196][client-2] train loss: 0.1098 cross-entropy loss: 0.1098
+2023-07-20 11:57:44,965 DEBUG log--[118/200][196/196][client-3] train loss: 0.0985 cross-entropy loss: 0.0985
+2023-07-20 11:57:44,997 DEBUG log--[118/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:57:45,843 DEBUG Test (client-0):	Loss 0.4346 (0.3615)	Prec@1 87.500 (89.480)
+2023-07-20 11:57:45,844 DEBUG  * Prec@1 89.480
+2023-07-20 11:57:46,678 DEBUG Test (surrogate):	Loss 1.1592 (0.7878)	Prec@1 68.750 (76.500)
+2023-07-20 11:57:46,679 DEBUG  * Prec@1 76.500
+2023-07-20 11:58:04,808 DEBUG log--[119/200][196/196][client-0] train loss: 0.1019 cross-entropy loss: 0.1019
+2023-07-20 11:58:04,933 DEBUG log--[119/200][196/196][client-1] train loss: 0.1482 cross-entropy loss: 0.1482
+2023-07-20 11:58:05,051 DEBUG log--[119/200][196/196][client-2] train loss: 0.0412 cross-entropy loss: 0.0412
+2023-07-20 11:58:05,177 DEBUG log--[119/200][196/196][client-3] train loss: 0.2341 cross-entropy loss: 0.2341
+2023-07-20 11:58:05,208 DEBUG log--[119/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:58:06,097 DEBUG Test (client-0):	Loss 0.4006 (0.3724)	Prec@1 93.750 (89.080)
+2023-07-20 11:58:06,098 DEBUG  * Prec@1 89.080
+2023-07-20 11:58:06,965 DEBUG Test (surrogate):	Loss 1.0384 (0.7879)	Prec@1 68.750 (76.510)
+2023-07-20 11:58:06,966 DEBUG  * Prec@1 76.510
+2023-07-20 11:58:25,195 DEBUG log--[120/200][196/196][client-0] train loss: 0.0669 cross-entropy loss: 0.0669
+2023-07-20 11:58:25,372 DEBUG log--[120/200][196/196][client-1] train loss: 0.3115 cross-entropy loss: 0.3115
+2023-07-20 11:58:25,527 DEBUG log--[120/200][196/196][client-2] train loss: 0.1348 cross-entropy loss: 0.1348
+2023-07-20 11:58:25,650 DEBUG log--[120/200][196/196][client-3] train loss: 0.0776 cross-entropy loss: 0.0776
+2023-07-20 11:58:25,682 DEBUG log--[120/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:58:26,503 DEBUG Test (client-0):	Loss 0.5506 (0.3858)	Prec@1 93.750 (89.080)
+2023-07-20 11:58:26,505 DEBUG  * Prec@1 89.080
+2023-07-20 11:58:27,317 DEBUG Test (surrogate):	Loss 1.1347 (0.7851)	Prec@1 68.750 (76.670)
+2023-07-20 11:58:27,318 DEBUG  * Prec@1 76.670
+2023-07-20 11:58:45,569 DEBUG log--[121/200][196/196][client-0] train loss: 0.0847 cross-entropy loss: 0.0847
+2023-07-20 11:58:45,692 DEBUG log--[121/200][196/196][client-1] train loss: 0.0427 cross-entropy loss: 0.0427
+2023-07-20 11:58:45,830 DEBUG log--[121/200][196/196][client-2] train loss: 0.1499 cross-entropy loss: 0.1499
+2023-07-20 11:58:45,970 DEBUG log--[121/200][196/196][client-3] train loss: 0.0215 cross-entropy loss: 0.0215
+2023-07-20 11:58:46,002 DEBUG log--[121/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:58:46,916 DEBUG Test (client-0):	Loss 0.4476 (0.3757)	Prec@1 93.750 (89.260)
+2023-07-20 11:58:46,917 DEBUG  * Prec@1 89.260
+2023-07-20 11:58:47,749 DEBUG Test (surrogate):	Loss 1.1317 (0.7918)	Prec@1 68.750 (76.370)
+2023-07-20 11:58:47,750 DEBUG  * Prec@1 76.370
+2023-07-20 11:59:05,823 DEBUG log--[122/200][196/196][client-0] train loss: 0.1032 cross-entropy loss: 0.1032
+2023-07-20 11:59:05,957 DEBUG log--[122/200][196/196][client-1] train loss: 0.0603 cross-entropy loss: 0.0603
+2023-07-20 11:59:06,088 DEBUG log--[122/200][196/196][client-2] train loss: 0.0700 cross-entropy loss: 0.0700
+2023-07-20 11:59:06,222 DEBUG log--[122/200][196/196][client-3] train loss: 0.2927 cross-entropy loss: 0.2927
+2023-07-20 11:59:06,253 DEBUG log--[122/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:59:07,140 DEBUG Test (client-0):	Loss 0.4390 (0.3802)	Prec@1 93.750 (89.440)
+2023-07-20 11:59:07,141 DEBUG  * Prec@1 89.440
+2023-07-20 11:59:07,983 DEBUG Test (surrogate):	Loss 1.2135 (0.7738)	Prec@1 68.750 (76.630)
+2023-07-20 11:59:07,983 DEBUG  * Prec@1 76.630
+2023-07-20 11:59:26,146 DEBUG log--[123/200][196/196][client-0] train loss: 0.0712 cross-entropy loss: 0.0712
+2023-07-20 11:59:26,331 DEBUG log--[123/200][196/196][client-1] train loss: 0.0893 cross-entropy loss: 0.0893
+2023-07-20 11:59:26,474 DEBUG log--[123/200][196/196][client-2] train loss: 0.0266 cross-entropy loss: 0.0266
+2023-07-20 11:59:26,616 DEBUG log--[123/200][196/196][client-3] train loss: 0.1053 cross-entropy loss: 0.1053
+2023-07-20 11:59:26,648 DEBUG log--[123/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:59:27,496 DEBUG Test (client-0):	Loss 0.4568 (0.3858)	Prec@1 93.750 (89.370)
+2023-07-20 11:59:27,498 DEBUG  * Prec@1 89.370
+2023-07-20 11:59:28,369 DEBUG Test (surrogate):	Loss 1.1352 (0.7631)	Prec@1 68.750 (76.940)
+2023-07-20 11:59:28,370 DEBUG  * Prec@1 76.940
+2023-07-20 11:59:46,451 DEBUG log--[124/200][196/196][client-0] train loss: 0.0831 cross-entropy loss: 0.0831
+2023-07-20 11:59:46,593 DEBUG log--[124/200][196/196][client-1] train loss: 0.0672 cross-entropy loss: 0.0672
+2023-07-20 11:59:46,738 DEBUG log--[124/200][196/196][client-2] train loss: 0.0642 cross-entropy loss: 0.0642
+2023-07-20 11:59:46,885 DEBUG log--[124/200][196/196][client-3] train loss: 0.0056 cross-entropy loss: 0.0056
+2023-07-20 11:59:46,917 DEBUG log--[124/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 11:59:47,844 DEBUG Test (client-0):	Loss 0.4338 (0.3972)	Prec@1 93.750 (89.390)
+2023-07-20 11:59:47,846 DEBUG  * Prec@1 89.390
+2023-07-20 11:59:48,734 DEBUG Test (surrogate):	Loss 1.0801 (0.7708)	Prec@1 68.750 (76.680)
+2023-07-20 11:59:48,735 DEBUG  * Prec@1 76.680
+2023-07-20 12:00:06,917 DEBUG log--[125/200][196/196][client-0] train loss: 0.0973 cross-entropy loss: 0.0973
+2023-07-20 12:00:07,066 DEBUG log--[125/200][196/196][client-1] train loss: 0.0565 cross-entropy loss: 0.0565
+2023-07-20 12:00:07,203 DEBUG log--[125/200][196/196][client-2] train loss: 0.0813 cross-entropy loss: 0.0813
+2023-07-20 12:00:07,328 DEBUG log--[125/200][196/196][client-3] train loss: 0.0201 cross-entropy loss: 0.0201
+2023-07-20 12:00:07,361 DEBUG log--[125/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:00:08,243 DEBUG Test (client-0):	Loss 0.4363 (0.3984)	Prec@1 93.750 (89.480)
+2023-07-20 12:00:08,244 DEBUG  * Prec@1 89.480
+2023-07-20 12:00:09,101 DEBUG Test (surrogate):	Loss 1.1643 (0.7774)	Prec@1 68.750 (76.770)
+2023-07-20 12:00:09,102 DEBUG  * Prec@1 76.770
+2023-07-20 12:00:27,414 DEBUG log--[126/200][196/196][client-0] train loss: 0.0386 cross-entropy loss: 0.0386
+2023-07-20 12:00:27,556 DEBUG log--[126/200][196/196][client-1] train loss: 0.0516 cross-entropy loss: 0.0516
+2023-07-20 12:00:27,703 DEBUG log--[126/200][196/196][client-2] train loss: 0.0115 cross-entropy loss: 0.0115
+2023-07-20 12:00:27,828 DEBUG log--[126/200][196/196][client-3] train loss: 0.1519 cross-entropy loss: 0.1519
+2023-07-20 12:00:27,860 DEBUG log--[126/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:00:28,752 DEBUG Test (client-0):	Loss 0.4036 (0.4001)	Prec@1 93.750 (89.340)
+2023-07-20 12:00:28,753 DEBUG  * Prec@1 89.340
+2023-07-20 12:00:29,662 DEBUG Test (surrogate):	Loss 1.1748 (0.7772)	Prec@1 68.750 (76.630)
+2023-07-20 12:00:29,663 DEBUG  * Prec@1 76.630
+2023-07-20 12:00:47,963 DEBUG log--[127/200][196/196][client-0] train loss: 0.1450 cross-entropy loss: 0.1450
+2023-07-20 12:00:48,091 DEBUG log--[127/200][196/196][client-1] train loss: 0.1643 cross-entropy loss: 0.1643
+2023-07-20 12:00:48,216 DEBUG log--[127/200][196/196][client-2] train loss: 0.0599 cross-entropy loss: 0.0599
+2023-07-20 12:00:48,361 DEBUG log--[127/200][196/196][client-3] train loss: 0.0451 cross-entropy loss: 0.0451
+2023-07-20 12:00:48,393 DEBUG log--[127/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:00:49,259 DEBUG Test (client-0):	Loss 0.4420 (0.4029)	Prec@1 93.750 (89.640)
+2023-07-20 12:00:49,260 DEBUG  * Prec@1 89.640
+2023-07-20 12:00:50,081 DEBUG Test (surrogate):	Loss 1.1102 (0.7766)	Prec@1 68.750 (76.730)
+2023-07-20 12:00:50,082 DEBUG  * Prec@1 76.730
+2023-07-20 12:01:08,173 DEBUG log--[128/200][196/196][client-0] train loss: 0.0130 cross-entropy loss: 0.0130
+2023-07-20 12:01:08,303 DEBUG log--[128/200][196/196][client-1] train loss: 0.0915 cross-entropy loss: 0.0915
+2023-07-20 12:01:08,492 DEBUG log--[128/200][196/196][client-2] train loss: 0.0635 cross-entropy loss: 0.0635
+2023-07-20 12:01:08,654 DEBUG log--[128/200][196/196][client-3] train loss: 0.0148 cross-entropy loss: 0.0148
+2023-07-20 12:01:08,687 DEBUG log--[128/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:01:09,534 DEBUG Test (client-0):	Loss 0.3931 (0.4129)	Prec@1 93.750 (89.440)
+2023-07-20 12:01:09,536 DEBUG  * Prec@1 89.440
+2023-07-20 12:01:10,351 DEBUG Test (surrogate):	Loss 1.1909 (0.7801)	Prec@1 68.750 (76.340)
+2023-07-20 12:01:10,351 DEBUG  * Prec@1 76.340
+2023-07-20 12:01:28,646 DEBUG log--[129/200][196/196][client-0] train loss: 0.0280 cross-entropy loss: 0.0280
+2023-07-20 12:01:28,779 DEBUG log--[129/200][196/196][client-1] train loss: 0.0095 cross-entropy loss: 0.0095
+2023-07-20 12:01:28,912 DEBUG log--[129/200][196/196][client-2] train loss: 0.0269 cross-entropy loss: 0.0269
+2023-07-20 12:01:29,051 DEBUG log--[129/200][196/196][client-3] train loss: 0.0133 cross-entropy loss: 0.0133
+2023-07-20 12:01:29,083 DEBUG log--[129/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:01:29,950 DEBUG Test (client-0):	Loss 0.4011 (0.4065)	Prec@1 93.750 (89.420)
+2023-07-20 12:01:29,950 DEBUG  * Prec@1 89.420
+2023-07-20 12:01:30,813 DEBUG Test (surrogate):	Loss 1.1173 (0.7929)	Prec@1 68.750 (76.300)
+2023-07-20 12:01:30,814 DEBUG  * Prec@1 76.300
+2023-07-20 12:01:48,969 DEBUG log--[130/200][196/196][client-0] train loss: 0.0294 cross-entropy loss: 0.0294
+2023-07-20 12:01:49,119 DEBUG log--[130/200][196/196][client-1] train loss: 0.0110 cross-entropy loss: 0.0110
+2023-07-20 12:01:49,246 DEBUG log--[130/200][196/196][client-2] train loss: 0.0704 cross-entropy loss: 0.0704
+2023-07-20 12:01:49,421 DEBUG log--[130/200][196/196][client-3] train loss: 0.0072 cross-entropy loss: 0.0072
+2023-07-20 12:01:49,455 DEBUG log--[130/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:01:50,390 DEBUG Test (client-0):	Loss 0.4083 (0.4117)	Prec@1 93.750 (89.370)
+2023-07-20 12:01:50,391 DEBUG  * Prec@1 89.370
+2023-07-20 12:01:51,270 DEBUG Test (surrogate):	Loss 1.0674 (0.7757)	Prec@1 68.750 (76.870)
+2023-07-20 12:01:51,272 DEBUG  * Prec@1 76.870
+2023-07-20 12:02:09,555 DEBUG log--[131/200][196/196][client-0] train loss: 0.1052 cross-entropy loss: 0.1052
+2023-07-20 12:02:09,676 DEBUG log--[131/200][196/196][client-1] train loss: 0.0124 cross-entropy loss: 0.0124
+2023-07-20 12:02:09,798 DEBUG log--[131/200][196/196][client-2] train loss: 0.0920 cross-entropy loss: 0.0920
+2023-07-20 12:02:09,915 DEBUG log--[131/200][196/196][client-3] train loss: 0.0298 cross-entropy loss: 0.0298
+2023-07-20 12:02:09,946 DEBUG log--[131/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:02:10,828 DEBUG Test (client-0):	Loss 0.4859 (0.4150)	Prec@1 93.750 (89.460)
+2023-07-20 12:02:10,829 DEBUG  * Prec@1 89.460
+2023-07-20 12:02:11,692 DEBUG Test (surrogate):	Loss 1.1364 (0.7832)	Prec@1 68.750 (76.430)
+2023-07-20 12:02:11,693 DEBUG  * Prec@1 76.430
+2023-07-20 12:02:29,980 DEBUG log--[132/200][196/196][client-0] train loss: 0.1029 cross-entropy loss: 0.1029
+2023-07-20 12:02:30,107 DEBUG log--[132/200][196/196][client-1] train loss: 0.0051 cross-entropy loss: 0.0051
+2023-07-20 12:02:30,238 DEBUG log--[132/200][196/196][client-2] train loss: 0.0189 cross-entropy loss: 0.0189
+2023-07-20 12:02:30,384 DEBUG log--[132/200][196/196][client-3] train loss: 0.0177 cross-entropy loss: 0.0177
+2023-07-20 12:02:30,416 DEBUG log--[132/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:02:31,328 DEBUG Test (client-0):	Loss 0.4260 (0.4189)	Prec@1 93.750 (89.400)
+2023-07-20 12:02:31,330 DEBUG  * Prec@1 89.400
+2023-07-20 12:02:32,181 DEBUG Test (surrogate):	Loss 1.1716 (0.7855)	Prec@1 68.750 (76.270)
+2023-07-20 12:02:32,182 DEBUG  * Prec@1 76.270
+2023-07-20 12:02:50,311 DEBUG log--[133/200][196/196][client-0] train loss: 0.0648 cross-entropy loss: 0.0648
+2023-07-20 12:02:50,434 DEBUG log--[133/200][196/196][client-1] train loss: 0.0140 cross-entropy loss: 0.0140
+2023-07-20 12:02:50,569 DEBUG log--[133/200][196/196][client-2] train loss: 0.0180 cross-entropy loss: 0.0180
+2023-07-20 12:02:50,700 DEBUG log--[133/200][196/196][client-3] train loss: 0.0218 cross-entropy loss: 0.0218
+2023-07-20 12:02:50,732 DEBUG log--[133/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:02:51,614 DEBUG Test (client-0):	Loss 0.4398 (0.4312)	Prec@1 93.750 (89.340)
+2023-07-20 12:02:51,616 DEBUG  * Prec@1 89.340
+2023-07-20 12:02:52,465 DEBUG Test (surrogate):	Loss 1.2024 (0.7650)	Prec@1 68.750 (76.790)
+2023-07-20 12:02:52,466 DEBUG  * Prec@1 76.790
+2023-07-20 12:03:10,620 DEBUG log--[134/200][196/196][client-0] train loss: 0.0295 cross-entropy loss: 0.0295
+2023-07-20 12:03:10,752 DEBUG log--[134/200][196/196][client-1] train loss: 0.0327 cross-entropy loss: 0.0327
+2023-07-20 12:03:10,882 DEBUG log--[134/200][196/196][client-2] train loss: 0.0226 cross-entropy loss: 0.0226
+2023-07-20 12:03:11,047 DEBUG log--[134/200][196/196][client-3] train loss: 0.0696 cross-entropy loss: 0.0696
+2023-07-20 12:03:11,080 DEBUG log--[134/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:03:11,929 DEBUG Test (client-0):	Loss 0.4240 (0.4211)	Prec@1 93.750 (89.430)
+2023-07-20 12:03:11,931 DEBUG  * Prec@1 89.430
+2023-07-20 12:03:12,809 DEBUG Test (surrogate):	Loss 1.1677 (0.7815)	Prec@1 68.750 (76.340)
+2023-07-20 12:03:12,810 DEBUG  * Prec@1 76.340
+2023-07-20 12:03:30,974 DEBUG log--[135/200][196/196][client-0] train loss: 0.0198 cross-entropy loss: 0.0198
+2023-07-20 12:03:31,115 DEBUG log--[135/200][196/196][client-1] train loss: 0.0374 cross-entropy loss: 0.0374
+2023-07-20 12:03:31,242 DEBUG log--[135/200][196/196][client-2] train loss: 0.0753 cross-entropy loss: 0.0753
+2023-07-20 12:03:31,390 DEBUG log--[135/200][196/196][client-3] train loss: 0.1141 cross-entropy loss: 0.1141
+2023-07-20 12:03:31,422 DEBUG log--[135/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:03:32,330 DEBUG Test (client-0):	Loss 0.4387 (0.4222)	Prec@1 93.750 (89.410)
+2023-07-20 12:03:32,332 DEBUG  * Prec@1 89.410
+2023-07-20 12:03:33,205 DEBUG Test (surrogate):	Loss 1.1789 (0.7882)	Prec@1 68.750 (76.100)
+2023-07-20 12:03:33,206 DEBUG  * Prec@1 76.100
+2023-07-20 12:03:51,321 DEBUG log--[136/200][196/196][client-0] train loss: 0.0726 cross-entropy loss: 0.0726
+2023-07-20 12:03:51,459 DEBUG log--[136/200][196/196][client-1] train loss: 0.0563 cross-entropy loss: 0.0563
+2023-07-20 12:03:51,588 DEBUG log--[136/200][196/196][client-2] train loss: 0.3362 cross-entropy loss: 0.3362
+2023-07-20 12:03:51,721 DEBUG log--[136/200][196/196][client-3] train loss: 0.0558 cross-entropy loss: 0.0558
+2023-07-20 12:03:51,753 DEBUG log--[136/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:03:52,613 DEBUG Test (client-0):	Loss 0.4121 (0.4289)	Prec@1 93.750 (89.480)
+2023-07-20 12:03:52,614 DEBUG  * Prec@1 89.480
+2023-07-20 12:03:53,499 DEBUG Test (surrogate):	Loss 1.2052 (0.7940)	Prec@1 68.750 (76.180)
+2023-07-20 12:03:53,500 DEBUG  * Prec@1 76.180
+2023-07-20 12:04:11,592 DEBUG log--[137/200][196/196][client-0] train loss: 0.0451 cross-entropy loss: 0.0451
+2023-07-20 12:04:11,720 DEBUG log--[137/200][196/196][client-1] train loss: 0.0101 cross-entropy loss: 0.0101
+2023-07-20 12:04:11,853 DEBUG log--[137/200][196/196][client-2] train loss: 0.0035 cross-entropy loss: 0.0035
+2023-07-20 12:04:11,987 DEBUG log--[137/200][196/196][client-3] train loss: 0.0084 cross-entropy loss: 0.0084
+2023-07-20 12:04:12,020 DEBUG log--[137/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:04:12,898 DEBUG Test (client-0):	Loss 0.4051 (0.4264)	Prec@1 93.750 (89.400)
+2023-07-20 12:04:12,898 DEBUG  * Prec@1 89.400
+2023-07-20 12:04:13,770 DEBUG Test (surrogate):	Loss 1.2032 (0.7898)	Prec@1 68.750 (76.340)
+2023-07-20 12:04:13,771 DEBUG  * Prec@1 76.340
+2023-07-20 12:04:32,003 DEBUG log--[138/200][196/196][client-0] train loss: 0.0293 cross-entropy loss: 0.0293
+2023-07-20 12:04:32,145 DEBUG log--[138/200][196/196][client-1] train loss: 0.0278 cross-entropy loss: 0.0278
+2023-07-20 12:04:32,266 DEBUG log--[138/200][196/196][client-2] train loss: 0.0187 cross-entropy loss: 0.0187
+2023-07-20 12:04:32,436 DEBUG log--[138/200][196/196][client-3] train loss: 0.2502 cross-entropy loss: 0.2502
+2023-07-20 12:04:32,471 DEBUG log--[138/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:04:33,362 DEBUG Test (client-0):	Loss 0.3666 (0.4181)	Prec@1 93.750 (89.600)
+2023-07-20 12:04:33,363 DEBUG  * Prec@1 89.600
+2023-07-20 12:04:34,246 DEBUG Test (surrogate):	Loss 1.1586 (0.7773)	Prec@1 68.750 (76.460)
+2023-07-20 12:04:34,246 DEBUG  * Prec@1 76.460
+2023-07-20 12:04:52,476 DEBUG log--[139/200][196/196][client-0] train loss: 0.1348 cross-entropy loss: 0.1348
+2023-07-20 12:04:52,619 DEBUG log--[139/200][196/196][client-1] train loss: 0.0444 cross-entropy loss: 0.0444
+2023-07-20 12:04:52,749 DEBUG log--[139/200][196/196][client-2] train loss: 0.0516 cross-entropy loss: 0.0516
+2023-07-20 12:04:52,879 DEBUG log--[139/200][196/196][client-3] train loss: 0.0774 cross-entropy loss: 0.0774
+2023-07-20 12:04:52,910 DEBUG log--[139/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:04:53,789 DEBUG Test (client-0):	Loss 0.4986 (0.4256)	Prec@1 93.750 (89.450)
+2023-07-20 12:04:53,790 DEBUG  * Prec@1 89.450
+2023-07-20 12:04:54,667 DEBUG Test (surrogate):	Loss 1.2195 (0.7829)	Prec@1 68.750 (76.330)
+2023-07-20 12:04:54,667 DEBUG  * Prec@1 76.330
+2023-07-20 12:05:12,835 DEBUG log--[140/200][196/196][client-0] train loss: 0.0221 cross-entropy loss: 0.0221
+2023-07-20 12:05:12,984 DEBUG log--[140/200][196/196][client-1] train loss: 0.0706 cross-entropy loss: 0.0706
+2023-07-20 12:05:13,098 DEBUG log--[140/200][196/196][client-2] train loss: 0.1404 cross-entropy loss: 0.1404
+2023-07-20 12:05:13,279 DEBUG log--[140/200][196/196][client-3] train loss: 0.0090 cross-entropy loss: 0.0090
+2023-07-20 12:05:13,316 DEBUG log--[140/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:05:14,196 DEBUG Test (client-0):	Loss 0.4675 (0.4413)	Prec@1 93.750 (89.310)
+2023-07-20 12:05:14,198 DEBUG  * Prec@1 89.310
+2023-07-20 12:05:15,006 DEBUG Test (surrogate):	Loss 1.2343 (0.7914)	Prec@1 68.750 (76.330)
+2023-07-20 12:05:15,007 DEBUG  * Prec@1 76.330
+2023-07-20 12:05:33,204 DEBUG log--[141/200][196/196][client-0] train loss: 0.0092 cross-entropy loss: 0.0092
+2023-07-20 12:05:33,333 DEBUG log--[141/200][196/196][client-1] train loss: 0.0535 cross-entropy loss: 0.0535
+2023-07-20 12:05:33,500 DEBUG log--[141/200][196/196][client-2] train loss: 0.0142 cross-entropy loss: 0.0142
+2023-07-20 12:05:33,671 DEBUG log--[141/200][196/196][client-3] train loss: 0.0431 cross-entropy loss: 0.0431
+2023-07-20 12:05:33,705 DEBUG log--[141/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:05:34,531 DEBUG Test (client-0):	Loss 0.4375 (0.4406)	Prec@1 93.750 (89.290)
+2023-07-20 12:05:34,532 DEBUG  * Prec@1 89.290
+2023-07-20 12:05:35,353 DEBUG Test (surrogate):	Loss 1.2318 (0.7878)	Prec@1 68.750 (76.330)
+2023-07-20 12:05:35,354 DEBUG  * Prec@1 76.330
+2023-07-20 12:05:53,431 DEBUG log--[142/200][196/196][client-0] train loss: 0.0037 cross-entropy loss: 0.0037
+2023-07-20 12:05:53,566 DEBUG log--[142/200][196/196][client-1] train loss: 0.0387 cross-entropy loss: 0.0387
+2023-07-20 12:05:53,720 DEBUG log--[142/200][196/196][client-2] train loss: 0.0055 cross-entropy loss: 0.0055
+2023-07-20 12:05:53,856 DEBUG log--[142/200][196/196][client-3] train loss: 0.0184 cross-entropy loss: 0.0184
+2023-07-20 12:05:53,888 DEBUG log--[142/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:05:54,811 DEBUG Test (client-0):	Loss 0.3895 (0.4332)	Prec@1 93.750 (89.400)
+2023-07-20 12:05:54,812 DEBUG  * Prec@1 89.400
+2023-07-20 12:05:55,748 DEBUG Test (surrogate):	Loss 1.1472 (0.7955)	Prec@1 68.750 (76.150)
+2023-07-20 12:05:55,749 DEBUG  * Prec@1 76.150
+2023-07-20 12:06:13,806 DEBUG log--[143/200][196/196][client-0] train loss: 0.0242 cross-entropy loss: 0.0242
+2023-07-20 12:06:13,961 DEBUG log--[143/200][196/196][client-1] train loss: 0.0771 cross-entropy loss: 0.0771
+2023-07-20 12:06:14,139 DEBUG log--[143/200][196/196][client-2] train loss: 0.1038 cross-entropy loss: 0.1038
+2023-07-20 12:06:14,264 DEBUG log--[143/200][196/196][client-3] train loss: 0.0266 cross-entropy loss: 0.0266
+2023-07-20 12:06:14,295 DEBUG log--[143/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:06:15,112 DEBUG Test (client-0):	Loss 0.3861 (0.4432)	Prec@1 93.750 (89.180)
+2023-07-20 12:06:15,113 DEBUG  * Prec@1 89.180
+2023-07-20 12:06:15,954 DEBUG Test (surrogate):	Loss 1.2093 (0.7842)	Prec@1 68.750 (76.510)
+2023-07-20 12:06:15,954 DEBUG  * Prec@1 76.510
+2023-07-20 12:06:34,106 DEBUG log--[144/200][196/196][client-0] train loss: 0.0313 cross-entropy loss: 0.0313
+2023-07-20 12:06:34,256 DEBUG log--[144/200][196/196][client-1] train loss: 0.0690 cross-entropy loss: 0.0690
+2023-07-20 12:06:34,396 DEBUG log--[144/200][196/196][client-2] train loss: 0.0141 cross-entropy loss: 0.0141
+2023-07-20 12:06:34,535 DEBUG log--[144/200][196/196][client-3] train loss: 0.0052 cross-entropy loss: 0.0052
+2023-07-20 12:06:34,567 DEBUG log--[144/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:06:35,432 DEBUG Test (client-0):	Loss 0.5014 (0.4350)	Prec@1 93.750 (89.300)
+2023-07-20 12:06:35,434 DEBUG  * Prec@1 89.300
+2023-07-20 12:06:36,315 DEBUG Test (surrogate):	Loss 1.1939 (0.7770)	Prec@1 68.750 (76.700)
+2023-07-20 12:06:36,316 DEBUG  * Prec@1 76.700
+2023-07-20 12:06:54,636 DEBUG log--[145/200][196/196][client-0] train loss: 0.0551 cross-entropy loss: 0.0551
+2023-07-20 12:06:54,759 DEBUG log--[145/200][196/196][client-1] train loss: 0.0731 cross-entropy loss: 0.0731
+2023-07-20 12:06:54,907 DEBUG log--[145/200][196/196][client-2] train loss: 0.1540 cross-entropy loss: 0.1540
+2023-07-20 12:06:55,079 DEBUG log--[145/200][196/196][client-3] train loss: 0.0377 cross-entropy loss: 0.0377
+2023-07-20 12:06:55,111 DEBUG log--[145/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:06:56,020 DEBUG Test (client-0):	Loss 0.4063 (0.4360)	Prec@1 93.750 (89.320)
+2023-07-20 12:06:56,021 DEBUG  * Prec@1 89.320
+2023-07-20 12:06:56,893 DEBUG Test (surrogate):	Loss 1.1409 (0.7786)	Prec@1 68.750 (76.600)
+2023-07-20 12:06:56,894 DEBUG  * Prec@1 76.600
+2023-07-20 12:07:15,028 DEBUG log--[146/200][196/196][client-0] train loss: 0.1386 cross-entropy loss: 0.1386
+2023-07-20 12:07:15,158 DEBUG log--[146/200][196/196][client-1] train loss: 0.0149 cross-entropy loss: 0.0149
+2023-07-20 12:07:15,300 DEBUG log--[146/200][196/196][client-2] train loss: 0.0254 cross-entropy loss: 0.0254
+2023-07-20 12:07:15,477 DEBUG log--[146/200][196/196][client-3] train loss: 0.0552 cross-entropy loss: 0.0552
+2023-07-20 12:07:15,510 DEBUG log--[146/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:07:16,400 DEBUG Test (client-0):	Loss 0.4079 (0.4442)	Prec@1 93.750 (89.300)
+2023-07-20 12:07:16,402 DEBUG  * Prec@1 89.300
+2023-07-20 12:07:17,313 DEBUG Test (surrogate):	Loss 1.1140 (0.7771)	Prec@1 68.750 (76.430)
+2023-07-20 12:07:17,314 DEBUG  * Prec@1 76.430
+2023-07-20 12:07:35,526 DEBUG log--[147/200][196/196][client-0] train loss: 0.0125 cross-entropy loss: 0.0125
+2023-07-20 12:07:35,652 DEBUG log--[147/200][196/196][client-1] train loss: 0.0065 cross-entropy loss: 0.0065
+2023-07-20 12:07:35,777 DEBUG log--[147/200][196/196][client-2] train loss: 0.0350 cross-entropy loss: 0.0350
+2023-07-20 12:07:35,899 DEBUG log--[147/200][196/196][client-3] train loss: 0.0080 cross-entropy loss: 0.0080
+2023-07-20 12:07:35,930 DEBUG log--[147/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:07:36,831 DEBUG Test (client-0):	Loss 0.3875 (0.4388)	Prec@1 93.750 (89.280)
+2023-07-20 12:07:36,832 DEBUG  * Prec@1 89.280
+2023-07-20 12:07:37,758 DEBUG Test (surrogate):	Loss 1.1170 (0.7982)	Prec@1 68.750 (76.210)
+2023-07-20 12:07:37,758 DEBUG  * Prec@1 76.210
+2023-07-20 12:07:55,914 DEBUG log--[148/200][196/196][client-0] train loss: 0.0591 cross-entropy loss: 0.0591
+2023-07-20 12:07:56,059 DEBUG log--[148/200][196/196][client-1] train loss: 0.0229 cross-entropy loss: 0.0229
+2023-07-20 12:07:56,243 DEBUG log--[148/200][196/196][client-2] train loss: 0.0103 cross-entropy loss: 0.0103
+2023-07-20 12:07:56,369 DEBUG log--[148/200][196/196][client-3] train loss: 0.0908 cross-entropy loss: 0.0908
+2023-07-20 12:07:56,401 DEBUG log--[148/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:07:57,240 DEBUG Test (client-0):	Loss 0.5107 (0.4505)	Prec@1 93.750 (89.130)
+2023-07-20 12:07:57,241 DEBUG  * Prec@1 89.130
+2023-07-20 12:07:58,066 DEBUG Test (surrogate):	Loss 1.1798 (0.7983)	Prec@1 68.750 (76.090)
+2023-07-20 12:07:58,066 DEBUG  * Prec@1 76.090
+2023-07-20 12:08:16,400 DEBUG log--[149/200][196/196][client-0] train loss: 0.0801 cross-entropy loss: 0.0801
+2023-07-20 12:08:16,528 DEBUG log--[149/200][196/196][client-1] train loss: 0.0386 cross-entropy loss: 0.0386
+2023-07-20 12:08:16,697 DEBUG log--[149/200][196/196][client-2] train loss: 0.0830 cross-entropy loss: 0.0830
+2023-07-20 12:08:16,832 DEBUG log--[149/200][196/196][client-3] train loss: 0.0055 cross-entropy loss: 0.0055
+2023-07-20 12:08:16,864 DEBUG log--[149/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:08:17,731 DEBUG Test (client-0):	Loss 0.4873 (0.4396)	Prec@1 93.750 (89.440)
+2023-07-20 12:08:17,732 DEBUG  * Prec@1 89.440
+2023-07-20 12:08:18,569 DEBUG Test (surrogate):	Loss 1.1903 (0.7642)	Prec@1 68.750 (76.750)
+2023-07-20 12:08:18,570 DEBUG  * Prec@1 76.750
+2023-07-20 12:08:36,853 DEBUG log--[150/200][196/196][client-0] train loss: 0.0421 cross-entropy loss: 0.0421
+2023-07-20 12:08:36,976 DEBUG log--[150/200][196/196][client-1] train loss: 0.0145 cross-entropy loss: 0.0145
+2023-07-20 12:08:37,098 DEBUG log--[150/200][196/196][client-2] train loss: 0.0276 cross-entropy loss: 0.0276
+2023-07-20 12:08:37,222 DEBUG log--[150/200][196/196][client-3] train loss: 0.0576 cross-entropy loss: 0.0576
+2023-07-20 12:08:37,253 DEBUG log--[150/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:08:38,158 DEBUG Test (client-0):	Loss 0.5261 (0.4563)	Prec@1 93.750 (89.220)
+2023-07-20 12:08:38,159 DEBUG  * Prec@1 89.220
+2023-07-20 12:08:39,022 DEBUG Test (surrogate):	Loss 1.2016 (0.7941)	Prec@1 75.000 (76.140)
+2023-07-20 12:08:39,023 DEBUG  * Prec@1 76.140
+2023-07-20 12:08:57,324 DEBUG log--[151/200][196/196][client-0] train loss: 0.0031 cross-entropy loss: 0.0031
+2023-07-20 12:08:57,482 DEBUG log--[151/200][196/196][client-1] train loss: 0.0206 cross-entropy loss: 0.0206
+2023-07-20 12:08:57,606 DEBUG log--[151/200][196/196][client-2] train loss: 0.1040 cross-entropy loss: 0.1040
+2023-07-20 12:08:57,748 DEBUG log--[151/200][196/196][client-3] train loss: 0.0416 cross-entropy loss: 0.0416
+2023-07-20 12:08:57,781 DEBUG log--[151/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:08:58,649 DEBUG Test (client-0):	Loss 0.4908 (0.4498)	Prec@1 93.750 (89.080)
+2023-07-20 12:08:58,650 DEBUG  * Prec@1 89.080
+2023-07-20 12:08:59,464 DEBUG Test (surrogate):	Loss 1.2132 (0.7769)	Prec@1 68.750 (76.680)
+2023-07-20 12:08:59,465 DEBUG  * Prec@1 76.680
+2023-07-20 12:09:17,799 DEBUG log--[152/200][196/196][client-0] train loss: 0.0395 cross-entropy loss: 0.0395
+2023-07-20 12:09:17,930 DEBUG log--[152/200][196/196][client-1] train loss: 0.0125 cross-entropy loss: 0.0125
+2023-07-20 12:09:18,074 DEBUG log--[152/200][196/196][client-2] train loss: 0.0081 cross-entropy loss: 0.0081
+2023-07-20 12:09:18,221 DEBUG log--[152/200][196/196][client-3] train loss: 0.0470 cross-entropy loss: 0.0470
+2023-07-20 12:09:18,253 DEBUG log--[152/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:09:19,164 DEBUG Test (client-0):	Loss 0.4864 (0.4434)	Prec@1 93.750 (89.250)
+2023-07-20 12:09:19,165 DEBUG  * Prec@1 89.250
+2023-07-20 12:09:20,036 DEBUG Test (surrogate):	Loss 1.1464 (0.7948)	Prec@1 68.750 (76.400)
+2023-07-20 12:09:20,037 DEBUG  * Prec@1 76.400
+2023-07-20 12:09:38,338 DEBUG log--[153/200][196/196][client-0] train loss: 0.0364 cross-entropy loss: 0.0364
+2023-07-20 12:09:38,478 DEBUG log--[153/200][196/196][client-1] train loss: 0.0089 cross-entropy loss: 0.0089
+2023-07-20 12:09:38,634 DEBUG log--[153/200][196/196][client-2] train loss: 0.0250 cross-entropy loss: 0.0250
+2023-07-20 12:09:38,783 DEBUG log--[153/200][196/196][client-3] train loss: 0.0488 cross-entropy loss: 0.0488
+2023-07-20 12:09:38,816 DEBUG log--[153/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:09:39,658 DEBUG Test (client-0):	Loss 0.4590 (0.4359)	Prec@1 93.750 (89.250)
+2023-07-20 12:09:39,659 DEBUG  * Prec@1 89.250
+2023-07-20 12:09:40,453 DEBUG Test (surrogate):	Loss 1.0969 (0.7907)	Prec@1 68.750 (76.480)
+2023-07-20 12:09:40,454 DEBUG  * Prec@1 76.480
+2023-07-20 12:09:58,738 DEBUG log--[154/200][196/196][client-0] train loss: 0.0269 cross-entropy loss: 0.0269
+2023-07-20 12:09:58,861 DEBUG log--[154/200][196/196][client-1] train loss: 0.0149 cross-entropy loss: 0.0149
+2023-07-20 12:09:58,993 DEBUG log--[154/200][196/196][client-2] train loss: 0.0694 cross-entropy loss: 0.0694
+2023-07-20 12:09:59,133 DEBUG log--[154/200][196/196][client-3] train loss: 0.1114 cross-entropy loss: 0.1114
+2023-07-20 12:09:59,164 DEBUG log--[154/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:10:00,046 DEBUG Test (client-0):	Loss 0.4504 (0.4369)	Prec@1 93.750 (89.530)
+2023-07-20 12:10:00,046 DEBUG  * Prec@1 89.530
+2023-07-20 12:10:00,860 DEBUG Test (surrogate):	Loss 1.1908 (0.7932)	Prec@1 68.750 (76.310)
+2023-07-20 12:10:00,861 DEBUG  * Prec@1 76.310
+2023-07-20 12:10:19,087 DEBUG log--[155/200][196/196][client-0] train loss: 0.0012 cross-entropy loss: 0.0012
+2023-07-20 12:10:19,236 DEBUG log--[155/200][196/196][client-1] train loss: 0.0203 cross-entropy loss: 0.0203
+2023-07-20 12:10:19,424 DEBUG log--[155/200][196/196][client-2] train loss: 0.0209 cross-entropy loss: 0.0209
+2023-07-20 12:10:19,584 DEBUG log--[155/200][196/196][client-3] train loss: 0.0240 cross-entropy loss: 0.0240
+2023-07-20 12:10:19,620 DEBUG log--[155/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:10:20,482 DEBUG Test (client-0):	Loss 0.4747 (0.4347)	Prec@1 93.750 (89.420)
+2023-07-20 12:10:20,483 DEBUG  * Prec@1 89.420
+2023-07-20 12:10:21,318 DEBUG Test (surrogate):	Loss 1.1789 (0.7946)	Prec@1 68.750 (76.280)
+2023-07-20 12:10:21,319 DEBUG  * Prec@1 76.280
+2023-07-20 12:10:39,414 DEBUG log--[156/200][196/196][client-0] train loss: 0.0525 cross-entropy loss: 0.0525
+2023-07-20 12:10:39,553 DEBUG log--[156/200][196/196][client-1] train loss: 0.0843 cross-entropy loss: 0.0843
+2023-07-20 12:10:39,668 DEBUG log--[156/200][196/196][client-2] train loss: 0.0361 cross-entropy loss: 0.0361
+2023-07-20 12:10:39,846 DEBUG log--[156/200][196/196][client-3] train loss: 0.0507 cross-entropy loss: 0.0507
+2023-07-20 12:10:39,880 DEBUG log--[156/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:10:40,790 DEBUG Test (client-0):	Loss 0.5417 (0.4380)	Prec@1 93.750 (89.440)
+2023-07-20 12:10:40,791 DEBUG  * Prec@1 89.440
+2023-07-20 12:10:41,708 DEBUG Test (surrogate):	Loss 1.1914 (0.7834)	Prec@1 68.750 (76.910)
+2023-07-20 12:10:41,709 DEBUG  * Prec@1 76.910
+2023-07-20 12:11:00,020 DEBUG log--[157/200][196/196][client-0] train loss: 0.1093 cross-entropy loss: 0.1093
+2023-07-20 12:11:00,146 DEBUG log--[157/200][196/196][client-1] train loss: 0.0066 cross-entropy loss: 0.0066
+2023-07-20 12:11:00,265 DEBUG log--[157/200][196/196][client-2] train loss: 0.0312 cross-entropy loss: 0.0312
+2023-07-20 12:11:00,400 DEBUG log--[157/200][196/196][client-3] train loss: 0.0035 cross-entropy loss: 0.0035
+2023-07-20 12:11:00,431 DEBUG log--[157/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:11:01,261 DEBUG Test (client-0):	Loss 0.5540 (0.4383)	Prec@1 93.750 (89.360)
+2023-07-20 12:11:01,262 DEBUG  * Prec@1 89.360
+2023-07-20 12:11:02,110 DEBUG Test (surrogate):	Loss 1.1976 (0.7882)	Prec@1 68.750 (76.580)
+2023-07-20 12:11:02,111 DEBUG  * Prec@1 76.580
+2023-07-20 12:11:20,316 DEBUG log--[158/200][196/196][client-0] train loss: 0.0042 cross-entropy loss: 0.0042
+2023-07-20 12:11:20,450 DEBUG log--[158/200][196/196][client-1] train loss: 0.0291 cross-entropy loss: 0.0291
+2023-07-20 12:11:20,579 DEBUG log--[158/200][196/196][client-2] train loss: 0.0909 cross-entropy loss: 0.0909
+2023-07-20 12:11:20,705 DEBUG log--[158/200][196/196][client-3] train loss: 0.0478 cross-entropy loss: 0.0478
+2023-07-20 12:11:20,737 DEBUG log--[158/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:11:21,627 DEBUG Test (client-0):	Loss 0.5234 (0.4437)	Prec@1 93.750 (89.360)
+2023-07-20 12:11:21,629 DEBUG  * Prec@1 89.360
+2023-07-20 12:11:22,482 DEBUG Test (surrogate):	Loss 1.2152 (0.7892)	Prec@1 68.750 (76.520)
+2023-07-20 12:11:22,483 DEBUG  * Prec@1 76.520
+2023-07-20 12:11:40,656 DEBUG log--[159/200][196/196][client-0] train loss: 0.0397 cross-entropy loss: 0.0397
+2023-07-20 12:11:40,793 DEBUG log--[159/200][196/196][client-1] train loss: 0.0949 cross-entropy loss: 0.0949
+2023-07-20 12:11:40,911 DEBUG log--[159/200][196/196][client-2] train loss: 0.0056 cross-entropy loss: 0.0056
+2023-07-20 12:11:41,040 DEBUG log--[159/200][196/196][client-3] train loss: 0.0106 cross-entropy loss: 0.0106
+2023-07-20 12:11:41,072 DEBUG log--[159/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:11:41,993 DEBUG Test (client-0):	Loss 0.4915 (0.4604)	Prec@1 93.750 (89.210)
+2023-07-20 12:11:41,994 DEBUG  * Prec@1 89.210
+2023-07-20 12:11:42,885 DEBUG Test (surrogate):	Loss 1.2185 (0.8230)	Prec@1 68.750 (75.530)
+2023-07-20 12:11:42,886 DEBUG  * Prec@1 75.530
+2023-07-20 12:12:00,967 DEBUG log--[160/200][196/196][client-0] train loss: 0.0127 cross-entropy loss: 0.0127
+2023-07-20 12:12:01,085 DEBUG log--[160/200][196/196][client-1] train loss: 0.0899 cross-entropy loss: 0.0899
+2023-07-20 12:12:01,232 DEBUG log--[160/200][196/196][client-2] train loss: 0.0154 cross-entropy loss: 0.0154
+2023-07-20 12:12:01,350 DEBUG log--[160/200][196/196][client-3] train loss: 0.1031 cross-entropy loss: 0.1031
+2023-07-20 12:12:01,382 DEBUG log--[160/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:12:02,212 DEBUG Test (client-0):	Loss 0.5257 (0.4535)	Prec@1 93.750 (89.420)
+2023-07-20 12:12:02,213 DEBUG  * Prec@1 89.420
+2023-07-20 12:12:03,023 DEBUG Test (surrogate):	Loss 1.1947 (0.8019)	Prec@1 68.750 (76.210)
+2023-07-20 12:12:03,024 DEBUG  * Prec@1 76.210
+2023-07-20 12:12:21,219 DEBUG log--[161/200][196/196][client-0] train loss: 0.0290 cross-entropy loss: 0.0290
+2023-07-20 12:12:21,398 DEBUG log--[161/200][196/196][client-1] train loss: 0.0365 cross-entropy loss: 0.0365
+2023-07-20 12:12:21,542 DEBUG log--[161/200][196/196][client-2] train loss: 0.0252 cross-entropy loss: 0.0252
+2023-07-20 12:12:21,675 DEBUG log--[161/200][196/196][client-3] train loss: 0.1062 cross-entropy loss: 0.1062
+2023-07-20 12:12:21,706 DEBUG log--[161/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:12:22,536 DEBUG Test (client-0):	Loss 0.5232 (0.4568)	Prec@1 93.750 (89.230)
+2023-07-20 12:12:22,537 DEBUG  * Prec@1 89.230
+2023-07-20 12:12:23,364 DEBUG Test (surrogate):	Loss 1.2099 (0.7835)	Prec@1 68.750 (76.460)
+2023-07-20 12:12:23,366 DEBUG  * Prec@1 76.460
+2023-07-20 12:12:41,626 DEBUG log--[162/200][196/196][client-0] train loss: 0.0136 cross-entropy loss: 0.0136
+2023-07-20 12:12:41,771 DEBUG log--[162/200][196/196][client-1] train loss: 0.0142 cross-entropy loss: 0.0142
+2023-07-20 12:12:41,889 DEBUG log--[162/200][196/196][client-2] train loss: 0.0948 cross-entropy loss: 0.0948
+2023-07-20 12:12:42,010 DEBUG log--[162/200][196/196][client-3] train loss: 0.0155 cross-entropy loss: 0.0155
+2023-07-20 12:12:42,042 DEBUG log--[162/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:12:42,962 DEBUG Test (client-0):	Loss 0.5348 (0.4563)	Prec@1 93.750 (89.250)
+2023-07-20 12:12:42,963 DEBUG  * Prec@1 89.250
+2023-07-20 12:12:43,810 DEBUG Test (surrogate):	Loss 1.1937 (0.7994)	Prec@1 68.750 (76.040)
+2023-07-20 12:12:43,812 DEBUG  * Prec@1 76.040
+2023-07-20 12:13:01,924 DEBUG log--[163/200][196/196][client-0] train loss: 0.0021 cross-entropy loss: 0.0021
+2023-07-20 12:13:02,071 DEBUG log--[163/200][196/196][client-1] train loss: 0.0144 cross-entropy loss: 0.0144
+2023-07-20 12:13:02,196 DEBUG log--[163/200][196/196][client-2] train loss: 0.0716 cross-entropy loss: 0.0716
+2023-07-20 12:13:02,318 DEBUG log--[163/200][196/196][client-3] train loss: 0.0126 cross-entropy loss: 0.0126
+2023-07-20 12:13:02,350 DEBUG log--[163/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:13:03,280 DEBUG Test (client-0):	Loss 0.5167 (0.4545)	Prec@1 93.750 (89.150)
+2023-07-20 12:13:03,282 DEBUG  * Prec@1 89.150
+2023-07-20 12:13:04,141 DEBUG Test (surrogate):	Loss 1.1845 (0.7871)	Prec@1 68.750 (76.430)
+2023-07-20 12:13:04,141 DEBUG  * Prec@1 76.430
+2023-07-20 12:13:22,313 DEBUG log--[164/200][196/196][client-0] train loss: 0.0084 cross-entropy loss: 0.0084
+2023-07-20 12:13:22,447 DEBUG log--[164/200][196/196][client-1] train loss: 0.1030 cross-entropy loss: 0.1030
+2023-07-20 12:13:22,582 DEBUG log--[164/200][196/196][client-2] train loss: 0.0079 cross-entropy loss: 0.0079
+2023-07-20 12:13:22,703 DEBUG log--[164/200][196/196][client-3] train loss: 0.0147 cross-entropy loss: 0.0147
+2023-07-20 12:13:22,735 DEBUG log--[164/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:13:23,590 DEBUG Test (client-0):	Loss 0.5519 (0.4592)	Prec@1 93.750 (89.310)
+2023-07-20 12:13:23,592 DEBUG  * Prec@1 89.310
+2023-07-20 12:13:24,406 DEBUG Test (surrogate):	Loss 1.2679 (0.7957)	Prec@1 68.750 (76.210)
+2023-07-20 12:13:24,406 DEBUG  * Prec@1 76.210
+2023-07-20 12:13:42,599 DEBUG log--[165/200][196/196][client-0] train loss: 0.0860 cross-entropy loss: 0.0860
+2023-07-20 12:13:42,773 DEBUG log--[165/200][196/196][client-1] train loss: 0.0067 cross-entropy loss: 0.0067
+2023-07-20 12:13:42,925 DEBUG log--[165/200][196/196][client-2] train loss: 0.0112 cross-entropy loss: 0.0112
+2023-07-20 12:13:43,049 DEBUG log--[165/200][196/196][client-3] train loss: 0.1104 cross-entropy loss: 0.1104
+2023-07-20 12:13:43,080 DEBUG log--[165/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:13:43,924 DEBUG Test (client-0):	Loss 0.5519 (0.4575)	Prec@1 93.750 (89.300)
+2023-07-20 12:13:43,925 DEBUG  * Prec@1 89.300
+2023-07-20 12:13:44,715 DEBUG Test (surrogate):	Loss 1.1593 (0.7809)	Prec@1 68.750 (76.680)
+2023-07-20 12:13:44,717 DEBUG  * Prec@1 76.680
+2023-07-20 12:14:02,929 DEBUG log--[166/200][196/196][client-0] train loss: 0.0539 cross-entropy loss: 0.0539
+2023-07-20 12:14:03,128 DEBUG log--[166/200][196/196][client-1] train loss: 0.0729 cross-entropy loss: 0.0729
+2023-07-20 12:14:03,298 DEBUG log--[166/200][196/196][client-2] train loss: 0.0462 cross-entropy loss: 0.0462
+2023-07-20 12:14:03,428 DEBUG log--[166/200][196/196][client-3] train loss: 0.0505 cross-entropy loss: 0.0505
+2023-07-20 12:14:03,460 DEBUG log--[166/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:14:04,308 DEBUG Test (client-0):	Loss 0.5628 (0.4671)	Prec@1 93.750 (89.070)
+2023-07-20 12:14:04,310 DEBUG  * Prec@1 89.070
+2023-07-20 12:14:05,126 DEBUG Test (surrogate):	Loss 1.2306 (0.7901)	Prec@1 68.750 (76.200)
+2023-07-20 12:14:05,127 DEBUG  * Prec@1 76.200
+2023-07-20 12:14:23,354 DEBUG log--[167/200][196/196][client-0] train loss: 0.0122 cross-entropy loss: 0.0122
+2023-07-20 12:14:23,493 DEBUG log--[167/200][196/196][client-1] train loss: 0.0038 cross-entropy loss: 0.0038
+2023-07-20 12:14:23,666 DEBUG log--[167/200][196/196][client-2] train loss: 0.0736 cross-entropy loss: 0.0736
+2023-07-20 12:14:23,885 DEBUG log--[167/200][196/196][client-3] train loss: 0.0640 cross-entropy loss: 0.0640
+2023-07-20 12:14:23,918 DEBUG log--[167/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:14:24,738 DEBUG Test (client-0):	Loss 0.5514 (0.4706)	Prec@1 93.750 (89.100)
+2023-07-20 12:14:24,739 DEBUG  * Prec@1 89.100
+2023-07-20 12:14:25,572 DEBUG Test (surrogate):	Loss 1.2161 (0.7935)	Prec@1 68.750 (76.390)
+2023-07-20 12:14:25,573 DEBUG  * Prec@1 76.390
+2023-07-20 12:14:43,782 DEBUG log--[168/200][196/196][client-0] train loss: 0.0409 cross-entropy loss: 0.0409
+2023-07-20 12:14:43,925 DEBUG log--[168/200][196/196][client-1] train loss: 0.0279 cross-entropy loss: 0.0279
+2023-07-20 12:14:44,056 DEBUG log--[168/200][196/196][client-2] train loss: 0.0011 cross-entropy loss: 0.0011
+2023-07-20 12:14:44,194 DEBUG log--[168/200][196/196][client-3] train loss: 0.1310 cross-entropy loss: 0.1310
+2023-07-20 12:14:44,226 DEBUG log--[168/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:14:45,132 DEBUG Test (client-0):	Loss 0.5473 (0.4573)	Prec@1 93.750 (89.220)
+2023-07-20 12:14:45,133 DEBUG  * Prec@1 89.220
+2023-07-20 12:14:45,994 DEBUG Test (surrogate):	Loss 1.1894 (0.7855)	Prec@1 68.750 (76.490)
+2023-07-20 12:14:45,996 DEBUG  * Prec@1 76.490
+2023-07-20 12:15:04,103 DEBUG log--[169/200][196/196][client-0] train loss: 0.0172 cross-entropy loss: 0.0172
+2023-07-20 12:15:04,245 DEBUG log--[169/200][196/196][client-1] train loss: 0.1564 cross-entropy loss: 0.1564
+2023-07-20 12:15:04,375 DEBUG log--[169/200][196/196][client-2] train loss: 0.0204 cross-entropy loss: 0.0204
+2023-07-20 12:15:04,552 DEBUG log--[169/200][196/196][client-3] train loss: 0.0013 cross-entropy loss: 0.0013
+2023-07-20 12:15:04,585 DEBUG log--[169/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:15:05,515 DEBUG Test (client-0):	Loss 0.5654 (0.4566)	Prec@1 93.750 (89.330)
+2023-07-20 12:15:05,516 DEBUG  * Prec@1 89.330
+2023-07-20 12:15:06,395 DEBUG Test (surrogate):	Loss 1.1893 (0.7872)	Prec@1 68.750 (76.550)
+2023-07-20 12:15:06,396 DEBUG  * Prec@1 76.550
+2023-07-20 12:15:24,521 DEBUG log--[170/200][196/196][client-0] train loss: 0.0226 cross-entropy loss: 0.0226
+2023-07-20 12:15:24,660 DEBUG log--[170/200][196/196][client-1] train loss: 0.0090 cross-entropy loss: 0.0090
+2023-07-20 12:15:24,786 DEBUG log--[170/200][196/196][client-2] train loss: 0.1539 cross-entropy loss: 0.1539
+2023-07-20 12:15:24,923 DEBUG log--[170/200][196/196][client-3] train loss: 0.0017 cross-entropy loss: 0.0017
+2023-07-20 12:15:24,956 DEBUG log--[170/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:15:25,895 DEBUG Test (client-0):	Loss 0.5520 (0.4631)	Prec@1 93.750 (89.110)
+2023-07-20 12:15:25,896 DEBUG  * Prec@1 89.110
+2023-07-20 12:15:26,822 DEBUG Test (surrogate):	Loss 1.2417 (0.8095)	Prec@1 75.000 (75.870)
+2023-07-20 12:15:26,823 DEBUG  * Prec@1 75.870
+2023-07-20 12:15:45,033 DEBUG log--[171/200][196/196][client-0] train loss: 0.0230 cross-entropy loss: 0.0230
+2023-07-20 12:15:45,155 DEBUG log--[171/200][196/196][client-1] train loss: 0.0476 cross-entropy loss: 0.0476
+2023-07-20 12:15:45,285 DEBUG log--[171/200][196/196][client-2] train loss: 0.0277 cross-entropy loss: 0.0277
+2023-07-20 12:15:45,468 DEBUG log--[171/200][196/196][client-3] train loss: 0.0281 cross-entropy loss: 0.0281
+2023-07-20 12:15:45,502 DEBUG log--[171/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:15:46,348 DEBUG Test (client-0):	Loss 0.5567 (0.4548)	Prec@1 93.750 (89.370)
+2023-07-20 12:15:46,349 DEBUG  * Prec@1 89.370
+2023-07-20 12:15:47,199 DEBUG Test (surrogate):	Loss 1.2462 (0.7831)	Prec@1 68.750 (76.450)
+2023-07-20 12:15:47,200 DEBUG  * Prec@1 76.450
+2023-07-20 12:16:05,380 DEBUG log--[172/200][196/196][client-0] train loss: 0.0047 cross-entropy loss: 0.0047
+2023-07-20 12:16:05,512 DEBUG log--[172/200][196/196][client-1] train loss: 0.0093 cross-entropy loss: 0.0093
+2023-07-20 12:16:05,639 DEBUG log--[172/200][196/196][client-2] train loss: 0.0034 cross-entropy loss: 0.0034
+2023-07-20 12:16:05,825 DEBUG log--[172/200][196/196][client-3] train loss: 0.0420 cross-entropy loss: 0.0420
+2023-07-20 12:16:05,859 DEBUG log--[172/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:16:06,774 DEBUG Test (client-0):	Loss 0.5374 (0.4595)	Prec@1 93.750 (89.230)
+2023-07-20 12:16:06,775 DEBUG  * Prec@1 89.230
+2023-07-20 12:16:07,646 DEBUG Test (surrogate):	Loss 1.2185 (0.8000)	Prec@1 68.750 (76.130)
+2023-07-20 12:16:07,646 DEBUG  * Prec@1 76.130
+2023-07-20 12:16:25,710 DEBUG log--[173/200][196/196][client-0] train loss: 0.0200 cross-entropy loss: 0.0200
+2023-07-20 12:16:25,854 DEBUG log--[173/200][196/196][client-1] train loss: 0.0045 cross-entropy loss: 0.0045
+2023-07-20 12:16:25,976 DEBUG log--[173/200][196/196][client-2] train loss: 0.0035 cross-entropy loss: 0.0035
+2023-07-20 12:16:26,092 DEBUG log--[173/200][196/196][client-3] train loss: 0.0231 cross-entropy loss: 0.0231
+2023-07-20 12:16:26,126 DEBUG log--[173/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:16:26,993 DEBUG Test (client-0):	Loss 0.5329 (0.4567)	Prec@1 93.750 (89.210)
+2023-07-20 12:16:26,995 DEBUG  * Prec@1 89.210
+2023-07-20 12:16:27,889 DEBUG Test (surrogate):	Loss 1.1967 (0.7885)	Prec@1 75.000 (76.310)
+2023-07-20 12:16:27,890 DEBUG  * Prec@1 76.310
+2023-07-20 12:16:46,016 DEBUG log--[174/200][196/196][client-0] train loss: 0.0126 cross-entropy loss: 0.0126
+2023-07-20 12:16:46,137 DEBUG log--[174/200][196/196][client-1] train loss: 0.0612 cross-entropy loss: 0.0612
+2023-07-20 12:16:46,313 DEBUG log--[174/200][196/196][client-2] train loss: 0.0985 cross-entropy loss: 0.0985
+2023-07-20 12:16:46,441 DEBUG log--[174/200][196/196][client-3] train loss: 0.0232 cross-entropy loss: 0.0232
+2023-07-20 12:16:46,473 DEBUG log--[174/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:16:47,358 DEBUG Test (client-0):	Loss 0.5280 (0.4618)	Prec@1 93.750 (89.130)
+2023-07-20 12:16:47,358 DEBUG  * Prec@1 89.130
+2023-07-20 12:16:48,181 DEBUG Test (surrogate):	Loss 1.2349 (0.8110)	Prec@1 68.750 (75.950)
+2023-07-20 12:16:48,182 DEBUG  * Prec@1 75.950
+2023-07-20 12:17:06,446 DEBUG log--[175/200][196/196][client-0] train loss: 0.0212 cross-entropy loss: 0.0212
+2023-07-20 12:17:06,583 DEBUG log--[175/200][196/196][client-1] train loss: 0.0159 cross-entropy loss: 0.0159
+2023-07-20 12:17:06,718 DEBUG log--[175/200][196/196][client-2] train loss: 0.0813 cross-entropy loss: 0.0813
+2023-07-20 12:17:06,865 DEBUG log--[175/200][196/196][client-3] train loss: 0.1966 cross-entropy loss: 0.1966
+2023-07-20 12:17:06,897 DEBUG log--[175/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:17:07,786 DEBUG Test (client-0):	Loss 0.5428 (0.4644)	Prec@1 93.750 (89.180)
+2023-07-20 12:17:07,787 DEBUG  * Prec@1 89.180
+2023-07-20 12:17:08,653 DEBUG Test (surrogate):	Loss 1.2228 (0.8141)	Prec@1 75.000 (75.970)
+2023-07-20 12:17:08,654 DEBUG  * Prec@1 75.970
+2023-07-20 12:17:26,746 DEBUG log--[176/200][196/196][client-0] train loss: 0.0033 cross-entropy loss: 0.0033
+2023-07-20 12:17:26,892 DEBUG log--[176/200][196/196][client-1] train loss: 0.0138 cross-entropy loss: 0.0138
+2023-07-20 12:17:27,044 DEBUG log--[176/200][196/196][client-2] train loss: 0.0035 cross-entropy loss: 0.0035
+2023-07-20 12:17:27,212 DEBUG log--[176/200][196/196][client-3] train loss: 0.0023 cross-entropy loss: 0.0023
+2023-07-20 12:17:27,245 DEBUG log--[176/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:17:28,130 DEBUG Test (client-0):	Loss 0.5155 (0.4564)	Prec@1 93.750 (89.260)
+2023-07-20 12:17:28,131 DEBUG  * Prec@1 89.260
+2023-07-20 12:17:29,020 DEBUG Test (surrogate):	Loss 1.1755 (0.8038)	Prec@1 68.750 (76.220)
+2023-07-20 12:17:29,022 DEBUG  * Prec@1 76.220
+2023-07-20 12:17:47,188 DEBUG log--[177/200][196/196][client-0] train loss: 0.0799 cross-entropy loss: 0.0799
+2023-07-20 12:17:47,336 DEBUG log--[177/200][196/196][client-1] train loss: 0.0343 cross-entropy loss: 0.0343
+2023-07-20 12:17:47,450 DEBUG log--[177/200][196/196][client-2] train loss: 0.1381 cross-entropy loss: 0.1381
+2023-07-20 12:17:47,597 DEBUG log--[177/200][196/196][client-3] train loss: 0.0613 cross-entropy loss: 0.0613
+2023-07-20 12:17:47,630 DEBUG log--[177/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:17:48,521 DEBUG Test (client-0):	Loss 0.5365 (0.4606)	Prec@1 93.750 (89.310)
+2023-07-20 12:17:48,522 DEBUG  * Prec@1 89.310
+2023-07-20 12:17:49,368 DEBUG Test (surrogate):	Loss 1.2622 (0.7705)	Prec@1 68.750 (76.840)
+2023-07-20 12:17:49,369 DEBUG  * Prec@1 76.840
+2023-07-20 12:18:07,694 DEBUG log--[178/200][196/196][client-0] train loss: 0.0405 cross-entropy loss: 0.0405
+2023-07-20 12:18:07,813 DEBUG log--[178/200][196/196][client-1] train loss: 0.0386 cross-entropy loss: 0.0386
+2023-07-20 12:18:07,945 DEBUG log--[178/200][196/196][client-2] train loss: 0.0069 cross-entropy loss: 0.0069
+2023-07-20 12:18:08,061 DEBUG log--[178/200][196/196][client-3] train loss: 0.0045 cross-entropy loss: 0.0045
+2023-07-20 12:18:08,094 DEBUG log--[178/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:18:08,967 DEBUG Test (client-0):	Loss 0.5271 (0.4653)	Prec@1 93.750 (89.300)
+2023-07-20 12:18:08,969 DEBUG  * Prec@1 89.300
+2023-07-20 12:18:09,836 DEBUG Test (surrogate):	Loss 1.1783 (0.7788)	Prec@1 75.000 (76.630)
+2023-07-20 12:18:09,837 DEBUG  * Prec@1 76.630
+2023-07-20 12:18:27,984 DEBUG log--[179/200][196/196][client-0] train loss: 0.0139 cross-entropy loss: 0.0139
+2023-07-20 12:18:28,113 DEBUG log--[179/200][196/196][client-1] train loss: 0.0271 cross-entropy loss: 0.0271
+2023-07-20 12:18:28,235 DEBUG log--[179/200][196/196][client-2] train loss: 0.0218 cross-entropy loss: 0.0218
+2023-07-20 12:18:28,362 DEBUG log--[179/200][196/196][client-3] train loss: 0.0275 cross-entropy loss: 0.0275
+2023-07-20 12:18:28,394 DEBUG log--[179/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:18:29,268 DEBUG Test (client-0):	Loss 0.5417 (0.4677)	Prec@1 93.750 (89.250)
+2023-07-20 12:18:29,269 DEBUG  * Prec@1 89.250
+2023-07-20 12:18:30,188 DEBUG Test (surrogate):	Loss 1.1891 (0.7915)	Prec@1 68.750 (76.370)
+2023-07-20 12:18:30,190 DEBUG  * Prec@1 76.370
+2023-07-20 12:18:48,347 DEBUG log--[180/200][196/196][client-0] train loss: 0.0174 cross-entropy loss: 0.0174
+2023-07-20 12:18:48,489 DEBUG log--[180/200][196/196][client-1] train loss: 0.0015 cross-entropy loss: 0.0015
+2023-07-20 12:18:48,618 DEBUG log--[180/200][196/196][client-2] train loss: 0.0711 cross-entropy loss: 0.0711
+2023-07-20 12:18:48,789 DEBUG log--[180/200][196/196][client-3] train loss: 0.0089 cross-entropy loss: 0.0089
+2023-07-20 12:18:48,822 DEBUG log--[180/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:18:49,663 DEBUG Test (client-0):	Loss 0.5424 (0.4662)	Prec@1 93.750 (89.210)
+2023-07-20 12:18:49,663 DEBUG  * Prec@1 89.210
+2023-07-20 12:18:50,502 DEBUG Test (surrogate):	Loss 1.1972 (0.7843)	Prec@1 68.750 (76.520)
+2023-07-20 12:18:50,503 DEBUG  * Prec@1 76.520
+2023-07-20 12:19:08,536 DEBUG log--[181/200][196/196][client-0] train loss: 0.0082 cross-entropy loss: 0.0082
+2023-07-20 12:19:08,659 DEBUG log--[181/200][196/196][client-1] train loss: 0.0038 cross-entropy loss: 0.0038
+2023-07-20 12:19:08,790 DEBUG log--[181/200][196/196][client-2] train loss: 0.0574 cross-entropy loss: 0.0574
+2023-07-20 12:19:08,921 DEBUG log--[181/200][196/196][client-3] train loss: 0.0339 cross-entropy loss: 0.0339
+2023-07-20 12:19:08,953 DEBUG log--[181/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:19:09,848 DEBUG Test (client-0):	Loss 0.5219 (0.4582)	Prec@1 93.750 (89.150)
+2023-07-20 12:19:09,850 DEBUG  * Prec@1 89.150
+2023-07-20 12:19:10,690 DEBUG Test (surrogate):	Loss 1.2213 (0.7842)	Prec@1 68.750 (76.620)
+2023-07-20 12:19:10,691 DEBUG  * Prec@1 76.620
+2023-07-20 12:19:28,916 DEBUG log--[182/200][196/196][client-0] train loss: 0.0037 cross-entropy loss: 0.0037
+2023-07-20 12:19:29,047 DEBUG log--[182/200][196/196][client-1] train loss: 0.1394 cross-entropy loss: 0.1394
+2023-07-20 12:19:29,197 DEBUG log--[182/200][196/196][client-2] train loss: 0.0115 cross-entropy loss: 0.0115
+2023-07-20 12:19:29,326 DEBUG log--[182/200][196/196][client-3] train loss: 0.0026 cross-entropy loss: 0.0026
+2023-07-20 12:19:29,358 DEBUG log--[182/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:19:30,197 DEBUG Test (client-0):	Loss 0.5435 (0.4656)	Prec@1 93.750 (89.110)
+2023-07-20 12:19:30,199 DEBUG  * Prec@1 89.110
+2023-07-20 12:19:31,042 DEBUG Test (surrogate):	Loss 1.2517 (0.7950)	Prec@1 68.750 (76.460)
+2023-07-20 12:19:31,042 DEBUG  * Prec@1 76.460
+2023-07-20 12:19:49,292 DEBUG log--[183/200][196/196][client-0] train loss: 0.0085 cross-entropy loss: 0.0085
+2023-07-20 12:19:49,424 DEBUG log--[183/200][196/196][client-1] train loss: 0.0146 cross-entropy loss: 0.0146
+2023-07-20 12:19:49,574 DEBUG log--[183/200][196/196][client-2] train loss: 0.0034 cross-entropy loss: 0.0034
+2023-07-20 12:19:49,722 DEBUG log--[183/200][196/196][client-3] train loss: 0.0086 cross-entropy loss: 0.0086
+2023-07-20 12:19:49,753 DEBUG log--[183/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:19:50,680 DEBUG Test (client-0):	Loss 0.5134 (0.4601)	Prec@1 93.750 (89.320)
+2023-07-20 12:19:50,681 DEBUG  * Prec@1 89.320
+2023-07-20 12:19:51,581 DEBUG Test (surrogate):	Loss 1.2660 (0.7970)	Prec@1 68.750 (76.450)
+2023-07-20 12:19:51,582 DEBUG  * Prec@1 76.450
+2023-07-20 12:20:09,876 DEBUG log--[184/200][196/196][client-0] train loss: 0.0156 cross-entropy loss: 0.0156
+2023-07-20 12:20:10,015 DEBUG log--[184/200][196/196][client-1] train loss: 0.0124 cross-entropy loss: 0.0124
+2023-07-20 12:20:10,162 DEBUG log--[184/200][196/196][client-2] train loss: 0.0319 cross-entropy loss: 0.0319
+2023-07-20 12:20:10,284 DEBUG log--[184/200][196/196][client-3] train loss: 0.0248 cross-entropy loss: 0.0248
+2023-07-20 12:20:10,315 DEBUG log--[184/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:20:11,176 DEBUG Test (client-0):	Loss 0.5481 (0.4590)	Prec@1 93.750 (89.330)
+2023-07-20 12:20:11,177 DEBUG  * Prec@1 89.330
+2023-07-20 12:20:12,089 DEBUG Test (surrogate):	Loss 1.2379 (0.8235)	Prec@1 68.750 (75.710)
+2023-07-20 12:20:12,090 DEBUG  * Prec@1 75.710
+2023-07-20 12:20:30,229 DEBUG log--[185/200][196/196][client-0] train loss: 0.0508 cross-entropy loss: 0.0508
+2023-07-20 12:20:30,346 DEBUG log--[185/200][196/196][client-1] train loss: 0.0035 cross-entropy loss: 0.0035
+2023-07-20 12:20:30,473 DEBUG log--[185/200][196/196][client-2] train loss: 0.0072 cross-entropy loss: 0.0072
+2023-07-20 12:20:30,602 DEBUG log--[185/200][196/196][client-3] train loss: 0.0104 cross-entropy loss: 0.0104
+2023-07-20 12:20:30,634 DEBUG log--[185/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:20:31,504 DEBUG Test (client-0):	Loss 0.5538 (0.4729)	Prec@1 93.750 (89.050)
+2023-07-20 12:20:31,505 DEBUG  * Prec@1 89.050
+2023-07-20 12:20:32,369 DEBUG Test (surrogate):	Loss 1.2795 (0.7946)	Prec@1 68.750 (76.360)
+2023-07-20 12:20:32,370 DEBUG  * Prec@1 76.360
+2023-07-20 12:20:50,511 DEBUG log--[186/200][196/196][client-0] train loss: 0.2031 cross-entropy loss: 0.2031
+2023-07-20 12:20:50,638 DEBUG log--[186/200][196/196][client-1] train loss: 0.0042 cross-entropy loss: 0.0042
+2023-07-20 12:20:50,766 DEBUG log--[186/200][196/196][client-2] train loss: 0.0263 cross-entropy loss: 0.0263
+2023-07-20 12:20:50,885 DEBUG log--[186/200][196/196][client-3] train loss: 0.0177 cross-entropy loss: 0.0177
+2023-07-20 12:20:50,917 DEBUG log--[186/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:20:51,810 DEBUG Test (client-0):	Loss 0.5420 (0.4721)	Prec@1 93.750 (89.260)
+2023-07-20 12:20:51,811 DEBUG  * Prec@1 89.260
+2023-07-20 12:20:52,657 DEBUG Test (surrogate):	Loss 1.1710 (0.8207)	Prec@1 68.750 (75.790)
+2023-07-20 12:20:52,658 DEBUG  * Prec@1 75.790
+2023-07-20 12:21:10,990 DEBUG log--[187/200][196/196][client-0] train loss: 0.0108 cross-entropy loss: 0.0108
+2023-07-20 12:21:11,114 DEBUG log--[187/200][196/196][client-1] train loss: 0.0041 cross-entropy loss: 0.0041
+2023-07-20 12:21:11,253 DEBUG log--[187/200][196/196][client-2] train loss: 0.0447 cross-entropy loss: 0.0447
+2023-07-20 12:21:11,389 DEBUG log--[187/200][196/196][client-3] train loss: 0.1109 cross-entropy loss: 0.1109
+2023-07-20 12:21:11,422 DEBUG log--[187/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:21:12,289 DEBUG Test (client-0):	Loss 0.5164 (0.4643)	Prec@1 93.750 (89.270)
+2023-07-20 12:21:12,290 DEBUG  * Prec@1 89.270
+2023-07-20 12:21:13,142 DEBUG Test (surrogate):	Loss 1.2525 (0.7942)	Prec@1 75.000 (76.320)
+2023-07-20 12:21:13,142 DEBUG  * Prec@1 76.320
+2023-07-20 12:21:31,352 DEBUG log--[188/200][196/196][client-0] train loss: 0.0029 cross-entropy loss: 0.0029
+2023-07-20 12:21:31,476 DEBUG log--[188/200][196/196][client-1] train loss: 0.0058 cross-entropy loss: 0.0058
+2023-07-20 12:21:31,624 DEBUG log--[188/200][196/196][client-2] train loss: 0.0090 cross-entropy loss: 0.0090
+2023-07-20 12:21:31,744 DEBUG log--[188/200][196/196][client-3] train loss: 0.0439 cross-entropy loss: 0.0439
+2023-07-20 12:21:31,775 DEBUG log--[188/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:21:32,696 DEBUG Test (client-0):	Loss 0.5386 (0.4758)	Prec@1 93.750 (89.120)
+2023-07-20 12:21:32,697 DEBUG  * Prec@1 89.120
+2023-07-20 12:21:33,594 DEBUG Test (surrogate):	Loss 1.2405 (0.8033)	Prec@1 75.000 (76.180)
+2023-07-20 12:21:33,595 DEBUG  * Prec@1 76.180
+2023-07-20 12:21:51,696 DEBUG log--[189/200][196/196][client-0] train loss: 0.0411 cross-entropy loss: 0.0411
+2023-07-20 12:21:51,828 DEBUG log--[189/200][196/196][client-1] train loss: 0.0091 cross-entropy loss: 0.0091
+2023-07-20 12:21:52,020 DEBUG log--[189/200][196/196][client-2] train loss: 0.0658 cross-entropy loss: 0.0658
+2023-07-20 12:21:52,170 DEBUG log--[189/200][196/196][client-3] train loss: 0.0037 cross-entropy loss: 0.0037
+2023-07-20 12:21:52,203 DEBUG log--[189/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:21:53,053 DEBUG Test (client-0):	Loss 0.5198 (0.4614)	Prec@1 93.750 (89.360)
+2023-07-20 12:21:53,054 DEBUG  * Prec@1 89.360
+2023-07-20 12:21:53,873 DEBUG Test (surrogate):	Loss 1.2063 (0.7988)	Prec@1 68.750 (76.180)
+2023-07-20 12:21:53,873 DEBUG  * Prec@1 76.180
+2023-07-20 12:22:12,013 DEBUG log--[190/200][196/196][client-0] train loss: 0.0035 cross-entropy loss: 0.0035
+2023-07-20 12:22:12,155 DEBUG log--[190/200][196/196][client-1] train loss: 0.1895 cross-entropy loss: 0.1895
+2023-07-20 12:22:12,313 DEBUG log--[190/200][196/196][client-2] train loss: 0.0265 cross-entropy loss: 0.0265
+2023-07-20 12:22:12,505 DEBUG log--[190/200][196/196][client-3] train loss: 0.0900 cross-entropy loss: 0.0900
+2023-07-20 12:22:12,539 DEBUG log--[190/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:22:13,389 DEBUG Test (client-0):	Loss 0.5149 (0.4763)	Prec@1 93.750 (88.970)
+2023-07-20 12:22:13,390 DEBUG  * Prec@1 88.970
+2023-07-20 12:22:14,230 DEBUG Test (surrogate):	Loss 1.1969 (0.8004)	Prec@1 68.750 (76.210)
+2023-07-20 12:22:14,231 DEBUG  * Prec@1 76.210
+2023-07-20 12:22:32,551 DEBUG log--[191/200][196/196][client-0] train loss: 0.0053 cross-entropy loss: 0.0053
+2023-07-20 12:22:32,671 DEBUG log--[191/200][196/196][client-1] train loss: 0.0023 cross-entropy loss: 0.0023
+2023-07-20 12:22:32,813 DEBUG log--[191/200][196/196][client-2] train loss: 0.0478 cross-entropy loss: 0.0478
+2023-07-20 12:22:32,944 DEBUG log--[191/200][196/196][client-3] train loss: 0.0977 cross-entropy loss: 0.0977
+2023-07-20 12:22:32,975 DEBUG log--[191/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:22:33,917 DEBUG Test (client-0):	Loss 0.5121 (0.4669)	Prec@1 93.750 (89.210)
+2023-07-20 12:22:33,918 DEBUG  * Prec@1 89.210
+2023-07-20 12:22:34,826 DEBUG Test (surrogate):	Loss 1.2136 (0.7880)	Prec@1 68.750 (76.560)
+2023-07-20 12:22:34,827 DEBUG  * Prec@1 76.560
+2023-07-20 12:22:52,924 DEBUG log--[192/200][196/196][client-0] train loss: 0.0220 cross-entropy loss: 0.0220
+2023-07-20 12:22:53,057 DEBUG log--[192/200][196/196][client-1] train loss: 0.0820 cross-entropy loss: 0.0820
+2023-07-20 12:22:53,246 DEBUG log--[192/200][196/196][client-2] train loss: 0.0068 cross-entropy loss: 0.0068
+2023-07-20 12:22:53,373 DEBUG log--[192/200][196/196][client-3] train loss: 0.0118 cross-entropy loss: 0.0118
+2023-07-20 12:22:53,405 DEBUG log--[192/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:22:54,258 DEBUG Test (client-0):	Loss 0.5070 (0.4757)	Prec@1 93.750 (89.240)
+2023-07-20 12:22:54,260 DEBUG  * Prec@1 89.240
+2023-07-20 12:22:55,085 DEBUG Test (surrogate):	Loss 1.1741 (0.7890)	Prec@1 68.750 (76.300)
+2023-07-20 12:22:55,086 DEBUG  * Prec@1 76.300
+2023-07-20 12:23:13,277 DEBUG log--[193/200][196/196][client-0] train loss: 0.0572 cross-entropy loss: 0.0572
+2023-07-20 12:23:13,423 DEBUG log--[193/200][196/196][client-1] train loss: 0.0126 cross-entropy loss: 0.0126
+2023-07-20 12:23:13,556 DEBUG log--[193/200][196/196][client-2] train loss: 0.0046 cross-entropy loss: 0.0046
+2023-07-20 12:23:13,691 DEBUG log--[193/200][196/196][client-3] train loss: 0.0275 cross-entropy loss: 0.0275
+2023-07-20 12:23:13,723 DEBUG log--[193/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:23:14,557 DEBUG Test (client-0):	Loss 0.5347 (0.4626)	Prec@1 93.750 (89.420)
+2023-07-20 12:23:14,558 DEBUG  * Prec@1 89.420
+2023-07-20 12:23:15,420 DEBUG Test (surrogate):	Loss 1.1842 (0.8060)	Prec@1 68.750 (76.240)
+2023-07-20 12:23:15,421 DEBUG  * Prec@1 76.240
+2023-07-20 12:23:33,583 DEBUG log--[194/200][196/196][client-0] train loss: 0.0178 cross-entropy loss: 0.0178
+2023-07-20 12:23:33,728 DEBUG log--[194/200][196/196][client-1] train loss: 0.0600 cross-entropy loss: 0.0600
+2023-07-20 12:23:33,854 DEBUG log--[194/200][196/196][client-2] train loss: 0.1973 cross-entropy loss: 0.1973
+2023-07-20 12:23:33,991 DEBUG log--[194/200][196/196][client-3] train loss: 0.0442 cross-entropy loss: 0.0442
+2023-07-20 12:23:34,023 DEBUG log--[194/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:23:34,891 DEBUG Test (client-0):	Loss 0.5402 (0.4756)	Prec@1 93.750 (89.010)
+2023-07-20 12:23:34,892 DEBUG  * Prec@1 89.010
+2023-07-20 12:23:35,769 DEBUG Test (surrogate):	Loss 1.2283 (0.8047)	Prec@1 75.000 (76.100)
+2023-07-20 12:23:35,771 DEBUG  * Prec@1 76.100
+2023-07-20 12:23:54,074 DEBUG log--[195/200][196/196][client-0] train loss: 0.0986 cross-entropy loss: 0.0986
+2023-07-20 12:23:54,196 DEBUG log--[195/200][196/196][client-1] train loss: 0.0217 cross-entropy loss: 0.0217
+2023-07-20 12:23:54,371 DEBUG log--[195/200][196/196][client-2] train loss: 0.0053 cross-entropy loss: 0.0053
+2023-07-20 12:23:54,556 DEBUG log--[195/200][196/196][client-3] train loss: 0.0173 cross-entropy loss: 0.0173
+2023-07-20 12:23:54,590 DEBUG log--[195/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:23:55,386 DEBUG Test (client-0):	Loss 0.5280 (0.4673)	Prec@1 93.750 (89.260)
+2023-07-20 12:23:55,387 DEBUG  * Prec@1 89.260
+2023-07-20 12:23:56,222 DEBUG Test (surrogate):	Loss 1.2170 (0.8156)	Prec@1 68.750 (76.070)
+2023-07-20 12:23:56,222 DEBUG  * Prec@1 76.070
+2023-07-20 12:24:14,433 DEBUG log--[196/200][196/196][client-0] train loss: 0.0471 cross-entropy loss: 0.0471
+2023-07-20 12:24:14,582 DEBUG log--[196/200][196/196][client-1] train loss: 0.0305 cross-entropy loss: 0.0305
+2023-07-20 12:24:14,711 DEBUG log--[196/200][196/196][client-2] train loss: 0.0528 cross-entropy loss: 0.0528
+2023-07-20 12:24:14,879 DEBUG log--[196/200][196/196][client-3] train loss: 0.0155 cross-entropy loss: 0.0155
+2023-07-20 12:24:14,913 DEBUG log--[196/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:24:15,796 DEBUG Test (client-0):	Loss 0.5214 (0.4705)	Prec@1 93.750 (89.380)
+2023-07-20 12:24:15,797 DEBUG  * Prec@1 89.380
+2023-07-20 12:24:16,678 DEBUG Test (surrogate):	Loss 1.1704 (0.7962)	Prec@1 68.750 (76.410)
+2023-07-20 12:24:16,679 DEBUG  * Prec@1 76.410
+2023-07-20 12:24:34,787 DEBUG log--[197/200][196/196][client-0] train loss: 0.0311 cross-entropy loss: 0.0311
+2023-07-20 12:24:34,914 DEBUG log--[197/200][196/196][client-1] train loss: 0.0175 cross-entropy loss: 0.0175
+2023-07-20 12:24:35,059 DEBUG log--[197/200][196/196][client-2] train loss: 0.0473 cross-entropy loss: 0.0473
+2023-07-20 12:24:35,195 DEBUG log--[197/200][196/196][client-3] train loss: 0.0176 cross-entropy loss: 0.0176
+2023-07-20 12:24:35,226 DEBUG log--[197/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:24:36,142 DEBUG Test (client-0):	Loss 0.5367 (0.4714)	Prec@1 93.750 (89.310)
+2023-07-20 12:24:36,143 DEBUG  * Prec@1 89.310
+2023-07-20 12:24:36,976 DEBUG Test (surrogate):	Loss 1.1870 (0.8011)	Prec@1 68.750 (76.350)
+2023-07-20 12:24:36,977 DEBUG  * Prec@1 76.350
+2023-07-20 12:24:55,190 DEBUG log--[198/200][196/196][client-0] train loss: 0.0031 cross-entropy loss: 0.0031
+2023-07-20 12:24:55,318 DEBUG log--[198/200][196/196][client-1] train loss: 0.1180 cross-entropy loss: 0.1180
+2023-07-20 12:24:55,457 DEBUG log--[198/200][196/196][client-2] train loss: 0.0220 cross-entropy loss: 0.0220
+2023-07-20 12:24:55,627 DEBUG log--[198/200][196/196][client-3] train loss: 0.0025 cross-entropy loss: 0.0025
+2023-07-20 12:24:55,662 DEBUG log--[198/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:24:56,574 DEBUG Test (client-0):	Loss 0.4996 (0.4683)	Prec@1 93.750 (89.280)
+2023-07-20 12:24:56,575 DEBUG  * Prec@1 89.280
+2023-07-20 12:24:57,474 DEBUG Test (surrogate):	Loss 1.2165 (0.7916)	Prec@1 68.750 (76.270)
+2023-07-20 12:24:57,474 DEBUG  * Prec@1 76.270
+2023-07-20 12:25:15,635 DEBUG log--[199/200][196/196][client-0] train loss: 0.0457 cross-entropy loss: 0.0457
+2023-07-20 12:25:15,756 DEBUG log--[199/200][196/196][client-1] train loss: 0.0015 cross-entropy loss: 0.0015
+2023-07-20 12:25:15,875 DEBUG log--[199/200][196/196][client-2] train loss: 0.0931 cross-entropy loss: 0.0931
+2023-07-20 12:25:16,013 DEBUG log--[199/200][196/196][client-3] train loss: 0.0054 cross-entropy loss: 0.0054
+2023-07-20 12:25:16,045 DEBUG log--[199/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:25:16,955 DEBUG Test (client-0):	Loss 0.5314 (0.4676)	Prec@1 93.750 (89.190)
+2023-07-20 12:25:16,955 DEBUG  * Prec@1 89.190
+2023-07-20 12:25:17,786 DEBUG Test (surrogate):	Loss 1.2212 (0.7992)	Prec@1 68.750 (76.370)
+2023-07-20 12:25:17,787 DEBUG  * Prec@1 76.370
+2023-07-20 12:25:35,948 DEBUG log--[200/200][196/196][client-0] train loss: 0.0031 cross-entropy loss: 0.0031
+2023-07-20 12:25:36,103 DEBUG log--[200/200][196/196][client-1] train loss: 0.1008 cross-entropy loss: 0.1008
+2023-07-20 12:25:36,231 DEBUG log--[200/200][196/196][client-2] train loss: 0.0280 cross-entropy loss: 0.0280
+2023-07-20 12:25:36,421 DEBUG log--[200/200][196/196][client-3] train loss: 0.0031 cross-entropy loss: 0.0031
+2023-07-20 12:25:36,454 DEBUG log--[200/200][196/196][client-4] train loss: 0.0000 cross-entropy loss: 0.0000
+2023-07-20 12:25:37,289 DEBUG Test (client-0):	Loss 0.5082 (0.4604)	Prec@1 93.750 (89.320)
+2023-07-20 12:25:37,290 DEBUG  * Prec@1 89.320
+2023-07-20 12:25:38,098 DEBUG Test (surrogate):	Loss 1.1598 (0.7733)	Prec@1 68.750 (76.890)
+2023-07-20 12:25:38,099 DEBUG  * Prec@1 76.890
+2023-07-20 12:25:38,345 DEBUG Final Target Validation Accuracy is 89.32
+2023-07-20 12:25:38,346 DEBUG Final Surrogate Validation Accuracy is 76.89
+2023-07-20 12:25:39,249 DEBUG Final-Generator_VAR: 0.062445253133773804
+2023-07-20 12:25:40,249 DEBUG Final-Generator_MEAN_MARGIN: 0.8594490631103516
+2023-07-20 12:25:41,519 DEBUG Test (surrogate):	Fidelity 75.000 (78.680)
+2023-07-20 12:25:41,521 DEBUG  * Fidelity 78.680
+2023-07-20 12:25:41,521 DEBUG Final Surrogate Fidelity Score is 78.68
+2023-07-20 12:25:41,522 DEBUG Best Target Validation Accuracy is 89.68
+2023-07-20 12:25:41,523 DEBUG Best Surrogate Validation Accuracy is 77.7

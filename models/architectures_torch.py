@@ -165,7 +165,13 @@ def create_surrogate_model(arch, cutting_layer, num_class, train_clas_layer = 0,
             print("{}. CFG is {}".format(surrogate_arch, str(cfg)))
             
         if arch == "vgg11_bn":
-            return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['A'], batch_norm=True), cfg['fc'], num_class = num_class)
+            if num_class != 12:
+                return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['A'], batch_norm=True), cfg['fc'], num_class = num_class)
+            else:
+                configs = cfg['A'].copy()
+                configs.append("AdaptiveM")
+                return VGG_surrogate(make_vgg_layers(cutting_layer,configs, batch_norm=True), cfg['fc'], num_class = num_class)
+
         elif arch == "vgg11":
             return VGG_surrogate(make_vgg_layers(cutting_layer,cfg['A'], batch_norm=False), cfg['fc'], num_class = num_class)
         elif arch == "vgg13_bn":
@@ -575,6 +581,8 @@ class VGG_surrogate(nn.Module):
             if local_count <= num_of_local_layer:
                 if "VGGView" in str(module):
                     cloud_list.append(module)
+                elif "AdaptiveAvgPool2d" in str(module):
+                    cloud_list.append(module)
                 else:
                     local_list.append(module)
             else:
@@ -598,6 +606,8 @@ def make_vgg_layers(cutting_layer,cfg, batch_norm=False):
         if v_idx < cutting_layer - 1:
             if v == 'M':
                 local += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            elif v == 'AdaptiveM':
+                local += [nn.AdaptiveAvgPool2d((1,1))]
             else:
                 conv2d = nn.Conv2d(in_channels, int(v * channel_mul), kernel_size=3, padding=1)
                 if batch_norm:
@@ -608,6 +618,8 @@ def make_vgg_layers(cutting_layer,cfg, batch_norm=False):
         elif v_idx == cutting_layer - 1:
             if v == 'M':
                 local += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            elif v == 'AdaptiveM':
+                local += [nn.AdaptiveAvgPool2d((1,1))]
             else:
                 conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
                 if batch_norm:
@@ -618,6 +630,8 @@ def make_vgg_layers(cutting_layer,cfg, batch_norm=False):
         else:
             if v == 'M':
                 cloud += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            elif v == 'AdaptiveM':
+                cloud += [nn.AdaptiveAvgPool2d((1,1))]
             else:
                 conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
                 if batch_norm:
