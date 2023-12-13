@@ -13,8 +13,12 @@ learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.01
 attack_epochs=50
 attack_client=0
-# regularization_list="gan_assist_train_ME_multiGAN_surrogate_ultramix_reduce_grad_freq_start0"
-regularization_list="gan_assist_train_ME_multiGAN_surrogate_ultramix_reduce_grad_freq_by3_start0 gan_assist_train_ME_multiGAN_surrogate_ultramix_reduce_grad_freq_by4_start0"
+<<<<<<< HEAD
+regularization_list="gan_assist_train_ME_multiGAN_surrogate_propermix_reduce_grad_freq_start0 gan_assist_train_ME_multiGAN_surrogate_propermix_reduce_grad_freq_by3_start0 gan_assist_train_ME_multiGAN_surrogate_propermix_reduce_grad_freq_by4_start0"
+=======
+# regularization_list="gan_assist_train_ME_multiGAN_surrogate_propermix_reduce_grad_freq_start0"
+regularization_list="gan_assist_train_ME_multiGAN_surrogate_propermix_reduce_grad_freq_by3_start0 gan_assist_train_ME_multiGAN_surrogate_propermix_reduce_grad_freq_by4_start0"
+>>>>>>> c64250ba29da1d61eb04c70de1a7e6800246dae6
 cutlayer_list="10"
 regularization_strength_list="0.6"
 num_client_list="5"

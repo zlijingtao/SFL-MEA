@@ -20,9 +20,7 @@ gan_loss_type=SSIM
 attack_epochs=50
 select_layer_output="-1"
 random_seed_list="123"
-# cutlayer_list="4 5 6 7 8 9 10"
 cutlayer_list="7 5"
-# cutlayer_list="13 14"
 
 for random_seed in $random_seed_list; do
         for cutlayer in $cutlayer_list; do
