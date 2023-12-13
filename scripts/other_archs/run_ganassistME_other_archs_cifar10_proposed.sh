@@ -13,7 +13,6 @@ learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.01
 attack_epochs=50
 attack_client=0
-# regularization_list="gan_assist_train_ME_multiGAN_surrogate_ultramix_start0 naive_train_ME_start0"
 regularization_list="gan_assist_train_ME_multiGAN_surrogate_ultramix_start0 naive_train_ME_start0"
 
 regularization_strength_list="0.6"

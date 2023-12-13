@@ -7,17 +7,16 @@ batch_size=128
 num_epochs=200
 random_seed_list="123"
 
-scheme=V2
+scheme=V1
 dataset=cifar10
 learning_rate=0.02 # 0.00005 for 7 & 8, 0.01 data proportion
 learning_rate_MEA=0.01
-attack_epochs=200
+attack_epochs=50
 attack_client=0
 
 regularization=craft_train_ME_surrogate_start0
 cutlayer_list="10"
 regularization_strength_list="50"
-# num_client_list="10 20 100"
 num_client_list="5"
 noniid_ratio_list="1.0"
 last_n_batch_list="100"
