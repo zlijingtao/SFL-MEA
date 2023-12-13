@@ -21,7 +21,7 @@ import tqdm
 import gc
 
 class Trainer:
-    def __init__(self, arch, cutting_layer, batch_size, n_epochs, scheme="V2", num_client=2, dataset="cifar10",
+    def __init__(self, arch, cutting_layer, batch_size, n_epochs, scheme="V1", num_client=2, dataset="cifar10",
                  logger=None, save_dir=None, regularization_option="None", regularization_strength=0, learning_rate=0.1, 
                  random_seed=123, load_from_checkpoint = False, attack_confidence_score = False, num_freeze_layer = 0,
                  load_from_checkpoint_server = False, source_task = "cifar100", client_sample_ratio = 1.0,
