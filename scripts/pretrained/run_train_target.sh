@@ -15,4 +15,4 @@ python main.py --filename vgg11-cifar10 --dataset cifar10 --learning_rate 0.05 -
 
 # python main.py --filename vgg11-svhn --dataset svhn --learning_rate 0.05 --scheme V1
 
-# python main.py --filename vgg11-imagenet12-new-v1 --dataset imagenet12 --learning_rate 0.05 --scheme V1
+# python main.py --filename vgg11-imagenet12 --dataset imagenet12 --learning_rate 0.05 --scheme V1
