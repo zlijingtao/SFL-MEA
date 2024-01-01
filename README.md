@@ -1,9 +1,9 @@
 # EMGAN: Early-Mix-GAN on Extracting Server-side Model in Split Federated Learning
 This repository is official pytorch repository of two SFL MEA attack paper.
 
-In the first work `Model Extraction Attacks on Split Federated Learning`, we start the investigation of MEA on SFL. Where we discover the interesting problem setting and propose five variants of ME attack which differs in the gradient usage as well as in the data assumptions. We make them all availble in the code without much cleanning - best performers `ganME` and `TrainME` (renamed as `naiveME`) are used as baseline in our second work and are included in the scripts.
+In the first work `Model Extraction Attacks on Split Federated Learning`, we start the investigation of MEA on SFL. Where we discover the interesting problem setting and propose five variants of ME attack which differs in the gradient usage as well as in the data assumptions. We make them all available in branch [`old-commit`](https://github.com/zlijingtao/SFL-MEA/tree/old-commit) of this repository without much cleaning - best performers `ganME` and `trainME` (renamed as `naiveME`) are used as baseline in our second work and are included in the scripts.
 
-The second work **(recently accepted by AAAI' 24)** builds on top of the first one, aiming to address the challange in perform MEA in training-from-scratch applications. In this work, we propose a strong MEA during the SFL training phase. 
+The second work **(recently accepted by AAAI' 24)** builds on top of the first one, aiming to address the challenges in perform MEA in training-from-scratch applications. In this work, we propose a strong MEA during the SFL training phase. 
 
 ## Abstract:
 The proposed Early-Mix-GAN~(EMGAN) attack effectively exploits gradient queries regardless of data assumptions.
@@ -33,7 +33,7 @@ transformers
 ## Proof Of Concepts:
 
 ```
-bash scripts/run_all_online.sh*
+bash scripts/run_attack.sh
 ```
 
 ## Cite the work:
